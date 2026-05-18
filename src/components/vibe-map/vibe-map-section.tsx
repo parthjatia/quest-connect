@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Button } from "@/components/ui/button";
+
 import { Floorplan } from "@/components/vibe-map/floorplan";
 import {
   ATTENDEE_FILTERS, AttendeeFilter, CURRENT_USER, EVENT_ZONES, EventZone, MOCK_ATTENDEES,
