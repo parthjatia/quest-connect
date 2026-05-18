@@ -15,8 +15,13 @@ export const Route = createFileRoute("/join")({
   component: JoinPage,
 });
 
-const AI_LEVELS = ["Never used", "Beginner", "Intermediate", "Power user"] as const;
-type AILevel = (typeof AI_LEVELS)[number];
+const AI_LEVELS = [
+  { value: null, label: "Never used" },
+  { value: "beginner" as const, label: "Beginner" },
+  { value: "intermediate" as const, label: "Intermediate" },
+  { value: "power_user" as const, label: "Power user" },
+];
+type AILevel = "beginner" | "intermediate" | "power_user" | null;
 
 function JoinPage() {
   const navigate = useNavigate();
