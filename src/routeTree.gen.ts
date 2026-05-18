@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as WrappedRouteImport } from './routes/wrapped'
+import { Route as RecapRouteImport } from './routes/recap'
 import { Route as PlayRouteImport } from './routes/play'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as JoinRouteImport } from './routes/join'
@@ -17,10 +18,18 @@ import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as RecapResultRouteImport } from './routes/recap.result'
+import { Route as RecapPreferencesRouteImport } from './routes/recap.preferences'
+import { Route as RecapLoadingRouteImport } from './routes/recap.loading'
 
 const WrappedRoute = WrappedRouteImport.update({
   id: '/wrapped',
   path: '/wrapped',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RecapRoute = RecapRouteImport.update({
+  id: '/recap',
+  path: '/recap',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PlayRoute = PlayRouteImport.update({
@@ -58,6 +67,21 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RecapResultRoute = RecapResultRouteImport.update({
+  id: '/result',
+  path: '/result',
+  getParentRoute: () => RecapRoute,
+} as any)
+const RecapPreferencesRoute = RecapPreferencesRouteImport.update({
+  id: '/preferences',
+  path: '/preferences',
+  getParentRoute: () => RecapRoute,
+} as any)
+const RecapLoadingRoute = RecapLoadingRouteImport.update({
+  id: '/loading',
+  path: '/loading',
+  getParentRoute: () => RecapRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -67,7 +91,11 @@ export interface FileRoutesByFullPath {
   '/join': typeof JoinRoute
   '/onboarding': typeof OnboardingRoute
   '/play': typeof PlayRoute
+  '/recap': typeof RecapRouteWithChildren
   '/wrapped': typeof WrappedRoute
+  '/recap/loading': typeof RecapLoadingRoute
+  '/recap/preferences': typeof RecapPreferencesRoute
+  '/recap/result': typeof RecapResultRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -77,7 +105,11 @@ export interface FileRoutesByTo {
   '/join': typeof JoinRoute
   '/onboarding': typeof OnboardingRoute
   '/play': typeof PlayRoute
+  '/recap': typeof RecapRouteWithChildren
   '/wrapped': typeof WrappedRoute
+  '/recap/loading': typeof RecapLoadingRoute
+  '/recap/preferences': typeof RecapPreferencesRoute
+  '/recap/result': typeof RecapResultRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -88,7 +120,11 @@ export interface FileRoutesById {
   '/join': typeof JoinRoute
   '/onboarding': typeof OnboardingRoute
   '/play': typeof PlayRoute
+  '/recap': typeof RecapRouteWithChildren
   '/wrapped': typeof WrappedRoute
+  '/recap/loading': typeof RecapLoadingRoute
+  '/recap/preferences': typeof RecapPreferencesRoute
+  '/recap/result': typeof RecapResultRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -100,7 +136,11 @@ export interface FileRouteTypes {
     | '/join'
     | '/onboarding'
     | '/play'
+    | '/recap'
     | '/wrapped'
+    | '/recap/loading'
+    | '/recap/preferences'
+    | '/recap/result'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -110,7 +150,11 @@ export interface FileRouteTypes {
     | '/join'
     | '/onboarding'
     | '/play'
+    | '/recap'
     | '/wrapped'
+    | '/recap/loading'
+    | '/recap/preferences'
+    | '/recap/result'
   id:
     | '__root__'
     | '/'
@@ -120,7 +164,11 @@ export interface FileRouteTypes {
     | '/join'
     | '/onboarding'
     | '/play'
+    | '/recap'
     | '/wrapped'
+    | '/recap/loading'
+    | '/recap/preferences'
+    | '/recap/result'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -131,6 +179,7 @@ export interface RootRouteChildren {
   JoinRoute: typeof JoinRoute
   OnboardingRoute: typeof OnboardingRoute
   PlayRoute: typeof PlayRoute
+  RecapRoute: typeof RecapRouteWithChildren
   WrappedRoute: typeof WrappedRoute
 }
 
@@ -141,6 +190,13 @@ declare module '@tanstack/react-router' {
       path: '/wrapped'
       fullPath: '/wrapped'
       preLoaderRoute: typeof WrappedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/recap': {
+      id: '/recap'
+      path: '/recap'
+      fullPath: '/recap'
+      preLoaderRoute: typeof RecapRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/play': {
@@ -192,8 +248,43 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/recap/result': {
+      id: '/recap/result'
+      path: '/result'
+      fullPath: '/recap/result'
+      preLoaderRoute: typeof RecapResultRouteImport
+      parentRoute: typeof RecapRoute
+    }
+    '/recap/preferences': {
+      id: '/recap/preferences'
+      path: '/preferences'
+      fullPath: '/recap/preferences'
+      preLoaderRoute: typeof RecapPreferencesRouteImport
+      parentRoute: typeof RecapRoute
+    }
+    '/recap/loading': {
+      id: '/recap/loading'
+      path: '/loading'
+      fullPath: '/recap/loading'
+      preLoaderRoute: typeof RecapLoadingRouteImport
+      parentRoute: typeof RecapRoute
+    }
   }
 }
+
+interface RecapRouteChildren {
+  RecapLoadingRoute: typeof RecapLoadingRoute
+  RecapPreferencesRoute: typeof RecapPreferencesRoute
+  RecapResultRoute: typeof RecapResultRoute
+}
+
+const RecapRouteChildren: RecapRouteChildren = {
+  RecapLoadingRoute: RecapLoadingRoute,
+  RecapPreferencesRoute: RecapPreferencesRoute,
+  RecapResultRoute: RecapResultRoute,
+}
+
+const RecapRouteWithChildren = RecapRoute._addFileChildren(RecapRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -203,8 +294,19 @@ const rootRouteChildren: RootRouteChildren = {
   JoinRoute: JoinRoute,
   OnboardingRoute: OnboardingRoute,
   PlayRoute: PlayRoute,
+  RecapRoute: RecapRouteWithChildren,
   WrappedRoute: WrappedRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
