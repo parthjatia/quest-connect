@@ -1,23 +1,33 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Crown, Loader2, Plus, Trash2, Sparkles, Users, Trophy, ArrowLeft } from "lucide-react";
+import { Loader2, Plus, Trash2, Sparkles, ArrowLeft, UserPlus, Wand2 } from "lucide-react";
+import { MOCK_ATTENDEES } from "@/lib/mock-attendees";
+import { buildPods, type MatchInput } from "@/lib/matchmaker";
 
 export const Route = createFileRoute("/admin")({
-  head: () => ({ meta: [{ title: "Admin — EventQuest" }] }),
+  head: () => ({ meta: [{ title: "Admin — Quest Connect" }] }),
   component: AdminPage,
 });
 
 type Quest = { id: string; title: string; description: string; type: string; points_awarded: number; emoji: string | null };
-type Attendee = { id: string; full_name: string | null; points: number; group_id: string | null };
+type Attendee = {
+  id: string;
+  full_name: string | null;
+  university: string | null;
+  academic_background: string | null;
+  ai_experience: string | null;
+  track_intent: string | null;
+  event_goal: string | null;
+  points: number;
+  group_id: string | null;
+};
+type Group = { id: string; group_name: string; pod_rationale: string | null };
 
 function AdminPage() {
   const qc = useQueryClient();
@@ -36,71 +46,250 @@ function AdminPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("attendees")
-        .select("id, full_name, points, group_id")
+        .select("id, full_name, university, academic_background, ai_experience, track_intent, event_goal, points, group_id")
         .order("points", { ascending: false });
       if (error) throw error;
       return (data ?? []) as Attendee[];
     },
   });
 
-  // Realtime
+  const groups = useQuery({
+    queryKey: ["admin-groups"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("groups").select("id, group_name, pod_rationale");
+      if (error) throw error;
+      return (data ?? []) as Group[];
+    },
+  });
+
   useEffect(() => {
     const ch = supabase
       .channel("admin-feed")
       .on("postgres_changes", { event: "*", schema: "public", table: "attendees" }, () => {
         qc.invalidateQueries({ queryKey: ["admin-attendees"] });
       })
-      .on("postgres_changes", { event: "*", schema: "public", table: "completed_quests" }, () => {
-        qc.invalidateQueries({ queryKey: ["admin-attendees"] });
+      .on("postgres_changes", { event: "*", schema: "public", table: "groups" }, () => {
+        qc.invalidateQueries({ queryKey: ["admin-groups"] });
       })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [qc]);
 
+  const aiLevelToEnum = (s: string): "Never used" | "Beginner" | "Intermediate" | "Power user" => {
+    const t = s.toLowerCase();
+    if (t.includes("power")) return "Power user";
+    if (t.includes("inter")) return "Intermediate";
+    if (t.includes("begin")) return "Beginner";
+    return "Never used";
+  };
+
+  const [seeding, setSeeding] = useState(false);
+  const seedMocks = async () => {
+    if (!confirm(`Seed ${MOCK_ATTENDEES.length} mock attendees? Existing ones stay.`)) return;
+    setSeeding(true);
+    try {
+      const existing = new Set((attendees.data ?? []).map((a) => (a.full_name ?? "").trim().toLowerCase()));
+      const fresh = MOCK_ATTENDEES.filter((m) => !existing.has(m.name.trim().toLowerCase()));
+      if (fresh.length === 0) { toast.info("All mock attendees already seeded."); return; }
+      const rows = fresh.map((m) => ({
+        full_name: m.name,
+        university: m.university,
+        academic_background: m.background,
+        ai_experience: aiLevelToEnum(m.ai_level),
+        track_intent: m.track,
+        event_goal: m.goal,
+        onboarded: true,
+      }));
+      // Insert in chunks to avoid payload limits
+      const chunk = 25;
+      for (let i = 0; i < rows.length; i += chunk) {
+        const { error } = await supabase.from("attendees").insert(rows.slice(i, i + chunk));
+        if (error) throw error;
+      }
+      toast.success(`Seeded ${rows.length} attendees`);
+      qc.invalidateQueries({ queryKey: ["admin-attendees"] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Seeding failed");
+    } finally { setSeeding(false); }
+  };
+
+  const [matching, setMatching] = useState(false);
+  const runMatchmaker = async () => {
+    if ((attendees.data ?? []).length < 3) return toast.error("Need at least 3 attendees.");
+    if (!confirm("Run matchmaker? This clears existing pods and reassigns everyone.")) return;
+    setMatching(true);
+    try {
+      // Clear
+      await supabase.from("attendees").update({ group_id: null }).not("id", "is", null);
+      await supabase.from("groups").delete().not("id", "is", null);
+
+      const input: MatchInput[] = (attendees.data ?? []).map((a) => ({
+        id: a.id, full_name: a.full_name,
+        university: a.university, academic_background: a.academic_background,
+        ai_experience: a.ai_experience, track_intent: a.track_intent,
+        event_goal: a.event_goal,
+      }));
+      const pods = buildPods(input, 5);
+
+      for (const pod of pods) {
+        const { data: g, error: gErr } = await supabase
+          .from("groups")
+          .insert({ group_name: pod.name, pod_rationale: pod.rationale })
+          .select("id")
+          .single();
+        if (gErr) throw gErr;
+        const { error: aErr } = await supabase.from("attendees").update({ group_id: g.id }).in("id", pod.member_ids);
+        if (aErr) throw aErr;
+      }
+      toast.success(`Formed ${pods.length} pods`);
+      qc.invalidateQueries({ queryKey: ["admin-attendees"] });
+      qc.invalidateQueries({ queryKey: ["admin-groups"] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Matchmaker failed");
+    } finally { setMatching(false); }
+  };
+
+  const totalPoints = (attendees.data ?? []).reduce((s, a) => s + a.points, 0);
+  const podCount = groups.data?.length ?? 0;
+
   return (
-    <div className="min-h-screen">
-      <header className="border-b border-border/60 bg-background/80 backdrop-blur sticky top-0 z-30">
-        <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+    <div className="min-h-screen bg-background text-foreground">
+      <header className="border-b border-border">
+        <div className="mx-auto max-w-6xl px-6 py-3 flex items-center justify-between text-sm">
+          <div className="flex items-center gap-4">
             <Link to="/" className="text-muted-foreground hover:text-foreground"><ArrowLeft className="h-4 w-4" /></Link>
-            <span className="font-[Bangers,sans-serif] text-2xl tracking-wider">EventQuest</span>
-            <Badge className="bg-gradient-to-r from-amber-400 to-orange-500 text-white border-0"><Crown className="h-3 w-3 mr-1" />Admin</Badge>
+            <span className="font-semibold tracking-tight">Quest Connect</span>
+            <span className="text-[10px] uppercase tracking-[0.2em] text-lime border border-lime px-1.5 py-0.5">Admin</span>
           </div>
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-4 py-8 space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold">Organizer Console</h1>
-          <p className="text-muted-foreground text-sm">Manage quests, watch attendees roll in, form squads.</p>
-        </div>
+      <main className="mx-auto max-w-6xl px-6 py-8 space-y-8">
+        {/* Stats strip */}
+        <section className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-border border border-border">
+          <Stat label="Attendees" value={attendees.data?.length ?? 0} />
+          <Stat label="Total points" value={totalPoints} />
+          <Stat label="Quests live" value={quests.data?.length ?? 0} />
+          <Stat label="Pods" value={podCount} accent />
+        </section>
 
-        <div className="grid gap-4 sm:grid-cols-3">
-          <StatCard icon={Users} label="Attendees" value={attendees.data?.length ?? 0} />
-          <StatCard icon={Trophy} label="Total points" value={(attendees.data ?? []).reduce((s, a) => s + a.points, 0)} />
-          <StatCard icon={Sparkles} label="Quests live" value={quests.data?.length ?? 0} accent />
-        </div>
+        {/* Seed + matchmaker actions */}
+        <section className="grid sm:grid-cols-2 gap-px bg-border border border-border">
+          <ActionBlock
+            label="Seed mock attendees"
+            blurb="Insert 100 hackathon attendees with university, background, AI level, track, and goal."
+            cta={seeding ? "Seeding…" : "Seed roster"}
+            icon={UserPlus}
+            onClick={seedMocks}
+            busy={seeding}
+          />
+          <ActionBlock
+            label="Run matchmaker"
+            blurb="Deterministic mock grouping into pods of ~5. Mixes AI levels & backgrounds within a shared track."
+            cta={matching ? "Matching…" : "Form pods"}
+            icon={Wand2}
+            onClick={runMatchmaker}
+            busy={matching}
+          />
+        </section>
 
-        <Tabs defaultValue="quests" className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="quests">Quests</TabsTrigger>
-            <TabsTrigger value="leaderboard">Leaderboard</TabsTrigger>
-            <TabsTrigger value="squads">Squads</TabsTrigger>
-          </TabsList>
+        {/* Pods */}
+        {podCount > 0 && (
+          <section>
+            <h2 className="text-lg font-semibold tracking-tight mb-3">Matchmaker pods</h2>
+            <div className="grid gap-px bg-border border border-border sm:grid-cols-2 lg:grid-cols-3">
+              {(groups.data ?? []).map((g) => {
+                const members = (attendees.data ?? []).filter((a) => a.group_id === g.id);
+                return (
+                  <div key={g.id} className="bg-background p-4">
+                    <p className="text-sm font-semibold">{g.group_name}</p>
+                    {g.pod_rationale && <p className="text-xs text-muted-foreground mt-1">{g.pod_rationale}</p>}
+                    <ul className="mt-3 space-y-1">
+                      {members.map((m) => (
+                        <li key={m.id} className="text-xs flex items-center justify-between gap-2">
+                          <span className="truncate">{m.full_name || "Unnamed"}</span>
+                          <span className="text-muted-foreground shrink-0">{m.ai_experience ?? "—"}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
 
-          <TabsContent value="quests" className="space-y-4">
-            <QuestManager quests={quests.data ?? []} loading={quests.isLoading} />
-          </TabsContent>
+        {/* Attendee list */}
+        <section>
+          <div className="flex items-baseline justify-between mb-3">
+            <h2 className="text-lg font-semibold tracking-tight">Attendees</h2>
+            <p className="text-xs text-muted-foreground">Sorted by points · live</p>
+          </div>
+          {attendees.isLoading ? (
+            <div className="border border-border p-10 grid place-items-center"><Loader2 className="h-5 w-5 animate-spin text-lime" /></div>
+          ) : (attendees.data ?? []).length === 0 ? (
+            <div className="border border-border p-10 text-center text-sm text-muted-foreground">
+              No attendees yet. Hit "Seed roster" above.
+            </div>
+          ) : (
+            <div className="border border-border max-h-[480px] overflow-auto">
+              <table className="w-full text-sm">
+                <thead className="text-[10px] uppercase tracking-wider text-muted-foreground bg-card sticky top-0">
+                  <tr>
+                    <th className="text-left p-2 w-8">#</th>
+                    <th className="text-left p-2">Name</th>
+                    <th className="text-left p-2 hidden md:table-cell">University</th>
+                    <th className="text-left p-2 hidden lg:table-cell">Track</th>
+                    <th className="text-left p-2 hidden sm:table-cell">AI</th>
+                    <th className="text-right p-2">Pts</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(attendees.data ?? []).map((a, i) => (
+                    <tr key={a.id} className="border-t border-border">
+                      <td className="p-2 text-muted-foreground">{i + 1}</td>
+                      <td className="p-2 font-medium">{a.full_name || "Unnamed"}</td>
+                      <td className="p-2 text-muted-foreground hidden md:table-cell truncate max-w-[200px]">{a.university ?? "—"}</td>
+                      <td className="p-2 text-muted-foreground hidden lg:table-cell truncate max-w-[180px]">{a.track_intent ?? "—"}</td>
+                      <td className="p-2 text-muted-foreground hidden sm:table-cell">{a.ai_experience ?? "—"}</td>
+                      <td className="p-2 text-right text-lime font-semibold">{a.points}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
 
-          <TabsContent value="leaderboard">
-            <Leaderboard attendees={attendees.data ?? []} loading={attendees.isLoading} />
-          </TabsContent>
-
-          <TabsContent value="squads">
-            <SquadManager attendees={attendees.data ?? []} />
-          </TabsContent>
-        </Tabs>
+        {/* Quests */}
+        <QuestManager quests={quests.data ?? []} loading={quests.isLoading} />
       </main>
+    </div>
+  );
+}
+
+function Stat({ label, value, accent }: { label: string; value: React.ReactNode; accent?: boolean }) {
+  return (
+    <div className="bg-background p-4">
+      <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">{label}</p>
+      <p className={`text-2xl font-semibold mt-1 ${accent ? "text-lime" : ""}`}>{value}</p>
+    </div>
+  );
+}
+
+function ActionBlock({
+  label, blurb, cta, icon: Icon, onClick, busy,
+}: { label: string; blurb: string; cta: string; icon: typeof UserPlus; onClick: () => void; busy: boolean }) {
+  return (
+    <div className="bg-background p-5 flex flex-col gap-3">
+      <div>
+        <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">{label}</p>
+        <p className="text-sm mt-2 text-muted-foreground">{blurb}</p>
+      </div>
+      <Button onClick={onClick} disabled={busy} className="bg-lime hover:opacity-90 self-start">
+        {busy ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Icon className="h-4 w-4 mr-2" />}
+        {cta}
+      </Button>
     </div>
   );
 }
@@ -126,12 +315,10 @@ function QuestManager({ quests, loading }: { quests: Quest[]; loading: boolean }
       });
       if (error) throw error;
       toast.success("Quest added");
-      reset();
-      setOpen(false);
+      reset(); setOpen(false);
       qc.invalidateQueries({ queryKey: ["admin-quests"] });
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed");
-    } finally { setBusy(false); }
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Failed"); }
+    finally { setBusy(false); }
   };
 
   const del = async (id: string) => {
@@ -143,208 +330,76 @@ function QuestManager({ quests, loading }: { quests: Quest[]; loading: boolean }
   };
 
   return (
-    <>
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">{quests.length} quest{quests.length === 1 ? "" : "s"} live</p>
-        <Button onClick={() => setOpen(!open)} size="sm" className="bg-gradient-hero shadow-glow">
-          <Plus className="h-4 w-4 mr-1" />{open ? "Cancel" : "New Quest"}
+    <section>
+      <div className="flex items-baseline justify-between mb-3">
+        <h2 className="text-lg font-semibold tracking-tight">Quests</h2>
+        <Button onClick={() => setOpen(!open)} size="sm" className="bg-lime hover:opacity-90 h-7 text-xs">
+          <Plus className="h-3 w-3 mr-1" />{open ? "Cancel" : "New quest"}
         </Button>
       </div>
 
       {open && (
-        <Card className="bg-gradient-card border-accent/40 shadow-glow">
-          <CardHeader><CardTitle className="text-base">New Quest</CardTitle></CardHeader>
-          <CardContent className="space-y-3">
-            <div className="grid grid-cols-[80px_1fr] gap-3">
-              <div>
-                <label className="text-xs text-muted-foreground">Emoji</label>
-                <Input value={emoji} onChange={(e) => setEmoji(e.target.value)} maxLength={4} className="text-center text-2xl" />
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground">Title</label>
-                <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Meet 3 founders" />
-              </div>
+        <div className="border border-lime p-4 mb-4 space-y-3">
+          <div className="grid grid-cols-[60px_1fr] gap-3">
+            <div>
+              <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Emoji</label>
+              <Input value={emoji} onChange={(e) => setEmoji(e.target.value)} maxLength={4} className="text-center text-xl bg-background border-border" />
             </div>
             <div>
-              <label className="text-xs text-muted-foreground">Description</label>
-              <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} placeholder="What does the attendee need to do?" />
+              <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Title</label>
+              <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Meet 3 founders" className="bg-background border-border" />
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs text-muted-foreground">Points</label>
-                <Input type="number" min={1} max={500} value={points} onChange={(e) => setPoints(parseInt(e.target.value) || 10)} />
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground">Type</label>
-                <div className="flex gap-2 mt-1">
-                  <Button type="button" variant={type === "side" ? "default" : "outline"} size="sm" className="flex-1" onClick={() => setType("side")}>Side</Button>
-                  <Button type="button" variant={type === "main" ? "default" : "outline"} size="sm" className="flex-1" onClick={() => setType("main")}>Main</Button>
-                </div>
+          </div>
+          <div>
+            <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Description</label>
+            <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} placeholder="What does the attendee need to do?" className="bg-background border-border" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Points</label>
+              <Input type="number" min={1} max={500} value={points} onChange={(e) => setPoints(parseInt(e.target.value) || 10)} className="bg-background border-border" />
+            </div>
+            <div>
+              <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Type</label>
+              <div className="flex gap-2 mt-1">
+                <Button type="button" variant={type === "side" ? "default" : "outline"} size="sm" className={`flex-1 ${type === "side" ? "bg-lime hover:opacity-90" : ""}`} onClick={() => setType("side")}>Side</Button>
+                <Button type="button" variant={type === "main" ? "default" : "outline"} size="sm" className={`flex-1 ${type === "main" ? "bg-lime hover:opacity-90" : ""}`} onClick={() => setType("main")}>Main</Button>
               </div>
             </div>
-            <Button onClick={add} disabled={busy} className="w-full bg-gradient-hero shadow-glow">
-              {busy ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
-              Create Quest
-            </Button>
-          </CardContent>
-        </Card>
+          </div>
+          <Button onClick={add} disabled={busy} className="w-full bg-lime hover:opacity-90">
+            {busy ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
+            Create quest
+          </Button>
+        </div>
       )}
 
       {loading ? (
-        <div className="grid place-items-center py-12"><Loader2 className="animate-spin h-6 w-6 text-accent" /></div>
+        <div className="border border-border p-10 grid place-items-center"><Loader2 className="h-5 w-5 animate-spin text-lime" /></div>
       ) : quests.length === 0 ? (
-        <Card className="bg-gradient-card border-border/60"><CardContent className="py-12 text-center text-muted-foreground">No quests yet. Hit "New Quest" to add one.</CardContent></Card>
+        <div className="border border-border p-10 text-center text-sm text-muted-foreground">No quests yet.</div>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-px bg-border border border-border sm:grid-cols-2 lg:grid-cols-3">
           {quests.map((q) => (
-            <Card key={q.id} className="bg-gradient-card border-border/60 relative">
-              <div className={`absolute inset-x-0 top-0 h-1 ${q.type === "main" ? "bg-gradient-hero" : "bg-accent/60"}`} />
-              <CardContent className="pt-6 space-y-2">
-                <div className="flex items-start justify-between">
-                  <span className="text-3xl">{q.emoji ?? "⭐"}</span>
-                  <Badge variant={q.type === "main" ? "default" : "outline"} className={q.type === "main" ? "bg-gradient-hero" : ""}>
-                    {q.type === "main" ? "MAIN" : "SIDE"}
-                  </Badge>
+            <div key={q.id} className="bg-background p-4 flex flex-col gap-2">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="text-lg" aria-hidden>{q.emoji ?? "⭐"}</span>
+                  <h3 className="font-medium text-sm truncate">{q.title}</h3>
                 </div>
-                <h3 className="font-semibold">{q.title}</h3>
-                <p className="text-xs text-muted-foreground line-clamp-2">{q.description}</p>
-                <div className="flex items-center justify-between pt-2">
-                  <span className="text-sm font-bold text-accent">+{q.points_awarded} pts</span>
-                  <Button variant="ghost" size="sm" onClick={() => del(q.id)}>
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+                <span className={`text-[10px] uppercase tracking-wider px-1.5 py-0.5 border ${q.type === "main" ? "border-lime text-lime" : "border-border text-muted-foreground"}`}>{q.type}</span>
+              </div>
+              <p className="text-xs text-muted-foreground line-clamp-2">{q.description}</p>
+              <div className="mt-auto flex items-center justify-between pt-2">
+                <span className="text-xs font-semibold text-lime">+{q.points_awarded} pts</span>
+                <Button variant="ghost" size="sm" onClick={() => del(q.id)} className="h-7 px-2">
+                  <Trash2 className="h-3 w-3 text-destructive" />
+                </Button>
+              </div>
+            </div>
           ))}
         </div>
       )}
-    </>
-  );
-}
-
-function Leaderboard({ attendees, loading }: { attendees: Attendee[]; loading: boolean }) {
-  return (
-    <Card className="bg-gradient-card border-border/60 shadow-card">
-      <CardHeader>
-        <CardTitle>Live Leaderboard</CardTitle>
-        <CardDescription>Updates in real time as attendees claim quests.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        {loading ? (
-          <div className="grid place-items-center py-12"><Loader2 className="animate-spin h-6 w-6 text-accent" /></div>
-        ) : attendees.length === 0 ? (
-          <p className="py-8 text-center text-sm text-muted-foreground">No attendees yet. Share the link!</p>
-        ) : (
-          <ol className="divide-y divide-border/60">
-            {attendees.map((a, i) => (
-              <li key={a.id} className="flex items-center justify-between py-3">
-                <div className="flex items-center gap-3">
-                  <span className={`grid h-9 w-9 place-items-center rounded-full font-bold ${
-                    i === 0 ? "bg-gradient-hero text-primary-foreground shadow-glow" :
-                    i === 1 ? "bg-accent/30 text-accent" :
-                    i === 2 ? "bg-secondary text-secondary-foreground" : "bg-muted text-muted-foreground"
-                  }`}>{i + 1}</span>
-                  <p className="font-medium">{a.full_name || "Unnamed"}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  {a.group_id && <Badge variant="outline" className="text-xs">In squad</Badge>}
-                  <span className="font-bold text-accent">{a.points} pts</span>
-                </div>
-              </li>
-            ))}
-          </ol>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
-
-function SquadManager({ attendees }: { attendees: Attendee[] }) {
-  const qc = useQueryClient();
-  const [size, setSize] = useState(4);
-  const [busy, setBusy] = useState(false);
-
-  const make = async () => {
-    if (attendees.length < 2) return toast.error("Need at least 2 attendees.");
-    setBusy(true);
-    try {
-      // Clear existing groups
-      await supabase.from("attendees").update({ group_id: null }).not("id", "is", null);
-      await supabase.from("groups").delete().not("id", "is", null);
-
-      // Shuffle
-      const shuffled = [...attendees].sort(() => Math.random() - 0.5);
-      const pods: Attendee[][] = [];
-      for (let i = 0; i < shuffled.length; i += size) pods.push(shuffled.slice(i, i + size));
-
-      for (let i = 0; i < pods.length; i++) {
-        const { data: g, error: gErr } = await supabase.from("groups").insert({ group_name: `Squad ${i + 1}` }).select("id").single();
-        if (gErr) throw gErr;
-        const ids = pods[i].map((a) => a.id);
-        await supabase.from("attendees").update({ group_id: g.id }).in("id", ids);
-      }
-      toast.success(`Formed ${pods.length} squads`);
-      qc.invalidateQueries({ queryKey: ["admin-attendees"] });
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed");
-    } finally { setBusy(false); }
-  };
-
-  const grouped = new Map<string, Attendee[]>();
-  for (const a of attendees) {
-    const key = a.group_id ?? "__none__";
-    if (!grouped.has(key)) grouped.set(key, []);
-    grouped.get(key)!.push(a);
-  }
-
-  return (
-    <div className="space-y-4">
-      <Card className="bg-gradient-card border-border/60">
-        <CardContent className="py-4 flex flex-wrap items-end gap-3">
-          <div>
-            <label className="text-xs text-muted-foreground block">Squad size</label>
-            <Input type="number" min={2} max={10} value={size} onChange={(e) => setSize(parseInt(e.target.value) || 4)} className="w-24" />
-          </div>
-          <Button onClick={make} disabled={busy} className="bg-gradient-hero shadow-glow">
-            {busy ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
-            Form Random Squads
-          </Button>
-          <p className="text-xs text-muted-foreground ml-auto">Random shuffle. AI matchmaking coming next.</p>
-        </CardContent>
-      </Card>
-
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {[...grouped.entries()].map(([gid, members]) => (
-          <Card key={gid} className="bg-gradient-card border-border/60">
-            <CardHeader className="pb-2"><CardTitle className="text-base">{gid === "__none__" ? "Unassigned" : `Squad`}</CardTitle></CardHeader>
-            <CardContent className="space-y-1">
-              {members.map((m) => (
-                <div key={m.id} className="flex items-center justify-between text-sm">
-                  <span>{m.full_name || "Unnamed"}</span>
-                  <span className="text-accent font-medium">{m.points} pts</span>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function StatCard({ icon: Icon, label, value, accent }: { icon: typeof Trophy; label: string; value: React.ReactNode; accent?: boolean }) {
-  return (
-    <Card className={`bg-gradient-card border-border/60 ${accent ? "shadow-glow" : "shadow-card"}`}>
-      <CardContent className="flex items-center gap-4 py-5">
-        <div className={`grid h-12 w-12 place-items-center rounded-xl ${accent ? "bg-gradient-hero" : "bg-secondary"}`}>
-          <Icon className="h-6 w-6 text-primary-foreground" />
-        </div>
-        <div>
-          <p className="text-xs uppercase tracking-wider text-muted-foreground">{label}</p>
-          <p className="text-2xl font-bold">{value}</p>
-        </div>
-      </CardContent>
-    </Card>
+    </section>
   );
 }
