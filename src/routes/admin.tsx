@@ -30,7 +30,7 @@ type Attendee = {
   group_id: string | null;
   late: boolean;
 };
-type Group = { id: string; group_name: string; pod_rationale: string | null };
+type Group = { id: string; group_name: string };
 
 function AdminPage() {
   const qc = useQueryClient();
@@ -64,7 +64,7 @@ function AdminPage() {
   const groups = useQuery({
     queryKey: ["admin-groups"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("groups").select("id, group_name, pod_rationale");
+      const { data, error } = await supabase.from("groups").select("id, group_name");
       if (error) throw error;
       return (data ?? []) as Group[];
     },
@@ -134,34 +134,19 @@ function AdminPage() {
   };
 
   const [matching, setMatching] = useState(false);
+  const matchmakerFn = useServerFn(runLlmMatchmaker);
   const runMatchmaker = async () => {
     const eligible = (attendees.data ?? []).filter((a) => !a.late);
     if (eligible.length < 3) return toast.error("Need at least 3 non-late attendees.");
-    if (!confirm(`Run matchmaker on ${eligible.length} attendees? This clears existing pods.`)) return;
+    if (!confirm(`Run AI matchmaker on ${eligible.length} attendees? This clears existing pods.`)) return;
     setMatching(true);
     try {
-      await supabase.from("attendees").update({ group_id: null }).not("id", "is", null);
-      await supabase.from("groups").delete().not("id", "is", null);
-
-      const input: MatchInput[] = eligible.map((a) => ({
-        id: a.id, full_name: a.full_name,
-        university: a.university, academic_background: a.academic_background,
-        ai_experience: a.ai_experience, track_intent: a.track_intent,
-        event_goal: a.event_goal,
-      }));
-      const pods = buildPods(input, 5);
-
-      for (const pod of pods) {
-        const { data: g, error: gErr } = await supabase
-          .from("groups")
-          .insert({ group_name: pod.name, pod_rationale: pod.rationale })
-          .select("id")
-          .single();
-        if (gErr) throw gErr;
-        const { error: aErr } = await supabase.from("attendees").update({ group_id: g.id }).in("id", pod.member_ids);
-        if (aErr) throw aErr;
+      const result = await matchmakerFn();
+      if (result.method === "ai") {
+        toast.success(`AI formed ${result.pods_created} pods`);
+      } else {
+        toast.warning(`Used heuristic fallback (${result.pods_created} pods)${result.error ? ` — ${result.error}` : ""}`);
       }
-      toast.success(`Formed ${pods.length} pods`);
       qc.invalidateQueries({ queryKey: ["admin-attendees"] });
       qc.invalidateQueries({ queryKey: ["admin-groups"] });
     } catch (e) {
