@@ -513,9 +513,11 @@ function PendingSubmissionsQueue() {
   }, [qc]);
 
   const act = async (id: string, approve: boolean) => {
-    const note = approve ? null : (prompt("Reason for rejection (optional)") || null);
+    const note = approve ? undefined : (prompt("Reason for rejection (optional)") || undefined);
+    const params: { _submission_id: string; _note?: string } = { _submission_id: id };
+    if (note) params._note = note;
     const fn = approve ? "approve_group_submission" : "reject_group_submission";
-    const { error } = await supabase.rpc(fn, { _submission_id: id, _note: note });
+    const { error } = await supabase.rpc(fn, params);
     if (error) return toast.error(error.message);
     toast.success(approve ? "Approved — points awarded to pod" : "Rejected");
     qc.invalidateQueries({ queryKey: ["admin-pending-submissions"] });
