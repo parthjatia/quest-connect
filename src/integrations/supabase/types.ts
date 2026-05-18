@@ -14,16 +14,197 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      attendees: {
+        Row: {
+          academic_background: string | null
+          age: number | null
+          ai_experience: Database["public"]["Enums"]["ai_experience"] | null
+          country: string | null
+          created_at: string
+          event_goal: string | null
+          full_name: string | null
+          group_id: string | null
+          id: string
+          onboarded: boolean
+          points: number
+          track_intent: string | null
+          university: string | null
+          updated_at: string
+          user_id: string
+          wrapped_image_url: string | null
+          wrapped_story: string | null
+        }
+        Insert: {
+          academic_background?: string | null
+          age?: number | null
+          ai_experience?: Database["public"]["Enums"]["ai_experience"] | null
+          country?: string | null
+          created_at?: string
+          event_goal?: string | null
+          full_name?: string | null
+          group_id?: string | null
+          id?: string
+          onboarded?: boolean
+          points?: number
+          track_intent?: string | null
+          university?: string | null
+          updated_at?: string
+          user_id: string
+          wrapped_image_url?: string | null
+          wrapped_story?: string | null
+        }
+        Update: {
+          academic_background?: string | null
+          age?: number | null
+          ai_experience?: Database["public"]["Enums"]["ai_experience"] | null
+          country?: string | null
+          created_at?: string
+          event_goal?: string | null
+          full_name?: string | null
+          group_id?: string | null
+          id?: string
+          onboarded?: boolean
+          points?: number
+          track_intent?: string | null
+          university?: string | null
+          updated_at?: string
+          user_id?: string
+          wrapped_image_url?: string | null
+          wrapped_story?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendees_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      completed_quests: {
+        Row: {
+          attendee_id: string
+          claimed_at: string
+          id: string
+          quest_id: string
+        }
+        Insert: {
+          attendee_id: string
+          claimed_at?: string
+          id?: string
+          quest_id: string
+        }
+        Update: {
+          attendee_id?: string
+          claimed_at?: string
+          id?: string
+          quest_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "completed_quests_attendee_id_fkey"
+            columns: ["attendee_id"]
+            isOneToOne: false
+            referencedRelation: "attendees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "completed_quests_quest_id_fkey"
+            columns: ["quest_id"]
+            isOneToOne: false
+            referencedRelation: "quests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      groups: {
+        Row: {
+          created_at: string
+          group_name: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          group_name: string
+          id?: string
+        }
+        Update: {
+          created_at?: string
+          group_name?: string
+          id?: string
+        }
+        Relationships: []
+      }
+      quests: {
+        Row: {
+          created_at: string
+          description: string
+          emoji: string | null
+          id: string
+          points_awarded: number
+          title: string
+          type: Database["public"]["Enums"]["quest_type"]
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          emoji?: string | null
+          id?: string
+          points_awarded?: number
+          title: string
+          type?: Database["public"]["Enums"]["quest_type"]
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          emoji?: string | null
+          id?: string
+          points_awarded?: number
+          title?: string
+          type?: Database["public"]["Enums"]["quest_type"]
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      claim_quest: { Args: { _quest_id: string }; Returns: Json }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      ai_experience: "beginner" | "intermediate" | "power_user"
+      app_role: "admin" | "user"
+      quest_type: "main" | "side"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +331,10 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      ai_experience: ["beginner", "intermediate", "power_user"],
+      app_role: ["admin", "user"],
+      quest_type: ["main", "side"],
+    },
   },
 } as const
