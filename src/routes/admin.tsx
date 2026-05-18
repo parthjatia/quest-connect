@@ -513,7 +513,7 @@ function PendingSubmissionsQueue() {
   }, [qc]);
 
   const act = async (id: string, approve: boolean) => {
-    const note = approve ? null : (prompt("Reason for rejection (optional)") ?? null);
+    const note = approve ? null : (prompt("Reason for rejection (optional)") || null);
     const fn = approve ? "approve_group_submission" : "reject_group_submission";
     const { error } = await supabase.rpc(fn, { _submission_id: id, _note: note });
     if (error) return toast.error(error.message);
