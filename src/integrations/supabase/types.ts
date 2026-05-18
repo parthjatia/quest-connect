@@ -31,7 +31,7 @@ export type Database = {
           track_intent: string | null
           university: string | null
           updated_at: string
-          user_id: string
+          user_id: string | null
           wrapped_image_url: string | null
           wrapped_story: string | null
         }
@@ -51,7 +51,7 @@ export type Database = {
           track_intent?: string | null
           university?: string | null
           updated_at?: string
-          user_id: string
+          user_id?: string | null
           wrapped_image_url?: string | null
           wrapped_story?: string | null
         }
@@ -71,7 +71,7 @@ export type Database = {
           track_intent?: string | null
           university?: string | null
           updated_at?: string
-          user_id?: string
+          user_id?: string | null
           wrapped_image_url?: string | null
           wrapped_story?: string | null
         }
@@ -203,6 +203,10 @@ export type Database = {
     Functions: {
       claim_quest: {
         Args: { _photo_url: string; _quest_id: string }
+        Returns: Json
+      }
+      claim_quest_anon: {
+        Args: { _attendee_id: string; _photo_url: string; _quest_id: string }
         Returns: Json
       }
       has_role: {
