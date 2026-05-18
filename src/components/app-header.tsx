@@ -28,7 +28,7 @@ export function AppHeader() {
           <span className="grid h-8 w-8 place-items-center rounded-lg bg-gradient-hero shadow-glow">
             <Sparkles className="h-4 w-4 text-primary-foreground" />
           </span>
-          EventQuest
+          Quest Connect
         </Link>
         <nav className="flex items-center gap-2">
           {user ? (
