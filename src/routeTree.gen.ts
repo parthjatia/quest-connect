@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as WrappedRouteImport } from './routes/wrapped'
+import { Route as SponsorRouteImport } from './routes/sponsor'
 import { Route as RecapRouteImport } from './routes/recap'
 import { Route as PlayRouteImport } from './routes/play'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
@@ -25,6 +26,11 @@ import { Route as RecapLoadingRouteImport } from './routes/recap.loading'
 const WrappedRoute = WrappedRouteImport.update({
   id: '/wrapped',
   path: '/wrapped',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SponsorRoute = SponsorRouteImport.update({
+  id: '/sponsor',
+  path: '/sponsor',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RecapRoute = RecapRouteImport.update({
@@ -92,6 +98,7 @@ export interface FileRoutesByFullPath {
   '/onboarding': typeof OnboardingRoute
   '/play': typeof PlayRoute
   '/recap': typeof RecapRouteWithChildren
+  '/sponsor': typeof SponsorRoute
   '/wrapped': typeof WrappedRoute
   '/recap/loading': typeof RecapLoadingRoute
   '/recap/preferences': typeof RecapPreferencesRoute
@@ -106,6 +113,7 @@ export interface FileRoutesByTo {
   '/onboarding': typeof OnboardingRoute
   '/play': typeof PlayRoute
   '/recap': typeof RecapRouteWithChildren
+  '/sponsor': typeof SponsorRoute
   '/wrapped': typeof WrappedRoute
   '/recap/loading': typeof RecapLoadingRoute
   '/recap/preferences': typeof RecapPreferencesRoute
@@ -121,6 +129,7 @@ export interface FileRoutesById {
   '/onboarding': typeof OnboardingRoute
   '/play': typeof PlayRoute
   '/recap': typeof RecapRouteWithChildren
+  '/sponsor': typeof SponsorRoute
   '/wrapped': typeof WrappedRoute
   '/recap/loading': typeof RecapLoadingRoute
   '/recap/preferences': typeof RecapPreferencesRoute
@@ -137,6 +146,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/play'
     | '/recap'
+    | '/sponsor'
     | '/wrapped'
     | '/recap/loading'
     | '/recap/preferences'
@@ -151,6 +161,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/play'
     | '/recap'
+    | '/sponsor'
     | '/wrapped'
     | '/recap/loading'
     | '/recap/preferences'
@@ -165,6 +176,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/play'
     | '/recap'
+    | '/sponsor'
     | '/wrapped'
     | '/recap/loading'
     | '/recap/preferences'
@@ -180,6 +192,7 @@ export interface RootRouteChildren {
   OnboardingRoute: typeof OnboardingRoute
   PlayRoute: typeof PlayRoute
   RecapRoute: typeof RecapRouteWithChildren
+  SponsorRoute: typeof SponsorRoute
   WrappedRoute: typeof WrappedRoute
 }
 
@@ -190,6 +203,13 @@ declare module '@tanstack/react-router' {
       path: '/wrapped'
       fullPath: '/wrapped'
       preLoaderRoute: typeof WrappedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sponsor': {
+      id: '/sponsor'
+      path: '/sponsor'
+      fullPath: '/sponsor'
+      preLoaderRoute: typeof SponsorRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/recap': {
@@ -295,6 +315,7 @@ const rootRouteChildren: RootRouteChildren = {
   OnboardingRoute: OnboardingRoute,
   PlayRoute: PlayRoute,
   RecapRoute: RecapRouteWithChildren,
+  SponsorRoute: SponsorRoute,
   WrappedRoute: WrappedRoute,
 }
 export const routeTree = rootRouteImport
