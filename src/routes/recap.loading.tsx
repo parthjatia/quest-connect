@@ -1,6 +1,9 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { RecapTheme, ComicPanel } from "@/components/recap/recap-theme";
+import { Check, Loader2 } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { RecapShell } from "@/components/recap/recap-shell";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/recap/loading")({
   head: () => ({ meta: [{ title: "Building your recap…" }] }),
@@ -31,57 +34,55 @@ function LoadingPage() {
   }, [navigate]);
 
   return (
-    <RecapTheme>
-      <div className="mx-auto flex min-h-screen max-w-2xl flex-col items-center justify-center px-6 py-16">
-        <ComicPanel className="w-full text-center" bg="var(--paper)">
-          <div className="mb-6 flex justify-center">
-            <div
-              className="h-16 w-16 animate-spin rounded-full border-[6px]"
-              style={{
-                borderColor: "var(--ink)",
-                borderTopColor: "var(--coral)",
-              }}
-            />
-          </div>
-          <h1 className="mb-2 text-3xl font-black leading-tight md:text-4xl">
-            Rewriting the event{" "}
-            <span style={{ background: "var(--peach)", padding: "0 8px", borderRadius: 8 }}>
-              through your lens
-            </span>
-            …
-          </h1>
-          <p className="mb-8 text-sm" style={{ color: "var(--ink-soft)" }}>
-            Sit tight — your personal recap is being assembled.
-          </p>
+    <RecapShell>
+      <div className="flex flex-col items-center justify-center py-12">
+        <Card className="w-full max-w-xl">
+          <CardContent className="pt-8 pb-8 text-center">
+            <div className="mb-6 flex justify-center">
+              <Loader2 className="h-10 w-10 animate-spin text-lime" />
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight mb-2">
+              Rewriting the event <span className="text-lime">through your lens</span>…
+            </h1>
+            <p className="text-sm text-muted-foreground mb-8">
+              Sit tight — your personal recap is being assembled.
+            </p>
 
-          <ul className="mx-auto max-w-md space-y-3 text-left">
-            {STEPS.map((label, i) => {
-              const done = i < step;
-              const active = i === step;
-              return (
-                <li
-                  key={label}
-                  className="flex items-center gap-3 rounded-xl border-2 px-4 py-3"
-                  style={{
-                    background: done ? "var(--sage)" : active ? "var(--marigold)" : "var(--cream)",
-                    borderColor: "var(--ink)",
-                    opacity: i > step ? 0.7 : 1,
-                  }}
-                >
-                  <span
-                    className="flex h-6 w-6 items-center justify-center rounded-full border-2 text-xs font-black"
-                    style={{ borderColor: "var(--ink)", background: "var(--paper)" }}
+            <ul className="space-y-2 text-left">
+              {STEPS.map((label, i) => {
+                const done = i < step;
+                const active = i === step;
+                return (
+                  <li
+                    key={label}
+                    className={cn(
+                      "flex items-center gap-3 rounded-md border px-4 py-3 transition-colors",
+                      done && "border-lime/40 bg-primary/10",
+                      active && "border-border bg-secondary",
+                      !done && !active && "border-border bg-card opacity-60",
+                    )}
                   >
-                    {done ? "✓" : i + 1}
-                  </span>
-                  <span className="text-sm font-semibold">{label}</span>
-                  {active && <span className="ml-auto text-xs font-bold">working…</span>}
-                </li>
-              );
-            })}
-          </ul>
-        </ComicPanel>
+                    <span
+                      className={cn(
+                        "grid h-6 w-6 shrink-0 place-items-center rounded-full border text-xs font-semibold",
+                        done
+                          ? "border-lime bg-primary text-primary-foreground"
+                          : "border-border bg-background text-muted-foreground",
+                      )}
+                    >
+                      {done ? <Check className="h-3.5 w-3.5" /> : i + 1}
+                    </span>
+                    <span className="text-sm font-medium">{label}</span>
+                    {active && (
+                      <span className="ml-auto text-xs text-muted-foreground">working…</span>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </CardContent>
+        </Card>
       </div>
-    </RecapTheme>
+    </RecapShell>
   );
 }
