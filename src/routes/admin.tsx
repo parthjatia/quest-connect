@@ -192,6 +192,26 @@ function AdminPage() {
           <Stat label="Pods" value={podCount} accent />
         </section>
 
+        {/* Registration control */}
+        <section className="border border-border p-5 flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Registration</p>
+            <p className="text-sm mt-1">
+              {settings.data === false ? (
+                <span className="text-muted-foreground">Closed — new signups marked as late and excluded from pods.</span>
+              ) : (
+                <span className="text-lime">Open — new attendees can join and will be matched.</span>
+              )}
+            </p>
+          </div>
+          <Button onClick={toggleRegistration} disabled={togglingReg || settings.isLoading}
+            className={settings.data === false ? "bg-lime hover:opacity-90" : "bg-background border border-lime text-lime hover:bg-lime/10"}>
+            {togglingReg ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> :
+              settings.data === false ? <Unlock className="h-4 w-4 mr-2" /> : <Lock className="h-4 w-4 mr-2" />}
+            {settings.data === false ? "Re-open registration" : "Close registration"}
+          </Button>
+        </section>
+
         {/* Seed + matchmaker actions */}
         <section className="grid sm:grid-cols-2 gap-px bg-border border border-border">
           <ActionBlock
@@ -204,13 +224,17 @@ function AdminPage() {
           />
           <ActionBlock
             label="Run matchmaker"
-            blurb="Deterministic mock grouping into pods of ~5. Mixes AI levels & backgrounds within a shared track."
+            blurb="Groups non-late attendees into pods of ~5, mixing AI levels & backgrounds within a shared track."
             cta={matching ? "Matching…" : "Form pods"}
             icon={Wand2}
             onClick={runMatchmaker}
             busy={matching}
           />
         </section>
+
+        {/* Transcripts panel */}
+        <TranscriptsPanel />
+
 
         {/* Pods */}
         {podCount > 0 && (
