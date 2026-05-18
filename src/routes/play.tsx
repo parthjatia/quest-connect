@@ -1,17 +1,15 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { getLocalAttendee, clearLocalAttendee } from "@/lib/local-attendee";
 import { toast } from "sonner";
-import { Trophy, Zap, CheckCircle2, Loader2, Camera, Sparkles, LogOut } from "lucide-react";
+import { Loader2, Camera, LogOut, CheckCircle2 } from "lucide-react";
 
 export const Route = createFileRoute("/play")({
-  head: () => ({ meta: [{ title: "Play — EventQuest" }] }),
+  head: () => ({ meta: [{ title: "Play — Quest Connect" }] }),
   component: PlayPage,
 });
 
@@ -21,6 +19,7 @@ function PlayPage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [attendee, setAttendee] = useState<{ id: string; name: string } | null>(null);
+  const [active, setActive] = useState<Quest | null>(null);
 
   useEffect(() => {
     const a = getLocalAttendee();
@@ -33,6 +32,16 @@ function PlayPage() {
     enabled: !!attendee,
     queryFn: async () => {
       const { data, error } = await supabase.from("attendees").select("*").eq("id", attendee!.id).maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const pod = useQuery({
+    queryKey: ["my-pod", me.data?.group_id],
+    enabled: !!me.data?.group_id,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("groups").select("id, group_name, pod_rationale").eq("id", me.data!.group_id!).maybeSingle();
       if (error) throw error;
       return data;
     },
@@ -53,7 +62,7 @@ function PlayPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("completed_quests")
-        .select("id, quest_id, quest_photo_url, ai_feedback")
+        .select("id, quest_id, quest_photo_url")
         .eq("attendee_id", attendee!.id);
       if (error) throw error;
       return data ?? [];
@@ -71,76 +80,99 @@ function PlayPage() {
   });
 
   const completedMap = new Map((completed.data ?? []).map((c) => [c.quest_id, c]));
-  const [active, setActive] = useState<Quest | null>(null);
 
-  const leave = () => {
-    clearLocalAttendee();
-    navigate({ to: "/" });
-  };
+  const leave = () => { clearLocalAttendee(); navigate({ to: "/" }); };
 
   if (!attendee || me.isLoading) {
-    return <div className="grid place-items-center min-h-screen"><Loader2 className="animate-spin h-8 w-8 text-accent" /></div>;
+    return <div className="grid place-items-center min-h-screen"><Loader2 className="animate-spin h-6 w-6 text-lime" /></div>;
   }
 
+  const profileBits = [me.data?.university, me.data?.academic_background, me.data?.ai_experience, me.data?.track_intent]
+    .filter(Boolean) as string[];
+
   return (
-    <div className="min-h-screen">
-      <header className="border-b border-border/60 bg-background/80 backdrop-blur sticky top-0 z-30">
-        <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
-          <Link to="/" className="font-[Bangers,sans-serif] text-2xl tracking-wider">EventQuest</Link>
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-muted-foreground hidden sm:inline">Hey, <span className="font-semibold text-foreground">{attendee.name}</span></span>
-            <Button variant="ghost" size="sm" onClick={leave}><LogOut className="h-4 w-4 mr-1" />Leave</Button>
-          </div>
+    <div className="min-h-screen bg-background text-foreground">
+      <header className="border-b border-border">
+        <div className="mx-auto max-w-5xl px-6 py-3 flex items-center justify-between text-sm">
+          <Link to="/" className="font-semibold tracking-tight">Quest Connect</Link>
+          <Button variant="ghost" size="sm" onClick={leave} className="text-muted-foreground hover:text-foreground">
+            <LogOut className="h-4 w-4 mr-1" />Leave
+          </Button>
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-4 py-8 space-y-8">
-        <section className="grid gap-4 sm:grid-cols-3">
-          <StatCard icon={Zap} label="Points" value={me.data?.points ?? 0} accent />
-          <StatCard icon={Trophy} label="Rank" value={rank.data ? `#${rank.data}` : "—"} />
-          <StatCard icon={CheckCircle2} label="Quests done" value={completed.data?.length ?? 0} />
+      <main className="mx-auto max-w-5xl px-6 py-8 space-y-8">
+        {/* Profile + stats */}
+        <section className="border border-border">
+          <div className="grid sm:grid-cols-[1fr_auto] divide-y sm:divide-y-0 sm:divide-x divide-border">
+            <div className="p-5">
+              <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Attendee</p>
+              <h1 className="text-2xl font-semibold tracking-tight mt-1">{attendee.name}</h1>
+              {profileBits.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mt-3">
+                  {profileBits.map((b) => (
+                    <span key={b} className="text-[10px] uppercase tracking-wider border border-border px-1.5 py-0.5 text-muted-foreground">{b}</span>
+                  ))}
+                </div>
+              )}
+              {pod.data && (
+                <div className="mt-4 pt-4 border-t border-border">
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-lime">Your pod</p>
+                  <p className="text-sm font-medium mt-1">{pod.data.group_name}</p>
+                  {pod.data.pod_rationale && <p className="text-xs text-muted-foreground mt-1">{pod.data.pod_rationale}</p>}
+                </div>
+              )}
+            </div>
+            <div className="grid grid-cols-3 sm:grid-cols-1 sm:w-44">
+              <Stat label="Points" value={me.data?.points ?? 0} accent />
+              <Stat label="Rank" value={rank.data ? `#${rank.data}` : "—"} />
+              <Stat label="Done" value={completed.data?.length ?? 0} />
+            </div>
+          </div>
         </section>
 
+        {/* Quest board */}
         <section>
-          <h2 className="text-2xl font-bold mb-2">Quest Board</h2>
-          <p className="text-sm text-muted-foreground mb-4">Tap a quest, upload your proof photo, claim your points.</p>
+          <div className="flex items-baseline justify-between mb-3">
+            <h2 className="text-lg font-semibold tracking-tight">Quest board</h2>
+            <p className="text-xs text-muted-foreground">Photo proof required.</p>
+          </div>
           {quests.isLoading ? (
-            <div className="grid place-items-center py-16"><Loader2 className="animate-spin h-6 w-6 text-accent" /></div>
+            <div className="border border-border p-10 grid place-items-center"><Loader2 className="h-5 w-5 animate-spin text-lime" /></div>
           ) : (quests.data ?? []).length === 0 ? (
-            <Card className="bg-gradient-card border-border/60"><CardContent className="py-12 text-center text-muted-foreground">No quests yet. The organizer hasn't added any.</CardContent></Card>
+            <div className="border border-border p-10 text-center text-sm text-muted-foreground">No quests yet.</div>
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <div className="grid gap-px bg-border border border-border sm:grid-cols-2 lg:grid-cols-3">
               {(quests.data ?? []).map((q) => {
                 const done = completedMap.get(q.id);
                 return (
-                  <Card key={q.id} className={`relative overflow-hidden border-border/60 transition-all ${done ? "opacity-80" : "hover:shadow-glow hover:-translate-y-0.5"} bg-gradient-card shadow-card`}>
-                    <div className={`absolute inset-x-0 top-0 h-1 ${q.type === "main" ? "bg-gradient-hero" : "bg-accent/60"}`} />
-                    <CardContent className="pt-6 space-y-3">
-                      <div className="flex items-start justify-between">
-                        <span className="text-3xl" aria-hidden>{q.emoji ?? "⭐"}</span>
-                        <Badge variant={q.type === "main" ? "default" : "outline"} className={q.type === "main" ? "bg-gradient-hero" : ""}>
-                          {q.type === "main" ? "MAIN" : "SIDE"}
-                        </Badge>
+                  <div key={q.id} className="bg-background p-4 flex flex-col gap-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-lg" aria-hidden>{q.emoji ?? "⭐"}</span>
+                        <h3 className="font-medium text-sm truncate">{q.title}</h3>
                       </div>
-                      <div>
-                        <h3 className="font-semibold">{q.title}</h3>
-                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{q.description}</p>
-                      </div>
-                      {done?.quest_photo_url && (
-                        <img src={done.quest_photo_url} alt="proof" className="w-full h-24 object-cover rounded-md border border-border/60" />
+                      <span className={`text-[10px] uppercase tracking-wider px-1.5 py-0.5 border ${q.type === "main" ? "border-lime text-lime" : "border-border text-muted-foreground"}`}>
+                        {q.type}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground line-clamp-2">{q.description}</p>
+                    {done?.quest_photo_url && (
+                      <img src={done.quest_photo_url} alt="" className="h-20 w-full object-cover border border-border" />
+                    )}
+                    <div className="mt-auto flex items-center justify-between pt-2">
+                      <span className="text-xs font-semibold text-lime">+{q.points_awarded}</span>
+                      {done ? (
+                        <span className="text-[10px] uppercase tracking-wider text-lime inline-flex items-center gap-1">
+                          <CheckCircle2 className="h-3 w-3" />Claimed
+                        </span>
+                      ) : (
+                        <Button size="sm" onClick={() => setActive(q)} className="bg-lime hover:opacity-90 h-7 text-xs">
+                          <Camera className="h-3 w-3 mr-1" />Claim
+                        </Button>
                       )}
-                      <div className="flex items-center justify-between pt-1">
-                        <span className="text-sm font-bold text-accent">+{q.points_awarded} pts</span>
-                        {done ? (
-                          <span className="text-xs flex items-center gap-1 text-green-500"><CheckCircle2 className="h-4 w-4" />Claimed</span>
-                        ) : (
-                          <Button size="sm" onClick={() => setActive(q)}>
-                            <Camera className="mr-1 h-3 w-3" />Claim
-                          </Button>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
+                    </div>
+                  </div>
                 );
               })}
             </div>
@@ -164,20 +196,24 @@ function PlayPage() {
   );
 }
 
+function Stat({ label, value, accent }: { label: string; value: React.ReactNode; accent?: boolean }) {
+  return (
+    <div className="p-4 border-b sm:border-b border-border last:border-b-0">
+      <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">{label}</p>
+      <p className={`text-xl font-semibold mt-1 ${accent ? "text-lime" : ""}`}>{value}</p>
+    </div>
+  );
+}
+
 function ClaimDialog({
   quest, attendeeId, onClose, onClaimed,
-}: {
-  quest: Quest; attendeeId: string; onClose: () => void; onClaimed: () => void;
-}) {
+}: { quest: Quest; attendeeId: string; onClose: () => void; onClaimed: () => void }) {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const handleFile = (f: File | null) => {
-    setFile(f);
-    setPreview(f ? URL.createObjectURL(f) : null);
-  };
+  const handleFile = (f: File | null) => { setFile(f); setPreview(f ? URL.createObjectURL(f) : null); };
 
   const submit = async () => {
     if (!file) return toast.error("Photo required.");
@@ -195,7 +231,7 @@ function ClaimDialog({
         _photo_url: pub.publicUrl,
       });
       if (cErr) throw cErr;
-      toast.success(`+${quest.points_awarded} pts! Nice one.`);
+      toast.success(`+${quest.points_awarded} pts`);
       onClaimed();
       onClose();
     } catch (e) {
@@ -214,56 +250,29 @@ function ClaimDialog({
           <DialogDescription>{quest.description}</DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
-          <input
-            ref={inputRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            className="hidden"
-            onChange={(e) => handleFile(e.target.files?.[0] ?? null)}
-          />
+          <input ref={inputRef} type="file" accept="image/*" capture="environment" className="hidden"
+            onChange={(e) => handleFile(e.target.files?.[0] ?? null)} />
           {preview ? (
-            <img src={preview} alt="preview" className="w-full max-h-72 object-cover rounded-lg border border-border/60" />
+            <img src={preview} alt="preview" className="w-full max-h-72 object-cover border border-border" />
           ) : (
-            <button
-              type="button"
-              onClick={() => inputRef.current?.click()}
-              className="w-full h-48 rounded-lg border-2 border-dashed border-border/60 grid place-items-center text-muted-foreground hover:border-accent hover:text-accent transition"
-            >
+            <button type="button" onClick={() => inputRef.current?.click()}
+              className="w-full h-40 border border-dashed border-border grid place-items-center text-muted-foreground hover:border-lime hover:text-lime transition">
               <div className="text-center">
-                <Camera className="h-8 w-8 mx-auto mb-2" />
+                <Camera className="h-6 w-6 mx-auto mb-2" />
                 <p className="text-sm">Tap to upload proof photo</p>
               </div>
             </button>
           )}
-          {preview && (
-            <Button variant="outline" size="sm" onClick={() => inputRef.current?.click()}>Change photo</Button>
-          )}
+          {preview && <Button variant="outline" size="sm" onClick={() => inputRef.current?.click()}>Change photo</Button>}
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={onClose} disabled={submitting}>Cancel</Button>
-          <Button onClick={submit} disabled={!file || submitting} className="bg-gradient-hero shadow-glow">
-            {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
-            Claim +{quest.points_awarded} pts
+          <Button onClick={submit} disabled={!file || submitting} className="bg-lime hover:opacity-90">
+            {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+            Claim +{quest.points_awarded}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  );
-}
-
-function StatCard({ icon: Icon, label, value, accent }: { icon: typeof Trophy; label: string; value: React.ReactNode; accent?: boolean }) {
-  return (
-    <Card className={`bg-gradient-card border-border/60 ${accent ? "shadow-glow" : "shadow-card"}`}>
-      <CardContent className="flex items-center gap-4 py-5">
-        <div className={`grid h-12 w-12 place-items-center rounded-xl ${accent ? "bg-gradient-hero" : "bg-secondary"}`}>
-          <Icon className="h-6 w-6 text-primary-foreground" />
-        </div>
-        <div>
-          <p className="text-xs uppercase tracking-wider text-muted-foreground">{label}</p>
-          <p className="text-2xl font-bold">{value}</p>
-        </div>
-      </CardContent>
-    </Card>
   );
 }
