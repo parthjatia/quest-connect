@@ -1,0 +1,1 @@
+ALTER TABLE public.groups ADD COLUMN IF NOT EXISTS pod_rationale text;

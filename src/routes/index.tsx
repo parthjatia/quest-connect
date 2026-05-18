@@ -1,12 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Card, CardContent } from "@/components/ui/card";
-import { Crown, PartyPopper, Sparkles } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "EventQuest — Pick your role" },
-      { name: "description", content: "Gamify your event. Are you running it, or playing it?" },
+      { title: "Quest Connect — Pick your door" },
+      { name: "description", content: "Event matchmaking and quests. Admin or attendee." },
     ],
   }),
   component: Landing,
@@ -14,66 +12,59 @@ export const Route = createFileRoute("/")({
 
 function Landing() {
   return (
-    <div className="min-h-screen bg-gradient-hero flex flex-col items-center justify-center px-4 py-12">
-      <div className="text-center mb-12 max-w-2xl">
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-background/10 backdrop-blur border border-white/20 text-white/90 text-xs uppercase tracking-widest mb-6">
-          <Sparkles className="h-3 w-3" /> EventQuest · Demo
+    <div className="min-h-screen bg-background text-foreground flex flex-col">
+      <header className="border-b border-border">
+        <div className="mx-auto max-w-5xl px-6 py-4 flex items-center justify-between text-sm">
+          <span className="font-semibold tracking-tight">Quest Connect</span>
+          <span className="text-muted-foreground">demo</span>
         </div>
-        <h1 className="font-[Bangers,sans-serif] text-6xl sm:text-7xl text-white drop-shadow-lg tracking-wide">
-          Who are you today?
-        </h1>
-        <p className="mt-4 text-white/80 text-lg">
-          One event. Two doors. Pick where you walk in.
-        </p>
-      </div>
+      </header>
 
-      <div className="grid gap-6 sm:grid-cols-2 w-full max-w-3xl">
-        <RoleCard
-          to="/admin"
-          icon={Crown}
-          title="I'm the Admin"
-          subtitle="Run the event"
-          blurb="Create quests, watch the leaderboard live, group attendees into squads."
-          accent="from-amber-400 to-orange-500"
-        />
-        <RoleCard
-          to="/join"
-          icon={PartyPopper}
-          title="I'm an Attendee"
-          subtitle="Play the event"
-          blurb="Type your name, grab quests, snap proof photos, climb the board."
-          accent="from-fuchsia-500 to-purple-600"
-        />
-      </div>
+      <main className="flex-1 mx-auto max-w-5xl w-full px-6 py-20">
+        <div className="max-w-2xl">
+          <p className="text-lime text-xs uppercase tracking-[0.2em] mb-4">Event OS</p>
+          <h1 className="text-4xl sm:text-5xl font-semibold tracking-tight leading-[1.05]">
+            One event.<br />Two doors.
+          </h1>
+          <p className="text-muted-foreground mt-4 text-base">
+            Pick the side you're walking in from.
+          </p>
+        </div>
 
-      <p className="mt-10 text-xs text-white/60">No accounts. No passwords. Just walk in.</p>
+        <div className="grid gap-px bg-border border border-border mt-12 sm:grid-cols-2">
+          <DoorCard
+            to="/admin"
+            tag="Organizer"
+            title="Run the event"
+            blurb="Seed attendees, manage quests, watch the leaderboard, run the matchmaker."
+            cta="Open admin"
+          />
+          <DoorCard
+            to="/join"
+            tag="Attendee"
+            title="Play the event"
+            blurb="Join with your name or pick from the roster. Claim quests with proof photos."
+            cta="Join in"
+          />
+        </div>
+      </main>
+
+      <footer className="border-t border-border">
+        <div className="mx-auto max-w-5xl px-6 py-4 text-xs text-muted-foreground">
+          No accounts. No passwords. Walk in.
+        </div>
+      </footer>
     </div>
   );
 }
 
-function RoleCard({
-  to, icon: Icon, title, subtitle, blurb, accent,
-}: {
-  to: string; icon: typeof Crown; title: string; subtitle: string; blurb: string; accent: string;
-}) {
+function DoorCard({ to, tag, title, blurb, cta }: { to: string; tag: string; title: string; blurb: string; cta: string }) {
   return (
-    <Link to={to} className="group">
-      <Card className="relative overflow-hidden border-white/20 bg-background/95 backdrop-blur shadow-2xl transition-all duration-200 hover:-translate-y-1 hover:shadow-glow cursor-pointer h-full">
-        <div className={`absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r ${accent}`} />
-        <CardContent className="p-8 space-y-4">
-          <div className={`inline-grid h-16 w-16 place-items-center rounded-2xl bg-gradient-to-br ${accent} shadow-lg group-hover:scale-110 transition-transform`}>
-            <Icon className="h-8 w-8 text-white" />
-          </div>
-          <div>
-            <p className="text-xs uppercase tracking-widest text-muted-foreground">{subtitle}</p>
-            <h2 className="text-3xl font-bold mt-1">{title}</h2>
-          </div>
-          <p className="text-sm text-muted-foreground">{blurb}</p>
-          <div className="pt-2">
-            <span className="text-sm font-semibold text-accent group-hover:underline">Enter →</span>
-          </div>
-        </CardContent>
-      </Card>
+    <Link to={to} className="group bg-background p-8 hover:bg-card transition-colors">
+      <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">{tag}</p>
+      <h2 className="text-2xl font-semibold mt-2 tracking-tight">{title}</h2>
+      <p className="text-sm text-muted-foreground mt-3 max-w-sm">{blurb}</p>
+      <p className="mt-8 text-sm text-lime group-hover:underline">{cta} →</p>
     </Link>
   );
 }
