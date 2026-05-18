@@ -3,8 +3,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Quest Connect — Pick your door" },
-      { name: "description", content: "Event matchmaking and quests. Admin or attendee." },
+      { title: "Quest Connect — Pick your lens" },
+      { name: "description", content: "Event matchmaking and quests. Organizer, attendee, or sponsor." },
     ],
   }),
   component: Landing,
@@ -24,27 +24,34 @@ function Landing() {
         <div className="max-w-2xl">
           <p className="text-lime text-xs uppercase tracking-[0.2em] mb-4">Event OS</p>
           <h1 className="text-4xl sm:text-5xl font-semibold tracking-tight leading-[1.05]">
-            One event.<br />Two doors.
+            One event.<br />Three lenses.
           </h1>
           <p className="text-muted-foreground mt-4 text-base">
-            Pick the side you're walking in from.
+            Run it. Play it. Sponsor it.
           </p>
         </div>
 
-        <div className="grid gap-px bg-border border border-border mt-12 sm:grid-cols-2">
+        <div className="grid gap-px bg-border border border-border mt-12 sm:grid-cols-3">
           <DoorCard
             to="/admin"
             tag="Organizer"
             title="Run the event"
-            blurb="Seed attendees, manage quests, watch the leaderboard, run the matchmaker."
+            blurb="Seed attendees, manage quests, watch the leaderboard, launch sponsor activations."
             cta="Open admin"
           />
           <DoorCard
             to="/join"
             tag="Attendee"
             title="Play the event"
-            blurb="Join with your name or pick from the roster. Claim quests with proof photos."
+            blurb="Join quests, find your people, earn points, and discover who to meet next."
             cta="Join in"
+          />
+          <DoorCard
+            to="/sponsor"
+            tag="Sponsor"
+            title="Find your audience"
+            blurb="See privacy-safe attendee clusters, launch booth quests, and create better touchpoints with the right people."
+            cta="Open sponsor radar"
           />
         </div>
       </main>
