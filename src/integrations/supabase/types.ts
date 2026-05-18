@@ -261,9 +261,12 @@ export type Database = {
           created_at: string
           description: string
           emoji: string | null
+          end_at: string | null
           id: string
+          is_live: boolean
           is_pod_gate: boolean
           points_awarded: number
+          start_at: string | null
           title: string
           type: Database["public"]["Enums"]["quest_type"]
         }
@@ -271,9 +274,12 @@ export type Database = {
           created_at?: string
           description: string
           emoji?: string | null
+          end_at?: string | null
           id?: string
+          is_live?: boolean
           is_pod_gate?: boolean
           points_awarded?: number
+          start_at?: string | null
           title: string
           type?: Database["public"]["Enums"]["quest_type"]
         }
@@ -281,9 +287,12 @@ export type Database = {
           created_at?: string
           description?: string
           emoji?: string | null
+          end_at?: string | null
           id?: string
+          is_live?: boolean
           is_pod_gate?: boolean
           points_awarded?: number
+          start_at?: string | null
           title?: string
           type?: Database["public"]["Enums"]["quest_type"]
         }
@@ -334,6 +343,11 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      pod_component: { Args: { _attendee_id: string }; Returns: string[] }
+      recalc_attendee_points: {
+        Args: { _attendee_id: string }
+        Returns: number
       }
       reject_group_submission: {
         Args: { _note?: string; _submission_id: string }

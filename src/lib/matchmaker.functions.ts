@@ -14,10 +14,9 @@ type Attendee = {
 };
 
 /**
- * Heuristic fallback so the demo never bricks. Groups by event_goal, then
- * round-robins each goal-bucket across pods to spread universities + AI levels.
+ * Heuristic fallback. Groups by event_goal, then balances into pods of 3-5.
  */
-function heuristicPods(attendees: Attendee[], target = 4): string[][] {
+function heuristicPods(attendees: Attendee[]): string[][] {
   const byGoal = new Map<string, Attendee[]>();
   for (const a of attendees) {
     const key = a.event_goal || "Open";
@@ -26,17 +25,62 @@ function heuristicPods(attendees: Attendee[], target = 4): string[][] {
   }
   const pods: string[][] = [];
   for (const [, group] of byGoal) {
-    const sorted = [...group].sort(() => Math.random() - 0.5);
-    const podCount = Math.max(1, Math.round(sorted.length / target));
-    const buckets: string[][] = Array.from({ length: podCount }, () => []);
-    sorted.forEach((a, i) => buckets[i % podCount].push(a.id));
-    pods.push(...buckets.filter((b) => b.length > 0));
+    const shuffled = [...group].sort(() => Math.random() - 0.5);
+    const ids = shuffled.map((a) => a.id);
+    pods.push(...splitToPods(ids));
   }
-  // Merge tiny pods
-  for (let i = pods.length - 1; i > 0; i--) {
-    if (pods[i].length < 3) { pods[i - 1].push(...pods[i]); pods.splice(i, 1); }
+  return rebalance(pods);
+}
+
+/** Split a flat list of ids into pods of 3-5, preferring size 4. */
+function splitToPods(ids: string[]): string[][] {
+  const n = ids.length;
+  if (n === 0) return [];
+  if (n < 3) return [ids]; // caller will merge
+  const result: string[][] = [];
+  // Greedy: try size 4 then 5 then 3
+  let i = 0;
+  while (i < n) {
+    const remaining = n - i;
+    let take: number;
+    if (remaining <= 5) { take = remaining; }
+    else if (remaining === 6) { take = 3; } // 3+3
+    else if (remaining === 7) { take = 4; } // 4+3
+    else { take = 4; }
+    result.push(ids.slice(i, i + take));
+    i += take;
   }
-  return pods;
+  return result;
+}
+
+/** Enforce 3 <= size <= 5 by merging undersized pods and splitting oversized ones. */
+function rebalance(pods: string[][]): string[][] {
+  // Split anything >5
+  const stage1: string[][] = [];
+  for (const p of pods) {
+    if (p.length <= 5) stage1.push(p);
+    else stage1.push(...splitToPods(p));
+  }
+  // Merge anything <3 with the smallest other pod
+  const out = stage1.filter((p) => p.length > 0).sort((a, b) => a.length - b.length);
+  while (out.length > 1 && out[0].length < 3) {
+    const small = out.shift()!;
+    // Add to the next smallest pod that can still absorb without going past 5; else create temp oversize then re-split
+    const target = out[0];
+    target.push(...small);
+    if (target.length > 5) {
+      out.shift();
+      out.push(...splitToPods(target));
+    }
+    out.sort((a, b) => a.length - b.length);
+  }
+  // Final pass: split any pod that grew past 5
+  const final: string[][] = [];
+  for (const p of out) {
+    if (p.length <= 5) final.push(p);
+    else final.push(...splitToPods(p));
+  }
+  return final.filter((p) => p.length >= 3);
 }
 
 export const runLlmMatchmaker = createServerFn({ method: "POST" }).handler(
@@ -108,7 +152,9 @@ export const runLlmMatchmaker = createServerFn({ method: "POST" }).handler(
         const missing = attendees.map((a) => a.id).filter((id) => !seen.has(id));
         if (missing.length && out.length) out[out.length - 1].push(...missing);
         if (out.length === 0) throw new Error("LLM returned no pods");
-        pods = out;
+        // Enforce hard 3-5 size constraint regardless of what the LLM did
+        pods = rebalance(out);
+        if (pods.length === 0) throw new Error("Could not form any valid pod (need ≥3 attendees)");
       } catch (e) {
         llmError = e instanceof Error ? e.message : String(e);
         console.error("LLM matchmaker failed, falling back:", llmError);
