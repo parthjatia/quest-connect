@@ -1,60 +1,85 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { Heart, Sparkles } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Heart, Sparkles, Calendar, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { RecapShell } from "@/components/recap/recap-shell";
-import { loadPrefs, type RecapPrefs } from "@/lib/recap-store";
+import { ImageSlot } from "@/components/recap/image-slot";
+import { loadPrefs, loadTemplateId, loadTranscript, type RecapPrefs } from "@/lib/recap-store";
+import { generatePersonalizedRecap, type RecapData } from "@/lib/recap-generator";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/recap/result")({
   head: () => ({ meta: [{ title: "Your personal visual recap" }] }),
   component: ResultPage,
 });
 
-const MOCK = {
-  cover: {
-    title: "The Day Ideas Collided",
-    subtitle: "A personal recap of the Spring Founders' Summit",
-    tag: "Issue #01",
-  },
-  bigPicture:
-    "Three founders, two contrarian theses, one unexpected pivot. The whole room realigned around one question: who is this actually for?",
-  moments: [
-    { t: "09:14", text: "Maya opens with the slide nobody expected — churn isn't the metric." },
-    { t: "10:02", text: "Heated debate about pricing tiers. Sage takes the room." },
-    { t: "11:30", text: "Live demo crashes, then becomes the most honest moment of the day." },
-    { t: "14:45", text: "Q&A — a junior PM asks the question that reframes everything." },
-  ],
-  decisions: [
-    "Drop the enterprise tier for now",
-    "Rewrite onboarding around the 'first win' moment",
-    "Ship a public changelog by end of month",
-  ],
-  matters: [
-    "You care about clarity over hype — three speakers landed that.",
-    "The 'first win' framing fits how you already think about activation.",
-    "Pricing debate mirrors the call you've been postponing.",
-  ],
-  next: [
-    "Draft a one-page memo on the new activation metric",
-    "Reach out to Maya re: pricing follow-up",
-    "Block 90 min Friday to redesign the onboarding flow",
-  ],
-  memory: "You walked in skeptical. You left with one sentence that changes the next quarter.",
-};
+type VisualMode = "storybook" | "hero" | "manga";
+
+function visualTheme(mode: VisualMode) {
+  switch (mode) {
+    case "hero":
+      return {
+        panel: "border-2 border-lime/60 shadow-[6px_6px_0_0_hsl(var(--border))]",
+        title: "uppercase tracking-tight",
+        accent: "text-lime",
+        sticker: "bg-lime text-primary-foreground",
+      };
+    case "manga":
+      return {
+        panel: "border border-dashed border-fuchsia-400/60 rotate-[-0.2deg]",
+        title: "italic tracking-tight",
+        accent: "text-fuchsia-400",
+        sticker: "bg-fuchsia-500 text-white",
+      };
+    case "storybook":
+    default:
+      return {
+        panel: "border border-amber-500/30 rounded-2xl",
+        title: "tracking-tight",
+        accent: "text-amber-400",
+        sticker: "bg-amber-500 text-black",
+      };
+  }
+}
+
+function intensityClass(intensity?: string) {
+  if (intensity === "Bold and dramatic") return "[--gap:1.5rem] text-[1.02em]";
+  if (intensity === "Calm and clean") return "[--gap:2.5rem] opacity-95";
+  return "[--gap:2rem]";
+}
 
 function ResultPage() {
   const [prefs, setPrefs] = useState<RecapPrefs>({});
-  useEffect(() => setPrefs(loadPrefs()), []);
+  const [transcript, setTranscript] = useState("");
+  const [templateId, setTemplateId] = useState("catchup_storybook");
+
+  useEffect(() => {
+    setPrefs(loadPrefs());
+    setTranscript(loadTranscript());
+    setTemplateId(loadTemplateId());
+  }, []);
+
+  const data: RecapData = useMemo(
+    () => generatePersonalizedRecap(transcript, prefs, templateId),
+    [transcript, prefs, templateId],
+  );
+
+  const visualMode = (templateId.split("_")[1] ?? "storybook") as VisualMode;
+  const theme = visualTheme(visualMode);
+  const format = prefs.format ?? "Magazine / zine spread";
 
   return (
     <RecapShell>
-      <div className="mb-8 flex flex-wrap items-center justify-between gap-3">
+      <div className={cn("mb-6 flex flex-wrap items-center justify-between gap-3", intensityClass(prefs.intensity))}>
         <div className="flex flex-wrap gap-2">
           <Badge variant="secondary" className="uppercase tracking-wider">Your recap</Badge>
-          {prefs.world && <Badge variant="outline">{prefs.world}</Badge>}
+          <Badge variant="outline" className={cn("font-mono text-[10px]", theme.accent)}>
+            Template: {templateId}
+          </Badge>
           {prefs.format && <Badge variant="outline">{prefs.format}</Badge>}
+          {prefs.intensity && <Badge variant="outline">{prefs.intensity}</Badge>}
         </div>
         <Button asChild variant="outline" size="sm">
           <Link to="/recap">Start over</Link>
@@ -62,90 +87,132 @@ function ResultPage() {
       </div>
 
       {/* Cover */}
-      <Card className="mb-6 border-lime/40 bg-gradient-to-br from-primary/15 via-card to-card">
-        <CardContent className="py-10 text-center">
-          <div className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-lime/40 px-3 py-1 text-[10px] font-semibold uppercase tracking-widest text-lime">
-            <Sparkles className="h-3 w-3" /> {MOCK.cover.tag}
+      <Card className={cn("mb-6 overflow-hidden", theme.panel)}>
+        <CardContent className="p-0">
+          <ImageSlot slot={data.sections.cover.imageSlot} className="rounded-none border-0 border-b" />
+          <div className="p-8 text-center">
+            <div className={cn("mb-3 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-widest", theme.sticker)}>
+              <Sparkles className="h-3 w-3" /> Issue #01
+            </div>
+            <h1 className={cn("text-4xl sm:text-5xl font-semibold leading-[1.05]", theme.title)}>
+              {data.sections.cover.headline}
+            </h1>
+            <p className="mx-auto mt-3 max-w-xl text-base text-muted-foreground">
+              {data.sections.cover.tagline}
+            </p>
           </div>
-          <h1 className="text-4xl sm:text-5xl font-semibold tracking-tight leading-[1.05]">
-            {MOCK.cover.title}
-          </h1>
-          <p className="mx-auto mt-3 max-w-xl text-base text-muted-foreground">
-            {MOCK.cover.subtitle}
-          </p>
         </CardContent>
       </Card>
 
-      <Section title="Big Picture" number={2}>
-        <p className="text-lg leading-snug">{MOCK.bigPicture}</p>
-      </Section>
+      {/* Big Picture */}
+      <Panel theme={theme} number={2} title={data.sections.bigPicture.title}>
+        <div className="grid gap-4 sm:grid-cols-[1fr_1.2fr] sm:items-center">
+          <ImageSlot slot={data.sections.bigPicture.imageSlot} />
+          <p className="text-lg leading-snug">{data.sections.bigPicture.content}</p>
+        </div>
+      </Panel>
 
-      <Section title="Key Moments" number={3}>
-        <ul className="space-y-2">
-          {MOCK.moments.map((m) => (
-            <li
-              key={m.t}
-              className="flex gap-4 rounded-md border border-border bg-secondary/40 p-3"
-            >
-              <span className="shrink-0 rounded bg-primary px-2 py-1 text-xs font-semibold text-primary-foreground">
-                {m.t}
-              </span>
-              <span className="text-sm">{m.text}</span>
-            </li>
-          ))}
-        </ul>
-      </Section>
+      {/* Key Moments — layout shifts by format */}
+      <Panel theme={theme} number={3} title={data.sections.keyMoments.title}>
+        {format === "Collectible cards" ? (
+          <div className="-mx-2 flex snap-x snap-mandatory gap-3 overflow-x-auto px-2 pb-2">
+            {data.sections.keyMoments.items.map((m, i) => (
+              <div
+                key={i}
+                className={cn(
+                  "min-w-[260px] max-w-[280px] shrink-0 snap-start rounded-xl border bg-card p-3",
+                  theme.panel,
+                )}
+              >
+                <ImageSlot slot={m.imageSlot} className="mb-3" />
+                <div className={cn("mb-1 text-[10px] font-semibold uppercase tracking-widest", theme.accent)}>
+                  Moment · {m.label}
+                </div>
+                <p className="text-sm">{m.summary}</p>
+              </div>
+            ))}
+          </div>
+        ) : format === "Comic panels" ? (
+          <div className="space-y-3">
+            {data.sections.keyMoments.items.map((m, i) => (
+              <div key={i} className={cn("overflow-hidden rounded-lg border-2", theme.panel)}>
+                <ImageSlot slot={{ ...m.imageSlot, ratio: "16:9" }} className="rounded-none border-0 border-b" />
+                <div className="flex items-start gap-3 p-3">
+                  <span className={cn("rounded px-2 py-1 text-xs font-bold", theme.sticker)}>{m.label}</span>
+                  <p className="text-sm">{m.summary}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-3">
+            {data.sections.keyMoments.items.map((m, i) => (
+              <div key={i} className={cn("rounded-lg border bg-secondary/40 p-3", theme.panel)}>
+                <ImageSlot slot={m.imageSlot} className="mb-3" />
+                <div className={cn("mb-1 text-[10px] font-semibold uppercase tracking-widest", theme.accent)}>
+                  {m.label}
+                </div>
+                <p className="text-sm">{m.summary}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </Panel>
 
-      <Section title="Decisions / Changes" number={4}>
+      <Panel theme={theme} number={4} title={data.sections.decisions.title}>
         <div className="grid gap-3 sm:grid-cols-3">
-          {MOCK.decisions.map((d, i) => (
+          {data.sections.decisions.items.map((d, i) => (
             <div key={i} className="rounded-md border border-border bg-secondary/40 p-4">
-              <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-lime">
+              <div className={cn("mb-2 text-[10px] font-semibold uppercase tracking-wider", theme.accent)}>
                 Decision {i + 1}
               </div>
               <p className="text-sm">{d}</p>
             </div>
           ))}
         </div>
-      </Section>
+      </Panel>
 
-      <Section title="What Matters To You" number={5}>
-        <div className="space-y-3">
-          {MOCK.matters.map((m, i) => (
-            <div
-              key={i}
-              className="flex items-start gap-3 rounded-md border border-border bg-secondary/40 p-4"
-            >
-              <Heart className="mt-0.5 h-4 w-4 shrink-0 text-lime" />
-              <p className="text-sm">{m}</p>
-            </div>
-          ))}
+      <Panel theme={theme} number={5} title={data.sections.whatMattersToYou.title}>
+        <div className="flex items-start gap-3 rounded-md border border-border bg-secondary/40 p-4">
+          <Heart className={cn("mt-0.5 h-4 w-4 shrink-0", theme.accent)} />
+          <p className="text-sm leading-relaxed">{data.sections.whatMattersToYou.content}</p>
         </div>
-      </Section>
+      </Panel>
 
-      <Section title="Action Items / Next Steps" number={6}>
+      <Panel theme={theme} number={6} title={data.sections.actionItems.title}>
         <ol className="space-y-2">
-          {MOCK.next.map((n, i) => (
-            <li
-              key={i}
-              className="flex items-start gap-3 rounded-md border border-border bg-secondary/40 p-3"
-            >
-              <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
+          {data.sections.actionItems.items.map((n, i) => (
+            <li key={i} className="flex items-start gap-3 rounded-md border border-border bg-secondary/40 p-3">
+              <span className={cn("grid h-6 w-6 shrink-0 place-items-center rounded-full text-xs font-semibold", theme.sticker)}>
                 {i + 1}
               </span>
-              <span className="pt-0.5 text-sm">{n}</span>
+              <div className="flex-1">
+                <p className="text-sm font-medium">{n.task}</p>
+                <div className="mt-1 flex flex-wrap gap-3 text-[11px] text-muted-foreground">
+                  <span className="inline-flex items-center gap-1"><User className="h-3 w-3" />{n.owner}</span>
+                  <span className="inline-flex items-center gap-1"><Calendar className="h-3 w-3" />{n.deadline}</span>
+                </div>
+              </div>
             </li>
           ))}
         </ol>
-      </Section>
+      </Panel>
 
       {/* Final Memory Card */}
-      <Card className="mb-8 border-lime/40 bg-gradient-to-br from-card via-card to-primary/10">
-        <CardContent className="py-8">
-          <div className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-lime">
-            Final Memory Card
+      <Card className={cn("mb-8 overflow-hidden", theme.panel)}>
+        <CardContent className="p-0">
+          <ImageSlot slot={data.sections.memoryCard.imageSlot} className="rounded-none border-0 border-b" />
+          <div className="p-8">
+            <div className={cn("mb-3 text-[10px] font-semibold uppercase tracking-widest", theme.accent)}>
+              {data.sections.memoryCard.title}
+            </div>
+            <p className="text-xl sm:text-2xl font-semibold leading-snug">
+              "{data.sections.memoryCard.oneLiner}"
+            </p>
+            <p className="mt-4 text-sm text-muted-foreground">
+              Remember this: <span className="text-foreground font-medium">{data.sections.memoryCard.rememberThis}</span>
+            </p>
           </div>
-          <p className="text-xl sm:text-2xl font-semibold leading-snug">"{MOCK.memory}"</p>
         </CardContent>
       </Card>
 
@@ -161,26 +228,28 @@ function ResultPage() {
   );
 }
 
-function Section({
+function Panel({
   title,
   number,
+  theme,
   children,
 }: {
   title: string;
   number: number;
+  theme: ReturnType<typeof visualTheme>;
   children: React.ReactNode;
 }) {
   return (
-    <Card className="mb-6">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-3 text-base">
-          <span className="grid h-7 w-7 place-items-center rounded-md bg-secondary text-xs font-semibold text-secondary-foreground">
+    <Card className={cn("mb-6", theme.panel)}>
+      <CardContent className="pt-6">
+        <div className="mb-4 flex items-center gap-3">
+          <span className={cn("grid h-7 w-7 place-items-center rounded-md text-xs font-bold", theme.sticker)}>
             {number}
           </span>
-          {title}
-        </CardTitle>
-      </CardHeader>
-      <CardContent>{children}</CardContent>
+          <h2 className={cn("text-lg font-semibold", theme.title)}>{title}</h2>
+        </div>
+        {children}
+      </CardContent>
     </Card>
   );
 }
