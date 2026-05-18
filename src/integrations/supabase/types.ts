@@ -33,6 +33,7 @@ export type Database = {
           university: string | null
           updated_at: string
           user_id: string | null
+          verify_code: string
           wrapped_image_url: string | null
           wrapped_story: string | null
         }
@@ -54,6 +55,7 @@ export type Database = {
           university?: string | null
           updated_at?: string
           user_id?: string | null
+          verify_code?: string
           wrapped_image_url?: string | null
           wrapped_story?: string | null
         }
@@ -75,6 +77,7 @@ export type Database = {
           university?: string | null
           updated_at?: string
           user_id?: string | null
+          verify_code?: string
           wrapped_image_url?: string | null
           wrapped_story?: string | null
         }
@@ -148,6 +151,42 @@ export type Database = {
         }
         Relationships: []
       }
+      group_quest_submissions: {
+        Row: {
+          created_at: string
+          group_id: string
+          id: string
+          photo_url: string
+          quest_id: string
+          reviewed_at: string | null
+          reviewer_note: string | null
+          status: Database["public"]["Enums"]["submission_status"]
+          submitted_by: string
+        }
+        Insert: {
+          created_at?: string
+          group_id: string
+          id?: string
+          photo_url: string
+          quest_id: string
+          reviewed_at?: string | null
+          reviewer_note?: string | null
+          status?: Database["public"]["Enums"]["submission_status"]
+          submitted_by: string
+        }
+        Update: {
+          created_at?: string
+          group_id?: string
+          id?: string
+          photo_url?: string
+          quest_id?: string
+          reviewed_at?: string | null
+          reviewer_note?: string | null
+          status?: Database["public"]["Enums"]["submission_status"]
+          submitted_by?: string
+        }
+        Relationships: []
+      }
       groups: {
         Row: {
           created_at: string
@@ -157,7 +196,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
-          group_name: string
+          group_name?: string
           id?: string
           pod_rationale?: string | null
         }
@@ -166,6 +205,30 @@ export type Database = {
           group_name?: string
           id?: string
           pod_rationale?: string | null
+        }
+        Relationships: []
+      }
+      pod_verifications: {
+        Row: {
+          created_at: string
+          group_id: string
+          id: string
+          verified_id: string
+          verifier_id: string
+        }
+        Insert: {
+          created_at?: string
+          group_id: string
+          id?: string
+          verified_id: string
+          verifier_id: string
+        }
+        Update: {
+          created_at?: string
+          group_id?: string
+          id?: string
+          verified_id?: string
+          verifier_id?: string
         }
         Relationships: []
       }
@@ -252,6 +315,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      approve_group_submission: {
+        Args: { _note?: string; _submission_id: string }
+        Returns: Json
+      }
       claim_quest: {
         Args: { _photo_url: string; _quest_id: string }
         Returns: Json
@@ -260,6 +327,7 @@ export type Database = {
         Args: { _attendee_id: string; _photo_url: string; _quest_id: string }
         Returns: Json
       }
+      gen_verify_code: { Args: never; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -267,11 +335,20 @@ export type Database = {
         }
         Returns: boolean
       }
+      reject_group_submission: {
+        Args: { _note?: string; _submission_id: string }
+        Returns: undefined
+      }
+      verify_pod_member: {
+        Args: { _code: string; _verifier_id: string }
+        Returns: Json
+      }
     }
     Enums: {
       ai_experience: "beginner" | "intermediate" | "power_user"
       app_role: "admin" | "user"
       quest_type: "main" | "side"
+      submission_status: "pending" | "approved" | "rejected"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -402,6 +479,7 @@ export const Constants = {
       ai_experience: ["beginner", "intermediate", "power_user"],
       app_role: ["admin", "user"],
       quest_type: ["main", "side"],
+      submission_status: ["pending", "approved", "rejected"],
     },
   },
 } as const
