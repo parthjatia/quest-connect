@@ -6,9 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, Plus, Trash2, Sparkles, ArrowLeft, UserPlus, Wand2 } from "lucide-react";
+import { Loader2, Plus, Trash2, Sparkles, ArrowLeft, UserPlus, Wand2, Lock, Unlock, FileText } from "lucide-react";
 import { MOCK_ATTENDEES } from "@/lib/mock-attendees";
 import { buildPods, type MatchInput } from "@/lib/matchmaker";
+import { getRegistrationOpen, setRegistrationOpen } from "@/lib/event-settings";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({ meta: [{ title: "Admin — Quest Connect" }] }),
@@ -26,6 +27,7 @@ type Attendee = {
   event_goal: string | null;
   points: number;
   group_id: string | null;
+  late: boolean;
 };
 type Group = { id: string; group_name: string; pod_rationale: string | null };
 
@@ -46,11 +48,16 @@ function AdminPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("attendees")
-        .select("id, full_name, university, academic_background, ai_experience, track_intent, event_goal, points, group_id")
+        .select("id, full_name, university, academic_background, ai_experience, track_intent, event_goal, points, group_id, late")
         .order("points", { ascending: false });
       if (error) throw error;
       return (data ?? []) as Attendee[];
     },
+  });
+
+  const settings = useQuery({
+    queryKey: ["event-settings"],
+    queryFn: getRegistrationOpen,
   });
 
   const groups = useQuery({
@@ -75,12 +82,24 @@ function AdminPage() {
     return () => { supabase.removeChannel(ch); };
   }, [qc]);
 
-  const aiLevelToEnum = (s: string): "Never used" | "Beginner" | "Intermediate" | "Power user" => {
-    const t = s.toLowerCase();
-    if (t.includes("power")) return "Power user";
-    if (t.includes("inter")) return "Intermediate";
-    if (t.includes("begin")) return "Beginner";
-    return "Never used";
+  const aiLevelToEnum = (s: string): "beginner" | "intermediate" | "power_user" | null => {
+    const t = (s || "").toLowerCase();
+    if (t.includes("power")) return "power_user";
+    if (t.includes("inter")) return "intermediate";
+    if (t.includes("begin")) return "beginner";
+    return null;
+  };
+
+  const [togglingReg, setTogglingReg] = useState(false);
+  const toggleRegistration = async () => {
+    setTogglingReg(true);
+    try {
+      await setRegistrationOpen(!(settings.data ?? true));
+      toast.success(settings.data ? "Registration closed" : "Registration opened");
+      qc.invalidateQueries({ queryKey: ["event-settings"] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed");
+    } finally { setTogglingReg(false); }
   };
 
   const [seeding, setSeeding] = useState(false);
@@ -115,15 +134,15 @@ function AdminPage() {
 
   const [matching, setMatching] = useState(false);
   const runMatchmaker = async () => {
-    if ((attendees.data ?? []).length < 3) return toast.error("Need at least 3 attendees.");
-    if (!confirm("Run matchmaker? This clears existing pods and reassigns everyone.")) return;
+    const eligible = (attendees.data ?? []).filter((a) => !a.late);
+    if (eligible.length < 3) return toast.error("Need at least 3 non-late attendees.");
+    if (!confirm(`Run matchmaker on ${eligible.length} attendees? This clears existing pods.`)) return;
     setMatching(true);
     try {
-      // Clear
       await supabase.from("attendees").update({ group_id: null }).not("id", "is", null);
       await supabase.from("groups").delete().not("id", "is", null);
 
-      const input: MatchInput[] = (attendees.data ?? []).map((a) => ({
+      const input: MatchInput[] = eligible.map((a) => ({
         id: a.id, full_name: a.full_name,
         university: a.university, academic_background: a.academic_background,
         ai_experience: a.ai_experience, track_intent: a.track_intent,
@@ -173,6 +192,26 @@ function AdminPage() {
           <Stat label="Pods" value={podCount} accent />
         </section>
 
+        {/* Registration control */}
+        <section className="border border-border p-5 flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Registration</p>
+            <p className="text-sm mt-1">
+              {settings.data === false ? (
+                <span className="text-muted-foreground">Closed — new signups marked as late and excluded from pods.</span>
+              ) : (
+                <span className="text-lime">Open — new attendees can join and will be matched.</span>
+              )}
+            </p>
+          </div>
+          <Button onClick={toggleRegistration} disabled={togglingReg || settings.isLoading}
+            className={settings.data === false ? "bg-lime hover:opacity-90" : "bg-background border border-lime text-lime hover:bg-lime/10"}>
+            {togglingReg ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> :
+              settings.data === false ? <Unlock className="h-4 w-4 mr-2" /> : <Lock className="h-4 w-4 mr-2" />}
+            {settings.data === false ? "Re-open registration" : "Close registration"}
+          </Button>
+        </section>
+
         {/* Seed + matchmaker actions */}
         <section className="grid sm:grid-cols-2 gap-px bg-border border border-border">
           <ActionBlock
@@ -185,13 +224,17 @@ function AdminPage() {
           />
           <ActionBlock
             label="Run matchmaker"
-            blurb="Deterministic mock grouping into pods of ~5. Mixes AI levels & backgrounds within a shared track."
+            blurb="Groups non-late attendees into pods of ~5, mixing AI levels & backgrounds within a shared track."
             cta={matching ? "Matching…" : "Form pods"}
             icon={Wand2}
             onClick={runMatchmaker}
             busy={matching}
           />
         </section>
+
+        {/* Transcripts panel */}
+        <TranscriptsPanel />
+
 
         {/* Pods */}
         {podCount > 0 && (
@@ -396,6 +439,58 @@ function QuestManager({ quests, loading }: { quests: Quest[]; loading: boolean }
                   <Trash2 className="h-3 w-3 text-destructive" />
                 </Button>
               </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function TranscriptsPanel() {
+  const transcripts = useQuery({
+    queryKey: ["admin-transcripts"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("quest_transcripts")
+        .select("id, transcript_url, uploaded_at, attendee_id, quest_id, attendees(full_name), quests(title, emoji)")
+        .order("uploaded_at", { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  return (
+    <section>
+      <div className="flex items-baseline justify-between mb-3">
+        <h2 className="text-lg font-semibold tracking-tight">Quest transcripts</h2>
+        <p className="text-xs text-muted-foreground">Markdown uploads from attendees</p>
+      </div>
+      {transcripts.isLoading ? (
+        <div className="border border-border p-10 grid place-items-center"><Loader2 className="h-5 w-5 animate-spin text-lime" /></div>
+      ) : (transcripts.data ?? []).length === 0 ? (
+        <div className="border border-border p-8 text-center text-sm text-muted-foreground">
+          No transcripts uploaded yet.
+        </div>
+      ) : (
+        <div className="border border-border divide-y divide-border">
+          {(transcripts.data ?? []).map((t: any) => (
+            <div key={t.id} className="p-3 flex items-center justify-between gap-3 text-sm">
+              <div className="min-w-0">
+                <p className="truncate">
+                  <span className="text-lime mr-2">{t.quests?.emoji ?? "📄"}</span>
+                  <span className="font-medium">{t.quests?.title ?? "Quest"}</span>
+                  <span className="text-muted-foreground ml-2">— {t.attendees?.full_name ?? "Unknown"}</span>
+                </p>
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-0.5">
+                  {new Date(t.uploaded_at).toLocaleString()}
+                </p>
+              </div>
+              <a href={t.transcript_url} target="_blank" rel="noreferrer"
+                className="text-xs text-lime inline-flex items-center gap-1 shrink-0">
+                <FileText className="h-3 w-3" /> Open .md
+              </a>
             </div>
           ))}
         </div>

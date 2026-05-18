@@ -26,6 +26,7 @@ export type Database = {
           group_id: string | null
           icebreakers: string | null
           id: string
+          late: boolean
           onboarded: boolean
           points: number
           track_intent: string | null
@@ -46,6 +47,7 @@ export type Database = {
           group_id?: string | null
           icebreakers?: string | null
           id?: string
+          late?: boolean
           onboarded?: boolean
           points?: number
           track_intent?: string | null
@@ -66,6 +68,7 @@ export type Database = {
           group_id?: string | null
           icebreakers?: string | null
           id?: string
+          late?: boolean
           onboarded?: boolean
           points?: number
           track_intent?: string | null
@@ -127,6 +130,24 @@ export type Database = {
           },
         ]
       }
+      event_settings: {
+        Row: {
+          id: boolean
+          registration_open: boolean
+          updated_at: string
+        }
+        Insert: {
+          id?: boolean
+          registration_open?: boolean
+          updated_at?: string
+        }
+        Update: {
+          id?: boolean
+          registration_open?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       groups: {
         Row: {
           created_at: string
@@ -148,12 +169,37 @@ export type Database = {
         }
         Relationships: []
       }
+      quest_transcripts: {
+        Row: {
+          attendee_id: string
+          id: string
+          quest_id: string
+          transcript_url: string
+          uploaded_at: string
+        }
+        Insert: {
+          attendee_id: string
+          id?: string
+          quest_id: string
+          transcript_url: string
+          uploaded_at?: string
+        }
+        Update: {
+          attendee_id?: string
+          id?: string
+          quest_id?: string
+          transcript_url?: string
+          uploaded_at?: string
+        }
+        Relationships: []
+      }
       quests: {
         Row: {
           created_at: string
           description: string
           emoji: string | null
           id: string
+          is_pod_gate: boolean
           points_awarded: number
           title: string
           type: Database["public"]["Enums"]["quest_type"]
@@ -163,6 +209,7 @@ export type Database = {
           description: string
           emoji?: string | null
           id?: string
+          is_pod_gate?: boolean
           points_awarded?: number
           title: string
           type?: Database["public"]["Enums"]["quest_type"]
@@ -172,6 +219,7 @@ export type Database = {
           description?: string
           emoji?: string | null
           id?: string
+          is_pod_gate?: boolean
           points_awarded?: number
           title?: string
           type?: Database["public"]["Enums"]["quest_type"]
