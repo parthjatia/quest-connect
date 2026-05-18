@@ -6,20 +6,28 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { supabase } from "@/integrations/supabase/client";
 import { getLocalAttendee, clearLocalAttendee } from "@/lib/local-attendee";
 import { toast } from "sonner";
-import { Loader2, Camera, LogOut, CheckCircle2 } from "lucide-react";
+import { Loader2, Camera, LogOut, CheckCircle2, Lock, FileText, Upload, Eye } from "lucide-react";
+import { QuestSummaryModal } from "@/components/quest-summary-modal";
 
 export const Route = createFileRoute("/play")({
   head: () => ({ meta: [{ title: "Play — Quest Connect" }] }),
   component: PlayPage,
 });
 
-type Quest = { id: string; title: string; description: string; type: string; points_awarded: number; emoji: string | null };
+type Quest = {
+  id: string; title: string; description: string; type: string;
+  points_awarded: number; emoji: string | null; is_pod_gate: boolean;
+};
+
+type CompletedRow = { id: string; quest_id: string; quest_photo_url: string | null; claimed_at: string };
+type TranscriptRow = { id: string; quest_id: string; transcript_url: string; uploaded_at: string };
 
 function PlayPage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [attendee, setAttendee] = useState<{ id: string; name: string } | null>(null);
   const [active, setActive] = useState<Quest | null>(null);
+  const [summaryFor, setSummaryFor] = useState<Quest | null>(null);
 
   useEffect(() => {
     const a = getLocalAttendee();
@@ -47,6 +55,19 @@ function PlayPage() {
     },
   });
 
+  const podMembers = useQuery({
+    queryKey: ["pod-members", me.data?.group_id],
+    enabled: !!me.data?.group_id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("attendees")
+        .select("id, full_name, university")
+        .eq("group_id", me.data!.group_id!);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
   const quests = useQuery({
     queryKey: ["quests"],
     queryFn: async () => {
@@ -62,10 +83,23 @@ function PlayPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("completed_quests")
-        .select("id, quest_id, quest_photo_url")
+        .select("id, quest_id, quest_photo_url, claimed_at")
         .eq("attendee_id", attendee!.id);
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []) as CompletedRow[];
+    },
+  });
+
+  const transcripts = useQuery({
+    queryKey: ["my-transcripts", attendee?.id],
+    enabled: !!attendee,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("quest_transcripts")
+        .select("id, quest_id, transcript_url, uploaded_at")
+        .eq("attendee_id", attendee!.id);
+      if (error) throw error;
+      return (data ?? []) as TranscriptRow[];
     },
   });
 
@@ -80,6 +114,13 @@ function PlayPage() {
   });
 
   const completedMap = new Map((completed.data ?? []).map((c) => [c.quest_id, c]));
+  const transcriptMap = new Map((transcripts.data ?? []).map((t) => [t.quest_id, t]));
+
+  const allQuests = quests.data ?? [];
+  const gateQuest = allQuests.find((q) => q.is_pod_gate);
+  const gateDone = gateQuest ? completedMap.has(gateQuest.id) : true;
+  const mainQuests = allQuests.filter((q) => q.type === "main");
+  const sideQuests = allQuests.filter((q) => q.type === "side");
 
   const leave = () => { clearLocalAttendee(); navigate({ to: "/" }); };
 
@@ -89,6 +130,13 @@ function PlayPage() {
 
   const profileBits = [me.data?.university, me.data?.academic_background, me.data?.ai_experience, me.data?.track_intent]
     .filter(Boolean) as string[];
+
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ["me-anon"] });
+    qc.invalidateQueries({ queryKey: ["completed-anon"] });
+    qc.invalidateQueries({ queryKey: ["rank-anon"] });
+    qc.invalidateQueries({ queryKey: ["my-transcripts"] });
+  };
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -115,11 +163,30 @@ function PlayPage() {
                   ))}
                 </div>
               )}
+              {me.data?.late && !pod.data && (
+                <p className="mt-3 text-xs text-muted-foreground">
+                  You joined after registration closed — no pod assigned.
+                </p>
+              )}
+              {!me.data?.late && !pod.data && (
+                <p className="mt-3 text-xs text-muted-foreground">
+                  Waiting for the organizer to create pods…
+                </p>
+              )}
               {pod.data && (
                 <div className="mt-4 pt-4 border-t border-border">
                   <p className="text-[10px] uppercase tracking-[0.2em] text-lime">Your pod</p>
                   <p className="text-sm font-medium mt-1">{pod.data.group_name}</p>
                   {pod.data.pod_rationale && <p className="text-xs text-muted-foreground mt-1">{pod.data.pod_rationale}</p>}
+                  {(podMembers.data ?? []).length > 0 && (
+                    <ul className="mt-2 flex flex-wrap gap-1.5">
+                      {(podMembers.data ?? []).map((m) => (
+                        <li key={m.id} className="text-[10px] uppercase tracking-wider border border-border px-1.5 py-0.5 text-muted-foreground">
+                          {m.full_name}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
               )}
             </div>
@@ -131,53 +198,33 @@ function PlayPage() {
           </div>
         </section>
 
-        {/* Quest board */}
-        <section>
-          <div className="flex items-baseline justify-between mb-3">
-            <h2 className="text-lg font-semibold tracking-tight">Quest board</h2>
-            <p className="text-xs text-muted-foreground">Photo proof required.</p>
-          </div>
-          {quests.isLoading ? (
-            <div className="border border-border p-10 grid place-items-center"><Loader2 className="h-5 w-5 animate-spin text-lime" /></div>
-          ) : (quests.data ?? []).length === 0 ? (
-            <div className="border border-border p-10 text-center text-sm text-muted-foreground">No quests yet.</div>
-          ) : (
-            <div className="grid gap-px bg-border border border-border sm:grid-cols-2 lg:grid-cols-3">
-              {(quests.data ?? []).map((q) => {
-                const done = completedMap.get(q.id);
-                return (
-                  <div key={q.id} className="bg-background p-4 flex flex-col gap-2">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="text-lg" aria-hidden>{q.emoji ?? "⭐"}</span>
-                        <h3 className="font-medium text-sm truncate">{q.title}</h3>
-                      </div>
-                      <span className={`text-[10px] uppercase tracking-wider px-1.5 py-0.5 border ${q.type === "main" ? "border-lime text-lime" : "border-border text-muted-foreground"}`}>
-                        {q.type}
-                      </span>
-                    </div>
-                    <p className="text-xs text-muted-foreground line-clamp-2">{q.description}</p>
-                    {done?.quest_photo_url && (
-                      <img src={done.quest_photo_url} alt="" className="h-20 w-full object-cover border border-border" />
-                    )}
-                    <div className="mt-auto flex items-center justify-between pt-2">
-                      <span className="text-xs font-semibold text-lime">+{q.points_awarded}</span>
-                      {done ? (
-                        <span className="text-[10px] uppercase tracking-wider text-lime inline-flex items-center gap-1">
-                          <CheckCircle2 className="h-3 w-3" />Claimed
-                        </span>
-                      ) : (
-                        <Button size="sm" onClick={() => setActive(q)} className="bg-lime hover:opacity-90 h-7 text-xs">
-                          <Camera className="h-3 w-3 mr-1" />Claim
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </section>
+        {/* Main quests */}
+        <QuestSection
+          title="Main quests"
+          subtitle="Photo proof required. Upload a transcript to enable AI summaries."
+          quests={mainQuests}
+          completedMap={completedMap}
+          transcriptMap={transcriptMap}
+          attendeeId={attendee.id}
+          onClaim={setActive}
+          onSummary={setSummaryFor}
+          onTranscriptUploaded={invalidate}
+          locked={false}
+        />
+
+        {/* Side quests — gated */}
+        <QuestSection
+          title="Side quests"
+          subtitle={gateDone ? "Bonus challenges." : `Locked — complete "${gateQuest?.title ?? "the gate quest"}" first.`}
+          quests={sideQuests}
+          completedMap={completedMap}
+          transcriptMap={transcriptMap}
+          attendeeId={attendee.id}
+          onClaim={setActive}
+          onSummary={setSummaryFor}
+          onTranscriptUploaded={invalidate}
+          locked={!gateDone}
+        />
       </main>
 
       {active && (
@@ -185,13 +232,26 @@ function PlayPage() {
           quest={active}
           attendeeId={attendee.id}
           onClose={() => setActive(null)}
-          onClaimed={() => {
-            qc.invalidateQueries({ queryKey: ["me-anon"] });
-            qc.invalidateQueries({ queryKey: ["completed-anon"] });
-            qc.invalidateQueries({ queryKey: ["rank-anon"] });
-          }}
+          onClaimed={invalidate}
         />
       )}
+
+      {summaryFor && (() => {
+        const c = completedMap.get(summaryFor.id);
+        const t = transcriptMap.get(summaryFor.id);
+        return (
+          <QuestSummaryModal
+            open
+            onClose={() => setSummaryFor(null)}
+            questTitle={summaryFor.title}
+            questEmoji={summaryFor.emoji}
+            points={summaryFor.points_awarded}
+            photoUrl={c?.quest_photo_url ?? null}
+            transcriptUrl={t?.transcript_url ?? null}
+            claimedAt={c?.claimed_at ?? null}
+          />
+        );
+      })()}
     </div>
   );
 }
@@ -202,6 +262,145 @@ function Stat({ label, value, accent }: { label: string; value: React.ReactNode;
       <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">{label}</p>
       <p className={`text-xl font-semibold mt-1 ${accent ? "text-lime" : ""}`}>{value}</p>
     </div>
+  );
+}
+
+function QuestSection({
+  title, subtitle, quests, completedMap, transcriptMap, attendeeId,
+  onClaim, onSummary, onTranscriptUploaded, locked,
+}: {
+  title: string;
+  subtitle: string;
+  quests: Quest[];
+  completedMap: Map<string, CompletedRow>;
+  transcriptMap: Map<string, TranscriptRow>;
+  attendeeId: string;
+  onClaim: (q: Quest) => void;
+  onSummary: (q: Quest) => void;
+  onTranscriptUploaded: () => void;
+  locked: boolean;
+}) {
+  return (
+    <section>
+      <div className="flex items-baseline justify-between mb-3">
+        <h2 className="text-lg font-semibold tracking-tight">{title}</h2>
+        <p className={`text-xs ${locked ? "text-lime" : "text-muted-foreground"}`}>{subtitle}</p>
+      </div>
+      {quests.length === 0 ? (
+        <div className="border border-border p-8 text-center text-sm text-muted-foreground">No quests yet.</div>
+      ) : (
+        <div className={`relative grid gap-px bg-border border border-border sm:grid-cols-2 lg:grid-cols-3 ${locked ? "opacity-40 pointer-events-none" : ""}`}>
+          {quests.map((q) => {
+            const done = completedMap.get(q.id);
+            const transcript = transcriptMap.get(q.id);
+            return (
+              <div key={q.id} className="bg-background p-4 flex flex-col gap-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-lg" aria-hidden>{q.emoji ?? "⭐"}</span>
+                    <h3 className="font-medium text-sm truncate">{q.title}</h3>
+                  </div>
+                  <span className={`text-[10px] uppercase tracking-wider px-1.5 py-0.5 border ${q.type === "main" ? "border-lime text-lime" : "border-border text-muted-foreground"}`}>
+                    {q.is_pod_gate ? "gate" : q.type}
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground line-clamp-2">{q.description}</p>
+                {done?.quest_photo_url && (
+                  <img src={done.quest_photo_url} alt="" className="h-20 w-full object-cover border border-border" />
+                )}
+                <div className="mt-auto pt-2 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-lime">+{q.points_awarded}</span>
+                    {done ? (
+                      <span className="text-[10px] uppercase tracking-wider text-lime inline-flex items-center gap-1">
+                        <CheckCircle2 className="h-3 w-3" />Claimed
+                      </span>
+                    ) : (
+                      <Button size="sm" onClick={() => onClaim(q)} className="bg-lime hover:opacity-90 h-7 text-xs">
+                        <Camera className="h-3 w-3 mr-1" />Claim
+                      </Button>
+                    )}
+                  </div>
+                  {q.type === "main" && (
+                    <TranscriptUpload
+                      attendeeId={attendeeId}
+                      questId={q.id}
+                      existing={transcript}
+                      onDone={onTranscriptUploaded}
+                    />
+                  )}
+                  {done && (
+                    <Button variant="outline" size="sm" onClick={() => onSummary(q)}
+                      className="w-full h-7 text-xs border-border hover:border-lime hover:text-lime">
+                      <Eye className="h-3 w-3 mr-1" />View summary
+                    </Button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+          {locked && (
+            <div className="absolute inset-0 grid place-items-center">
+              <div className="bg-background border border-lime px-4 py-2 text-xs text-lime inline-flex items-center gap-2 pointer-events-auto">
+                <Lock className="h-3 w-3" /> Locked
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function TranscriptUpload({
+  attendeeId, questId, existing, onDone,
+}: { attendeeId: string; questId: string; existing?: TranscriptRow; onDone: () => void }) {
+  const [busy, setBusy] = useState(false);
+  const ref = useRef<HTMLInputElement>(null);
+
+  const upload = async (file: File) => {
+    if (file.size > 5 * 1024 * 1024) return toast.error("Max 5 MB.");
+    setBusy(true);
+    try {
+      const path = `${attendeeId}/${questId}-${Date.now()}.md`;
+      const up = await supabase.storage.from("quest-transcripts").upload(path, file, {
+        contentType: "text/markdown",
+        upsert: false,
+      });
+      if (up.error) throw up.error;
+      const { data: pub } = supabase.storage.from("quest-transcripts").getPublicUrl(path);
+      const { error } = await supabase.from("quest_transcripts").insert({
+        attendee_id: attendeeId,
+        quest_id: questId,
+        transcript_url: pub.publicUrl,
+      });
+      if (error) throw error;
+      toast.success("Transcript uploaded");
+      onDone();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Upload failed");
+    } finally { setBusy(false); }
+  };
+
+  if (existing) {
+    return (
+      <a href={existing.transcript_url} target="_blank" rel="noreferrer"
+        className="w-full h-7 border border-border text-[10px] uppercase tracking-wider text-muted-foreground hover:text-lime hover:border-lime inline-flex items-center justify-center gap-1">
+        <FileText className="h-3 w-3" /> Transcript uploaded
+      </a>
+    );
+  }
+
+  return (
+    <>
+      <input ref={ref} type="file" accept=".md,text/markdown" className="hidden"
+        onChange={(e) => { const f = e.target.files?.[0]; if (f) upload(f); }} />
+      <Button variant="outline" size="sm" disabled={busy} onClick={() => ref.current?.click()}
+        className="w-full h-7 text-xs border-dashed border-border hover:border-lime hover:text-lime">
+        {busy ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Upload className="h-3 w-3 mr-1" />}
+        Upload transcript (.md)
+      </Button>
+    </>
   );
 }
 
