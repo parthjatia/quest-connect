@@ -218,26 +218,27 @@ function AdminPage() {
           />
         </section>
 
+        {/* Pending side-quest submissions */}
+        <PendingSubmissionsQueue />
+
         {/* Transcripts panel */}
         <TranscriptsPanel />
-
 
         {/* Pods */}
         {podCount > 0 && (
           <section>
-            <h2 className="text-lg font-semibold tracking-tight mb-3">Matchmaker pods</h2>
+            <h2 className="text-lg font-semibold tracking-tight mb-3">Pods</h2>
             <div className="grid gap-px bg-border border border-border sm:grid-cols-2 lg:grid-cols-3">
               {(groups.data ?? []).map((g) => {
                 const members = (attendees.data ?? []).filter((a) => a.group_id === g.id);
                 return (
                   <div key={g.id} className="bg-background p-4">
                     <p className="text-sm font-semibold">{g.group_name}</p>
-                    {g.pod_rationale && <p className="text-xs text-muted-foreground mt-1">{g.pod_rationale}</p>}
                     <ul className="mt-3 space-y-1">
                       {members.map((m) => (
                         <li key={m.id} className="text-xs flex items-center justify-between gap-2">
                           <span className="truncate">{m.full_name || "Unnamed"}</span>
-                          <span className="text-muted-foreground shrink-0">{m.ai_experience ?? "—"}</span>
+                          <span className="text-muted-foreground shrink-0 font-mono">{(m as Attendee & { verify_code?: string }).verify_code ?? "—"}</span>
                         </li>
                       ))}
                     </ul>
@@ -247,6 +248,7 @@ function AdminPage() {
             </div>
           </section>
         )}
+
 
         {/* Attendee list */}
         <section>
