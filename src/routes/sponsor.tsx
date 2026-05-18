@@ -34,8 +34,7 @@ function SponsorPage() {
   const focused = selectedZone ? zones.find((z) => z.zone === selectedZone) ?? hottest : hottest;
   const action = useMemo(() => (focused ? generateSponsorAction(focused, goal, filters) : null), [focused, goal, filters]);
 
-  // Reset quest when key inputs change (so it always reflects current selection)
-  const questKey = `${goal}|${filters.join(",")}|${focused?.zone ?? ""}`;
+  // Active quest only shows when it still matches current selection
   const activeQuest = quest && quest.zone === focused?.zone && quest.goal === goal ? quest : null;
 
   const floorplanZones = zones.map((z) => ({
