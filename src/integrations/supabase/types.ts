@@ -24,6 +24,7 @@ export type Database = {
           event_goal: string | null
           full_name: string | null
           group_id: string | null
+          icebreakers: string | null
           id: string
           onboarded: boolean
           points: number
@@ -43,6 +44,7 @@ export type Database = {
           event_goal?: string | null
           full_name?: string | null
           group_id?: string | null
+          icebreakers?: string | null
           id?: string
           onboarded?: boolean
           points?: number
@@ -62,6 +64,7 @@ export type Database = {
           event_goal?: string | null
           full_name?: string | null
           group_id?: string | null
+          icebreakers?: string | null
           id?: string
           onboarded?: boolean
           points?: number
@@ -84,22 +87,28 @@ export type Database = {
       }
       completed_quests: {
         Row: {
+          ai_feedback: string | null
           attendee_id: string
           claimed_at: string
           id: string
           quest_id: string
+          quest_photo_url: string | null
         }
         Insert: {
+          ai_feedback?: string | null
           attendee_id: string
           claimed_at?: string
           id?: string
           quest_id: string
+          quest_photo_url?: string | null
         }
         Update: {
+          ai_feedback?: string | null
           attendee_id?: string
           claimed_at?: string
           id?: string
           quest_id?: string
+          quest_photo_url?: string | null
         }
         Relationships: [
           {
@@ -192,7 +201,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      claim_quest: { Args: { _quest_id: string }; Returns: Json }
+      claim_quest: {
+        Args: { _photo_url: string; _quest_id: string }
+        Returns: Json
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
