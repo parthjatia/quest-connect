@@ -28,7 +28,7 @@ function JoinPage() {
   const [name, setName] = useState("");
   const [university, setUniversity] = useState("");
   const [background, setBackground] = useState("");
-  const [aiLevel, setAiLevel] = useState<AILevel>("Beginner");
+  const [aiLevel, setAiLevel] = useState<AILevel>("beginner");
   const [track, setTrack] = useState("");
   const [goal, setGoal] = useState("");
   const [busy, setBusy] = useState(false);
@@ -118,14 +118,14 @@ function JoinPage() {
             <div className="grid grid-cols-2 gap-2">
               {AI_LEVELS.map((lvl) => (
                 <button
-                  key={lvl}
+                  key={lvl.label}
                   type="button"
-                  onClick={() => setAiLevel(lvl)}
+                  onClick={() => setAiLevel(lvl.value)}
                   className={`text-xs uppercase tracking-wider px-3 py-2 border ${
-                    aiLevel === lvl ? "border-lime text-lime" : "border-border text-muted-foreground hover:text-foreground"
+                    aiLevel === lvl.value ? "border-lime text-lime" : "border-border text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  {lvl}
+                  {lvl.label}
                 </button>
               ))}
             </div>
