@@ -9,6 +9,7 @@ import { getLocalAttendee, clearLocalAttendee } from "@/lib/local-attendee";
 import { toast } from "sonner";
 import { Loader2, Camera, LogOut, CheckCircle2, Lock, FileText, Upload, Eye, Pencil, Check, X, Clock, Users } from "lucide-react";
 import { QuestSummaryModal } from "@/components/quest-summary-modal";
+import { VibeMapSection } from "@/components/vibe-map/vibe-map-section";
 
 export const Route = createFileRoute("/play")({
   head: () => ({ meta: [{ title: "Play — Quest Connect" }] }),
