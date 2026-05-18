@@ -29,6 +29,7 @@ type Attendee = {
   points: number;
   group_id: string | null;
   late: boolean;
+  verify_code: string | null;
 };
 type Group = { id: string; group_name: string };
 
@@ -49,7 +50,7 @@ function AdminPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("attendees")
-        .select("id, full_name, university, academic_background, ai_experience, track_intent, event_goal, points, group_id, late")
+        .select("id, full_name, university, academic_background, ai_experience, track_intent, event_goal, points, group_id, late, verify_code")
         .order("points", { ascending: false });
       if (error) throw error;
       return (data ?? []) as Attendee[];
