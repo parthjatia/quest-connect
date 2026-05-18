@@ -199,9 +199,17 @@ function PlayPage() {
       <header className="border-b border-border">
         <div className="mx-auto max-w-5xl px-6 py-3 flex items-center justify-between text-sm">
           <Link to="/" className="font-semibold tracking-tight">Quest Connect</Link>
-          <Button variant="ghost" size="sm" onClick={leave} className="text-muted-foreground hover:text-foreground">
-            <LogOut className="h-4 w-4 mr-1" />Leave
-          </Button>
+          <div className="flex items-center gap-2">
+            <Link
+              to="/recap"
+              className="rounded-full border border-border px-3 py-1 text-xs font-semibold text-muted-foreground hover:text-foreground hover:border-foreground transition-colors"
+            >
+              ✨ Personal Recap
+            </Link>
+            <Button variant="ghost" size="sm" onClick={leave} className="text-muted-foreground hover:text-foreground">
+              <LogOut className="h-4 w-4 mr-1" />Leave
+            </Button>
+          </div>
         </div>
       </header>
 
