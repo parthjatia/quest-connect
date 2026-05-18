@@ -1,33 +1,73 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { getLocalAttendee, setLocalAttendee } from "@/lib/local-attendee";
 import { toast } from "sonner";
-import { PartyPopper, Loader2, ArrowLeft } from "lucide-react";
+import { Loader2, ArrowLeft, Search, UserPlus } from "lucide-react";
 
 export const Route = createFileRoute("/join")({
-  head: () => ({ meta: [{ title: "Join the Event — EventQuest" }] }),
+  head: () => ({ meta: [{ title: "Join — Quest Connect" }] }),
   component: JoinPage,
 });
+
+type Row = {
+  id: string;
+  full_name: string | null;
+  university: string | null;
+  academic_background: string | null;
+  ai_experience: string | null;
+  track_intent: string | null;
+};
 
 function JoinPage() {
   const navigate = useNavigate();
   const [name, setName] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+  const [filter, setFilter] = useState("");
+  const [busy, setBusy] = useState<string | null>(null);
 
   useEffect(() => {
-    const existing = getLocalAttendee();
-    if (existing) navigate({ to: "/play" });
+    if (getLocalAttendee()) navigate({ to: "/play" });
   }, [navigate]);
 
-  const submit = async (e: React.FormEvent) => {
+  const roster = useQuery({
+    queryKey: ["join-roster"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("attendees")
+        .select("id, full_name, university, academic_background, ai_experience, track_intent")
+        .order("full_name")
+        .limit(200);
+      if (error) throw error;
+      return (data ?? []) as Row[];
+    },
+  });
+
+  const filtered = useMemo(() => {
+    const q = filter.trim().toLowerCase();
+    const rows = roster.data ?? [];
+    if (!q) return rows.slice(0, 30);
+    return rows.filter((r) =>
+      (r.full_name ?? "").toLowerCase().includes(q) ||
+      (r.university ?? "").toLowerCase().includes(q) ||
+      (r.track_intent ?? "").toLowerCase().includes(q)
+    ).slice(0, 30);
+  }, [filter, roster.data]);
+
+  const pickExisting = (r: Row) => {
+    setBusy(r.id);
+    setLocalAttendee(r.id, r.full_name ?? "Guest");
+    toast.success(`Welcome, ${r.full_name}`);
+    navigate({ to: "/play" });
+  };
+
+  const createNew = async (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = name.trim();
     if (trimmed.length < 2) return toast.error("Name needs at least 2 characters.");
-    setSubmitting(true);
+    setBusy("__new__");
     try {
       const { data, error } = await supabase
         .from("attendees")
@@ -36,50 +76,97 @@ function JoinPage() {
         .single();
       if (error) throw error;
       setLocalAttendee(data.id, trimmed);
-      toast.success(`Welcome, ${trimmed}! Let's quest.`);
+      toast.success(`Welcome, ${trimmed}`);
       navigate({ to: "/play" });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to join");
-    } finally {
-      setSubmitting(false);
+      setBusy(null);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-hero flex items-center justify-center px-4">
-      <div className="w-full max-w-md">
-        <Link to="/" className="inline-flex items-center gap-2 text-white/80 hover:text-white text-sm mb-6">
-          <ArrowLeft className="h-4 w-4" /> back
-        </Link>
-        <Card className="border-white/20 bg-background/95 backdrop-blur shadow-2xl">
-          <CardHeader>
-            <div className="inline-grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-fuchsia-500 to-purple-600 shadow-lg mb-2">
-              <PartyPopper className="h-7 w-7 text-white" />
-            </div>
-            <CardTitle className="text-3xl">Jump in</CardTitle>
-            <CardDescription>Just your name. You're in.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={submit} className="space-y-4">
-              <div>
-                <label className="text-xs uppercase tracking-wider text-muted-foreground mb-1.5 block">Your name</label>
-                <Input
-                  autoFocus
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. Alex Rivera"
-                  disabled={submitting}
-                  maxLength={60}
-                />
-              </div>
-              <Button type="submit" disabled={submitting} className="w-full bg-gradient-hero shadow-glow" size="lg">
-                {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PartyPopper className="mr-2 h-4 w-4" />}
-                Join the Event
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-      </div>
+    <div className="min-h-screen bg-background text-foreground">
+      <header className="border-b border-border">
+        <div className="mx-auto max-w-5xl px-6 py-4 flex items-center justify-between text-sm">
+          <Link to="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground">
+            <ArrowLeft className="h-4 w-4" /> back
+          </Link>
+          <span className="text-muted-foreground">Quest Connect</span>
+        </div>
+      </header>
+
+      <main className="mx-auto max-w-3xl px-6 py-12 space-y-10">
+        <div>
+          <p className="text-lime text-xs uppercase tracking-[0.2em] mb-3">Join</p>
+          <h1 className="text-3xl font-semibold tracking-tight">Step into the event</h1>
+          <p className="text-sm text-muted-foreground mt-2">
+            Pick yourself from the roster, or add a fresh name.
+          </p>
+        </div>
+
+        {/* New name */}
+        <form onSubmit={createNew} className="border border-border p-5 space-y-3">
+          <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">New attendee</p>
+          <div className="flex gap-2">
+            <Input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Your name"
+              maxLength={60}
+              className="bg-background border-border"
+            />
+            <Button type="submit" disabled={busy === "__new__"} className="bg-lime hover:opacity-90 shrink-0">
+              {busy === "__new__" ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4 mr-1" />}
+              Join
+            </Button>
+          </div>
+        </form>
+
+        {/* Roster */}
+        <div className="border border-border">
+          <div className="border-b border-border p-3 flex items-center gap-2">
+            <Search className="h-4 w-4 text-muted-foreground" />
+            <input
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              placeholder="Search roster by name, university, track…"
+              className="bg-transparent text-sm flex-1 outline-none placeholder:text-muted-foreground"
+            />
+            <span className="text-xs text-muted-foreground">{roster.data?.length ?? 0} total</span>
+          </div>
+
+          {roster.isLoading ? (
+            <div className="p-10 grid place-items-center"><Loader2 className="h-5 w-5 animate-spin text-lime" /></div>
+          ) : filtered.length === 0 ? (
+            <p className="p-10 text-sm text-muted-foreground text-center">
+              No roster yet. Ask the admin to "Seed mock attendees" — or just join with your name above.
+            </p>
+          ) : (
+            <ul className="divide-y divide-border">
+              {filtered.map((r) => (
+                <li key={r.id}>
+                  <button
+                    onClick={() => pickExisting(r)}
+                    disabled={!!busy}
+                    className="w-full text-left p-3 hover:bg-card transition-colors flex items-center justify-between gap-3 disabled:opacity-50"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">{r.full_name || "Unnamed"}</p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {[r.university, r.academic_background].filter(Boolean).join(" · ") || "—"}
+                      </p>
+                    </div>
+                    <div className="hidden sm:flex items-center gap-2 text-[10px] text-muted-foreground uppercase tracking-wider shrink-0">
+                      {r.ai_experience && <span className="border border-border px-1.5 py-0.5">{r.ai_experience}</span>}
+                      {r.track_intent && <span className="border border-border px-1.5 py-0.5">{r.track_intent}</span>}
+                    </div>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </main>
     </div>
   );
 }
