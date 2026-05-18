@@ -51,7 +51,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "EventQuest — Gamified Networking" },
+      { title: "Quest Connect — Event matchmaking & quests" },
       { name: "description", content: "Turn your event into a quest. Earn points, find your squad, ship your wrapped." },
     ],
     links: [
