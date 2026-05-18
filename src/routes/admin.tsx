@@ -134,15 +134,15 @@ function AdminPage() {
 
   const [matching, setMatching] = useState(false);
   const runMatchmaker = async () => {
-    if ((attendees.data ?? []).length < 3) return toast.error("Need at least 3 attendees.");
-    if (!confirm("Run matchmaker? This clears existing pods and reassigns everyone.")) return;
+    const eligible = (attendees.data ?? []).filter((a) => !a.late);
+    if (eligible.length < 3) return toast.error("Need at least 3 non-late attendees.");
+    if (!confirm(`Run matchmaker on ${eligible.length} attendees? This clears existing pods.`)) return;
     setMatching(true);
     try {
-      // Clear
       await supabase.from("attendees").update({ group_id: null }).not("id", "is", null);
       await supabase.from("groups").delete().not("id", "is", null);
 
-      const input: MatchInput[] = (attendees.data ?? []).map((a) => ({
+      const input: MatchInput[] = eligible.map((a) => ({
         id: a.id, full_name: a.full_name,
         university: a.university, academic_background: a.academic_background,
         ai_experience: a.ai_experience, track_intent: a.track_intent,
