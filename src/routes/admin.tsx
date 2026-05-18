@@ -27,6 +27,7 @@ type Attendee = {
   event_goal: string | null;
   points: number;
   group_id: string | null;
+  late: boolean;
 };
 type Group = { id: string; group_name: string; pod_rationale: string | null };
 
@@ -47,11 +48,16 @@ function AdminPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("attendees")
-        .select("id, full_name, university, academic_background, ai_experience, track_intent, event_goal, points, group_id")
+        .select("id, full_name, university, academic_background, ai_experience, track_intent, event_goal, points, group_id, late")
         .order("points", { ascending: false });
       if (error) throw error;
       return (data ?? []) as Attendee[];
     },
+  });
+
+  const settings = useQuery({
+    queryKey: ["event-settings"],
+    queryFn: getRegistrationOpen,
   });
 
   const groups = useQuery({
