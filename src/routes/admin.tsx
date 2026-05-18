@@ -446,3 +446,55 @@ function QuestManager({ quests, loading }: { quests: Quest[]; loading: boolean }
     </section>
   );
 }
+
+function TranscriptsPanel() {
+  const transcripts = useQuery({
+    queryKey: ["admin-transcripts"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("quest_transcripts")
+        .select("id, transcript_url, uploaded_at, attendee_id, quest_id, attendees(full_name), quests(title, emoji)")
+        .order("uploaded_at", { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  return (
+    <section>
+      <div className="flex items-baseline justify-between mb-3">
+        <h2 className="text-lg font-semibold tracking-tight">Quest transcripts</h2>
+        <p className="text-xs text-muted-foreground">Markdown uploads from attendees</p>
+      </div>
+      {transcripts.isLoading ? (
+        <div className="border border-border p-10 grid place-items-center"><Loader2 className="h-5 w-5 animate-spin text-lime" /></div>
+      ) : (transcripts.data ?? []).length === 0 ? (
+        <div className="border border-border p-8 text-center text-sm text-muted-foreground">
+          No transcripts uploaded yet.
+        </div>
+      ) : (
+        <div className="border border-border divide-y divide-border">
+          {(transcripts.data ?? []).map((t: any) => (
+            <div key={t.id} className="p-3 flex items-center justify-between gap-3 text-sm">
+              <div className="min-w-0">
+                <p className="truncate">
+                  <span className="text-lime mr-2">{t.quests?.emoji ?? "📄"}</span>
+                  <span className="font-medium">{t.quests?.title ?? "Quest"}</span>
+                  <span className="text-muted-foreground ml-2">— {t.attendees?.full_name ?? "Unknown"}</span>
+                </p>
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-0.5">
+                  {new Date(t.uploaded_at).toLocaleString()}
+                </p>
+              </div>
+              <a href={t.transcript_url} target="_blank" rel="noreferrer"
+                className="text-xs text-lime inline-flex items-center gap-1 shrink-0">
+                <FileText className="h-3 w-3" /> Open .md
+              </a>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
