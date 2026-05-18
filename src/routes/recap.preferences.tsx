@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { RecapShell } from "@/components/recap/recap-shell";
 import { cn } from "@/lib/utils";
-import { loadPrefs, savePrefs, type RecapPrefs } from "@/lib/recap-store";
+import { deriveTemplateId, loadPrefs, savePrefs, saveTemplateId, type RecapPrefs } from "@/lib/recap-store";
 
 export const Route = createFileRoute("/recap/preferences")({
   head: () => ({
@@ -66,6 +66,7 @@ function PreferencesPage() {
 
   const handleGenerate = () => {
     savePrefs(prefs);
+    saveTemplateId(deriveTemplateId(prefs));
     navigate({ to: "/recap/loading" });
   };
 
