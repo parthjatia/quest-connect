@@ -487,3 +487,84 @@ function TranscriptsPanel() {
     </section>
   );
 }
+
+function PendingSubmissionsQueue() {
+  const qc = useQueryClient();
+  const subs = useQuery({
+    queryKey: ["admin-pending-submissions"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("group_quest_submissions")
+        .select("id, status, photo_url, created_at, reviewer_note, group_id, quest_id, groups(group_name), quests(title, emoji, points_awarded)")
+        .order("created_at", { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  useEffect(() => {
+    const ch = supabase
+      .channel("admin-subs")
+      .on("postgres_changes", { event: "*", schema: "public", table: "group_quest_submissions" },
+        () => qc.invalidateQueries({ queryKey: ["admin-pending-submissions"] }))
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [qc]);
+
+  const act = async (id: string, approve: boolean) => {
+    const note = approve ? null : (prompt("Reason for rejection (optional)") ?? null);
+    const fn = approve ? "approve_group_submission" : "reject_group_submission";
+    const { error } = await supabase.rpc(fn, { _submission_id: id, _note: note });
+    if (error) return toast.error(error.message);
+    toast.success(approve ? "Approved — points awarded to pod" : "Rejected");
+    qc.invalidateQueries({ queryKey: ["admin-pending-submissions"] });
+    qc.invalidateQueries({ queryKey: ["admin-attendees"] });
+  };
+
+  const rows = subs.data ?? [];
+  const pending = rows.filter((r: any) => r.status === "pending");
+
+  return (
+    <section>
+      <div className="flex items-baseline justify-between mb-3">
+        <h2 className="text-lg font-semibold tracking-tight">Side-quest submissions</h2>
+        <p className="text-xs text-muted-foreground">{pending.length} awaiting review</p>
+      </div>
+      {rows.length === 0 ? (
+        <div className="border border-border p-8 text-center text-sm text-muted-foreground">No submissions yet.</div>
+      ) : (
+        <div className="grid gap-px bg-border border border-border sm:grid-cols-2 lg:grid-cols-3">
+          {rows.map((r: any) => (
+            <div key={r.id} className="bg-background p-3 flex flex-col gap-2">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-sm font-medium truncate">{r.quests?.emoji} {r.quests?.title}</p>
+                <span className={`text-[10px] uppercase tracking-wider px-1.5 py-0.5 border ${
+                  r.status === "pending" ? "border-yellow-500/50 text-yellow-400" :
+                  r.status === "approved" ? "border-lime text-lime" : "border-destructive text-destructive"
+                }`}>{r.status}</span>
+              </div>
+              <p className="text-xs text-muted-foreground">{r.groups?.group_name} · +{r.quests?.points_awarded} each</p>
+              {r.photo_url && <img src={r.photo_url} alt="" className="h-32 w-full object-cover border border-border" />}
+              {r.status === "pending" && (
+                <div className="flex gap-2 mt-1">
+                  <Button size="sm" onClick={() => act(r.id, true)} className="flex-1 h-7 text-xs bg-lime hover:opacity-90">
+                    <Check className="h-3 w-3 mr-1" /> Approve
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => act(r.id, false)} className="flex-1 h-7 text-xs border-destructive text-destructive hover:bg-destructive/10">
+                    <XIcon className="h-3 w-3 mr-1" /> Reject
+                  </Button>
+                </div>
+              )}
+              {r.reviewer_note && <p className="text-[10px] text-muted-foreground italic">Note: {r.reviewer_note}</p>}
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground inline-flex items-center gap-1">
+                <Clock className="h-3 w-3" /> {new Date(r.created_at).toLocaleString()}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
