@@ -82,12 +82,24 @@ function AdminPage() {
     return () => { supabase.removeChannel(ch); };
   }, [qc]);
 
-  const aiLevelToEnum = (s: string): "Never used" | "Beginner" | "Intermediate" | "Power user" => {
-    const t = s.toLowerCase();
-    if (t.includes("power")) return "Power user";
-    if (t.includes("inter")) return "Intermediate";
-    if (t.includes("begin")) return "Beginner";
-    return "Never used";
+  const aiLevelToEnum = (s: string): "beginner" | "intermediate" | "power_user" | null => {
+    const t = (s || "").toLowerCase();
+    if (t.includes("power")) return "power_user";
+    if (t.includes("inter")) return "intermediate";
+    if (t.includes("begin")) return "beginner";
+    return null;
+  };
+
+  const [togglingReg, setTogglingReg] = useState(false);
+  const toggleRegistration = async () => {
+    setTogglingReg(true);
+    try {
+      await setRegistrationOpen(!(settings.data ?? true));
+      toast.success(settings.data ? "Registration closed" : "Registration opened");
+      qc.invalidateQueries({ queryKey: ["event-settings"] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed");
+    } finally { setTogglingReg(false); }
   };
 
   const [seeding, setSeeding] = useState(false);
