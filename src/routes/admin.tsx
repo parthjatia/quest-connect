@@ -1,15 +1,16 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, Plus, Trash2, Sparkles, ArrowLeft, UserPlus, Wand2, Lock, Unlock, FileText } from "lucide-react";
+import { Loader2, Plus, Trash2, Sparkles, ArrowLeft, UserPlus, Wand2, Lock, Unlock, FileText, Check, X as XIcon, Clock } from "lucide-react";
 import { MOCK_ATTENDEES } from "@/lib/mock-attendees";
-import { buildPods, type MatchInput } from "@/lib/matchmaker";
 import { getRegistrationOpen, setRegistrationOpen } from "@/lib/event-settings";
+import { runLlmMatchmaker } from "@/lib/matchmaker.functions";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({ meta: [{ title: "Admin — Quest Connect" }] }),
@@ -28,8 +29,9 @@ type Attendee = {
   points: number;
   group_id: string | null;
   late: boolean;
+  verify_code: string | null;
 };
-type Group = { id: string; group_name: string; pod_rationale: string | null };
+type Group = { id: string; group_name: string };
 
 function AdminPage() {
   const qc = useQueryClient();
@@ -48,7 +50,7 @@ function AdminPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("attendees")
-        .select("id, full_name, university, academic_background, ai_experience, track_intent, event_goal, points, group_id, late")
+        .select("id, full_name, university, academic_background, ai_experience, track_intent, event_goal, points, group_id, late, verify_code")
         .order("points", { ascending: false });
       if (error) throw error;
       return (data ?? []) as Attendee[];
@@ -63,7 +65,7 @@ function AdminPage() {
   const groups = useQuery({
     queryKey: ["admin-groups"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("groups").select("id, group_name, pod_rationale");
+      const { data, error } = await supabase.from("groups").select("id, group_name");
       if (error) throw error;
       return (data ?? []) as Group[];
     },
@@ -133,34 +135,19 @@ function AdminPage() {
   };
 
   const [matching, setMatching] = useState(false);
+  const matchmakerFn = useServerFn(runLlmMatchmaker);
   const runMatchmaker = async () => {
     const eligible = (attendees.data ?? []).filter((a) => !a.late);
     if (eligible.length < 3) return toast.error("Need at least 3 non-late attendees.");
-    if (!confirm(`Run matchmaker on ${eligible.length} attendees? This clears existing pods.`)) return;
+    if (!confirm(`Run AI matchmaker on ${eligible.length} attendees? This clears existing pods.`)) return;
     setMatching(true);
     try {
-      await supabase.from("attendees").update({ group_id: null }).not("id", "is", null);
-      await supabase.from("groups").delete().not("id", "is", null);
-
-      const input: MatchInput[] = eligible.map((a) => ({
-        id: a.id, full_name: a.full_name,
-        university: a.university, academic_background: a.academic_background,
-        ai_experience: a.ai_experience, track_intent: a.track_intent,
-        event_goal: a.event_goal,
-      }));
-      const pods = buildPods(input, 5);
-
-      for (const pod of pods) {
-        const { data: g, error: gErr } = await supabase
-          .from("groups")
-          .insert({ group_name: pod.name, pod_rationale: pod.rationale })
-          .select("id")
-          .single();
-        if (gErr) throw gErr;
-        const { error: aErr } = await supabase.from("attendees").update({ group_id: g.id }).in("id", pod.member_ids);
-        if (aErr) throw aErr;
+      const result = await matchmakerFn();
+      if (result.method === "ai") {
+        toast.success(`AI formed ${result.pods_created} pods`);
+      } else {
+        toast.warning(`Used heuristic fallback (${result.pods_created} pods)${result.error ? ` — ${result.error}` : ""}`);
       }
-      toast.success(`Formed ${pods.length} pods`);
       qc.invalidateQueries({ queryKey: ["admin-attendees"] });
       qc.invalidateQueries({ queryKey: ["admin-groups"] });
     } catch (e) {
@@ -232,26 +219,27 @@ function AdminPage() {
           />
         </section>
 
+        {/* Pending side-quest submissions */}
+        <PendingSubmissionsQueue />
+
         {/* Transcripts panel */}
         <TranscriptsPanel />
-
 
         {/* Pods */}
         {podCount > 0 && (
           <section>
-            <h2 className="text-lg font-semibold tracking-tight mb-3">Matchmaker pods</h2>
+            <h2 className="text-lg font-semibold tracking-tight mb-3">Pods</h2>
             <div className="grid gap-px bg-border border border-border sm:grid-cols-2 lg:grid-cols-3">
               {(groups.data ?? []).map((g) => {
                 const members = (attendees.data ?? []).filter((a) => a.group_id === g.id);
                 return (
                   <div key={g.id} className="bg-background p-4">
                     <p className="text-sm font-semibold">{g.group_name}</p>
-                    {g.pod_rationale && <p className="text-xs text-muted-foreground mt-1">{g.pod_rationale}</p>}
                     <ul className="mt-3 space-y-1">
                       {members.map((m) => (
                         <li key={m.id} className="text-xs flex items-center justify-between gap-2">
                           <span className="truncate">{m.full_name || "Unnamed"}</span>
-                          <span className="text-muted-foreground shrink-0">{m.ai_experience ?? "—"}</span>
+                          <span className="text-muted-foreground shrink-0 font-mono">{(m as Attendee & { verify_code?: string }).verify_code ?? "—"}</span>
                         </li>
                       ))}
                     </ul>
@@ -261,6 +249,7 @@ function AdminPage() {
             </div>
           </section>
         )}
+
 
         {/* Attendee list */}
         <section>
@@ -498,3 +487,86 @@ function TranscriptsPanel() {
     </section>
   );
 }
+
+function PendingSubmissionsQueue() {
+  const qc = useQueryClient();
+  const subs = useQuery({
+    queryKey: ["admin-pending-submissions"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("group_quest_submissions")
+        .select("id, status, photo_url, created_at, reviewer_note, group_id, quest_id, groups(group_name), quests(title, emoji, points_awarded)")
+        .order("created_at", { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  useEffect(() => {
+    const ch = supabase
+      .channel("admin-subs")
+      .on("postgres_changes", { event: "*", schema: "public", table: "group_quest_submissions" },
+        () => qc.invalidateQueries({ queryKey: ["admin-pending-submissions"] }))
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [qc]);
+
+  const act = async (id: string, approve: boolean) => {
+    const note = approve ? undefined : (prompt("Reason for rejection (optional)") || undefined);
+    const params: { _submission_id: string; _note?: string } = { _submission_id: id };
+    if (note) params._note = note;
+    const fn = approve ? "approve_group_submission" : "reject_group_submission";
+    const { error } = await supabase.rpc(fn, params);
+    if (error) return toast.error(error.message);
+    toast.success(approve ? "Approved — points awarded to pod" : "Rejected");
+    qc.invalidateQueries({ queryKey: ["admin-pending-submissions"] });
+    qc.invalidateQueries({ queryKey: ["admin-attendees"] });
+  };
+
+  const rows = subs.data ?? [];
+  const pending = rows.filter((r: any) => r.status === "pending");
+
+  return (
+    <section>
+      <div className="flex items-baseline justify-between mb-3">
+        <h2 className="text-lg font-semibold tracking-tight">Side-quest submissions</h2>
+        <p className="text-xs text-muted-foreground">{pending.length} awaiting review</p>
+      </div>
+      {rows.length === 0 ? (
+        <div className="border border-border p-8 text-center text-sm text-muted-foreground">No submissions yet.</div>
+      ) : (
+        <div className="grid gap-px bg-border border border-border sm:grid-cols-2 lg:grid-cols-3">
+          {rows.map((r: any) => (
+            <div key={r.id} className="bg-background p-3 flex flex-col gap-2">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-sm font-medium truncate">{r.quests?.emoji} {r.quests?.title}</p>
+                <span className={`text-[10px] uppercase tracking-wider px-1.5 py-0.5 border ${
+                  r.status === "pending" ? "border-yellow-500/50 text-yellow-400" :
+                  r.status === "approved" ? "border-lime text-lime" : "border-destructive text-destructive"
+                }`}>{r.status}</span>
+              </div>
+              <p className="text-xs text-muted-foreground">{r.groups?.group_name} · +{r.quests?.points_awarded} each</p>
+              {r.photo_url && <img src={r.photo_url} alt="" className="h-32 w-full object-cover border border-border" />}
+              {r.status === "pending" && (
+                <div className="flex gap-2 mt-1">
+                  <Button size="sm" onClick={() => act(r.id, true)} className="flex-1 h-7 text-xs bg-lime hover:opacity-90">
+                    <Check className="h-3 w-3 mr-1" /> Approve
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => act(r.id, false)} className="flex-1 h-7 text-xs border-destructive text-destructive hover:bg-destructive/10">
+                    <XIcon className="h-3 w-3 mr-1" /> Reject
+                  </Button>
+                </div>
+              )}
+              {r.reviewer_note && <p className="text-[10px] text-muted-foreground italic">Note: {r.reviewer_note}</p>}
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground inline-flex items-center gap-1">
+                <Clock className="h-3 w-3" /> {new Date(r.created_at).toLocaleString()}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+

@@ -1,157 +1,141 @@
 import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
-const POD_SIZE = 5;
-const AI_GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
+const GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
-const ADJECTIVES = ["Neon", "Cosmic", "Quantum", "Stellar", "Pixel", "Atomic", "Lunar", "Solar", "Cyber", "Plasma", "Vortex", "Echo"];
-const NOUNS = ["Foxes", "Otters", "Owls", "Wolves", "Hawks", "Pandas", "Lynxes", "Ravens", "Tigers", "Dragons", "Phoenix", "Falcons"];
-
-type AttendeeRow = {
+type Attendee = {
   id: string;
   full_name: string | null;
-  track_intent: string | null;
-  ai_experience: string | null;
+  university: string | null;
   academic_background: string | null;
+  ai_experience: string | null;
+  track_intent: string | null;
+  event_goal: string | null;
 };
 
-function shuffle<T>(arr: T[]): T[] {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
-
-/** Heuristic fallback if LLM call fails or returns garbage. */
-function heuristicPods(attendees: AttendeeRow[]): string[][] {
-  const buckets = new Map<string, string[]>();
+/**
+ * Heuristic fallback so the demo never bricks. Groups by event_goal, then
+ * round-robins each goal-bucket across pods to spread universities + AI levels.
+ */
+function heuristicPods(attendees: Attendee[], target = 4): string[][] {
+  const byGoal = new Map<string, Attendee[]>();
   for (const a of attendees) {
-    const key = `${a.track_intent ?? "?"}::${a.ai_experience ?? "?"}`;
-    if (!buckets.has(key)) buckets.set(key, []);
-    buckets.get(key)!.push(a.id);
-  }
-  for (const [k, v] of buckets) buckets.set(k, shuffle(v));
-  const queues = Array.from(buckets.values());
-  const flat: string[] = [];
-  let added = true;
-  while (added) {
-    added = false;
-    for (const q of queues) {
-      const v = q.shift();
-      if (v) { flat.push(v); added = true; }
-    }
+    const key = a.event_goal || "Open";
+    if (!byGoal.has(key)) byGoal.set(key, []);
+    byGoal.get(key)!.push(a);
   }
   const pods: string[][] = [];
-  for (let i = 0; i < flat.length; i += POD_SIZE) pods.push(flat.slice(i, i + POD_SIZE));
-  if (pods.length > 1 && pods[pods.length - 1].length < 3) {
-    const tail = pods.pop()!;
-    pods[pods.length - 1].push(...tail);
+  for (const [, group] of byGoal) {
+    const sorted = [...group].sort(() => Math.random() - 0.5);
+    const podCount = Math.max(1, Math.round(sorted.length / target));
+    const buckets: string[][] = Array.from({ length: podCount }, () => []);
+    sorted.forEach((a, i) => buckets[i % podCount].push(a.id));
+    pods.push(...buckets.filter((b) => b.length > 0));
+  }
+  // Merge tiny pods
+  for (let i = pods.length - 1; i > 0; i--) {
+    if (pods[i].length < 3) { pods[i - 1].push(...pods[i]); pods.splice(i, 1); }
   }
   return pods;
 }
 
-async function llmPods(attendees: AttendeeRow[]): Promise<{ pods: string[][]; rationale: string } | null> {
-  const apiKey = process.env.LOVABLE_API_KEY;
-  if (!apiKey) return null;
+export const runLlmMatchmaker = createServerFn({ method: "POST" }).handler(
+  async (): Promise<{ pods_created: number; method: "ai" | "heuristic"; error?: string }> => {
+    // 1. Clear existing pods
+    await supabaseAdmin.from("attendees").update({ group_id: null }).not("id", "is", null);
+    await supabaseAdmin.from("groups").delete().not("id", "is", null);
 
-  const roster = attendees.map((a) => ({
-    id: a.id,
-    bg: a.academic_background ?? "?",
-    track: a.track_intent ?? "?",
-    ai: a.ai_experience ?? "?",
-  }));
-
-  const sys = `You are a hackathon matchmaker. Group attendees into diverse pods of ${POD_SIZE} (last pod can be 3-6). Maximize diversity in academic_background AND ai_experience inside each pod, but try to keep track_intent overlapping so teams can build together. Respond ONLY with valid JSON of this exact shape:
-{"pods":[["id1","id2",...], ...], "rationale":"one sentence"}
-Use every attendee id exactly once. Do not invent ids.`;
-
-  try {
-    const res = await fetch(AI_GATEWAY, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: sys },
-          { role: "user", content: JSON.stringify(roster) },
-        ],
-        response_format: { type: "json_object" },
-      }),
-    });
-    if (!res.ok) return null;
-    const j = await res.json();
-    const raw: string = j?.choices?.[0]?.message?.content ?? "";
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed?.pods)) return null;
-    const validIds = new Set(attendees.map((a) => a.id));
-    const seen = new Set<string>();
-    const pods: string[][] = [];
-    for (const pod of parsed.pods) {
-      if (!Array.isArray(pod)) continue;
-      const clean = pod.filter((x: unknown) => typeof x === "string" && validIds.has(x) && !seen.has(x));
-      clean.forEach((id: string) => seen.add(id));
-      if (clean.length > 0) pods.push(clean);
-    }
-    // Append any forgotten attendees to last pod
-    const missing = attendees.map((a) => a.id).filter((id) => !seen.has(id));
-    if (missing.length > 0 && pods.length > 0) pods[pods.length - 1].push(...missing);
-    if (pods.length === 0) return null;
-    return { pods, rationale: typeof parsed.rationale === "string" ? parsed.rationale : "" };
-  } catch (e) {
-    console.error("LLM matchmaker failed, falling back:", e);
-    return null;
-  }
-}
-
-export const runMatchmaker = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { data: roleRow } = await context.supabase
-      .from("user_roles").select("role").eq("user_id", context.userId).eq("role", "admin").maybeSingle();
-    if (!roleRow) throw new Error("Forbidden: admin only");
-
-    const { data: unassigned, error: uErr } = await supabaseAdmin
+    // 2. Pull eligible attendees
+    const { data: rows, error } = await supabaseAdmin
       .from("attendees")
-      .select("id, full_name, track_intent, ai_experience, academic_background")
-      .is("group_id", null)
-      .eq("onboarded", true);
-    if (uErr) throw new Error(uErr.message);
-    if (!unassigned || unassigned.length === 0) {
-      return { pods_created: 0, attendees_assigned: 0, rationale: "", method: "none" };
+      .select("id, full_name, university, academic_background, ai_experience, track_intent, event_goal")
+      .eq("late", false)
+      .is("group_id", null);
+    if (error) throw new Error(error.message);
+    const attendees = (rows ?? []) as Attendee[];
+    if (attendees.length < 3) return { pods_created: 0, method: "heuristic" };
+
+    // 3. Try LLM
+    let pods: string[][] = [];
+    let method: "ai" | "heuristic" = "ai";
+    let llmError: string | undefined;
+    const apiKey = process.env.LOVABLE_API_KEY;
+
+    if (apiKey) {
+      try {
+        const compact = attendees.map((a) => ({
+          id: a.id,
+          name: a.full_name,
+          uni: a.university,
+          bg: a.academic_background,
+          ai: a.ai_experience,
+          track: a.track_intent,
+          goal: a.event_goal,
+        }));
+        const res = await fetch(GATEWAY, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: "google/gemini-3-flash-preview",
+            messages: [
+              {
+                role: "system",
+                content:
+                  "You are a hackathon matchmaker. Form pods of 3-5 attendees. HARD RULE: every member of a pod MUST share the SAME `goal` value. Within each pod MAXIMIZE diversity across university, bg (academic background), ai (ai_experience), and track. Use every attendee id exactly once. Respond ONLY with strict JSON: {\"pods\":[{\"member_ids\":[\"...\"]}, ...]}",
+              },
+              { role: "user", content: JSON.stringify(compact) },
+            ],
+            response_format: { type: "json_object" },
+          }),
+        });
+        if (res.status === 429) throw new Error("Rate limited (429). Try again in a minute.");
+        if (res.status === 402) throw new Error("AI credits exhausted (402). Add credits in workspace settings.");
+        if (!res.ok) throw new Error(`Gateway ${res.status}: ${(await res.text()).slice(0, 200)}`);
+        const j = await res.json();
+        const raw: string = j?.choices?.[0]?.message?.content ?? "{}";
+        const parsed = JSON.parse(raw);
+        const validIds = new Set(attendees.map((a) => a.id));
+        const seen = new Set<string>();
+        const out: string[][] = [];
+        for (const p of parsed.pods ?? []) {
+          const clean = (p.member_ids ?? []).filter(
+            (id: unknown) => typeof id === "string" && validIds.has(id) && !seen.has(id),
+          );
+          clean.forEach((id: string) => seen.add(id));
+          if (clean.length > 0) out.push(clean);
+        }
+        // Append any forgotten ids to last pod
+        const missing = attendees.map((a) => a.id).filter((id) => !seen.has(id));
+        if (missing.length && out.length) out[out.length - 1].push(...missing);
+        if (out.length === 0) throw new Error("LLM returned no pods");
+        pods = out;
+      } catch (e) {
+        llmError = e instanceof Error ? e.message : String(e);
+        console.error("LLM matchmaker failed, falling back:", llmError);
+        method = "heuristic";
+        pods = heuristicPods(attendees);
+      }
+    } else {
+      method = "heuristic";
+      pods = heuristicPods(attendees);
+      llmError = "LOVABLE_API_KEY missing";
     }
 
-    const llm = await llmPods(unassigned);
-    const pods = llm?.pods ?? heuristicPods(unassigned);
-    const rationale = llm?.rationale ?? "Diversity-aware round-robin by track + AI experience (fallback).";
-    const method = llm ? "ai" : "heuristic";
-
-    let assigned = 0;
-    for (const podIds of pods) {
-      const name = `${ADJECTIVES[Math.floor(Math.random() * ADJECTIVES.length)]} ${NOUNS[Math.floor(Math.random() * NOUNS.length)]}`;
-      const { data: group, error: gErr } = await supabaseAdmin.from("groups").insert({ group_name: name }).select("id").single();
+    // 4. Write groups + attendee assignments
+    for (const memberIds of pods) {
+      const { data: g, error: gErr } = await supabaseAdmin
+        .from("groups")
+        .insert({ group_name: "Unnamed pod" })
+        .select("id")
+        .single();
       if (gErr) throw new Error(gErr.message);
-      const { error: aErr } = await supabaseAdmin.from("attendees").update({ group_id: group.id }).in("id", podIds);
+      const { error: aErr } = await supabaseAdmin
+        .from("attendees")
+        .update({ group_id: g.id })
+        .in("id", memberIds);
       if (aErr) throw new Error(aErr.message);
-      assigned += podIds.length;
     }
-    return { pods_created: pods.length, attendees_assigned: assigned, rationale, method };
-  });
 
-export const grantAdminToSelf = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { count } = await supabaseAdmin
-      .from("user_roles").select("id", { count: "exact", head: true }).eq("role", "admin");
-    if ((count ?? 0) > 0) {
-      const { data: me } = await supabaseAdmin
-        .from("user_roles").select("role").eq("user_id", context.userId).eq("role", "admin").maybeSingle();
-      if (!me) throw new Error("Admin role already claimed. Ask an existing admin to promote you.");
-    }
-    const { error } = await supabaseAdmin
-      .from("user_roles").insert({ user_id: context.userId, role: "admin" });
-    if (error && !error.message.includes("duplicate")) throw new Error(error.message);
-    return { ok: true };
-  });
+    return { pods_created: pods.length, method, error: llmError };
+  },
+);
