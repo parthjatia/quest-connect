@@ -273,6 +273,8 @@ function PlayPage() {
           onSubmit={(q) => setActiveGroupSubmit(q)}
           onSummary={setSummaryFor}
         />
+
+        <VibeMapSection />
       </main>
 
       {activeMainClaim && (
