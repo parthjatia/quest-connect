@@ -19,6 +19,7 @@ type Quest = {
   id: string; title: string; description: string; type: string;
   points_awarded: number; emoji: string | null; is_pod_gate: boolean;
   created_at: string;
+  start_at: string | null; end_at: string | null; is_live: boolean;
 };
 type CompletedRow = { id: string; quest_id: string; quest_photo_url: string | null; claimed_at: string };
 type TranscriptRow = { id: string; quest_id: string; transcript_url: string; uploaded_at: string };
