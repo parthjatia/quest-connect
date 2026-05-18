@@ -10,7 +10,9 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as WrappedRouteImport } from './routes/wrapped'
+import { Route as PlayRouteImport } from './routes/play'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
+import { Route as JoinRouteImport } from './routes/join'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AdminRouteImport } from './routes/admin'
@@ -21,9 +23,19 @@ const WrappedRoute = WrappedRouteImport.update({
   path: '/wrapped',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PlayRoute = PlayRouteImport.update({
+  id: '/play',
+  path: '/play',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OnboardingRoute = OnboardingRouteImport.update({
   id: '/onboarding',
   path: '/onboarding',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const JoinRoute = JoinRouteImport.update({
+  id: '/join',
+  path: '/join',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DashboardRoute = DashboardRouteImport.update({
@@ -52,7 +64,9 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
   '/dashboard': typeof DashboardRoute
+  '/join': typeof JoinRoute
   '/onboarding': typeof OnboardingRoute
+  '/play': typeof PlayRoute
   '/wrapped': typeof WrappedRoute
 }
 export interface FileRoutesByTo {
@@ -60,7 +74,9 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
   '/dashboard': typeof DashboardRoute
+  '/join': typeof JoinRoute
   '/onboarding': typeof OnboardingRoute
+  '/play': typeof PlayRoute
   '/wrapped': typeof WrappedRoute
 }
 export interface FileRoutesById {
@@ -69,7 +85,9 @@ export interface FileRoutesById {
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
   '/dashboard': typeof DashboardRoute
+  '/join': typeof JoinRoute
   '/onboarding': typeof OnboardingRoute
+  '/play': typeof PlayRoute
   '/wrapped': typeof WrappedRoute
 }
 export interface FileRouteTypes {
@@ -79,17 +97,29 @@ export interface FileRouteTypes {
     | '/admin'
     | '/auth'
     | '/dashboard'
+    | '/join'
     | '/onboarding'
+    | '/play'
     | '/wrapped'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/admin' | '/auth' | '/dashboard' | '/onboarding' | '/wrapped'
+  to:
+    | '/'
+    | '/admin'
+    | '/auth'
+    | '/dashboard'
+    | '/join'
+    | '/onboarding'
+    | '/play'
+    | '/wrapped'
   id:
     | '__root__'
     | '/'
     | '/admin'
     | '/auth'
     | '/dashboard'
+    | '/join'
     | '/onboarding'
+    | '/play'
     | '/wrapped'
   fileRoutesById: FileRoutesById
 }
@@ -98,7 +128,9 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRoute
   AuthRoute: typeof AuthRoute
   DashboardRoute: typeof DashboardRoute
+  JoinRoute: typeof JoinRoute
   OnboardingRoute: typeof OnboardingRoute
+  PlayRoute: typeof PlayRoute
   WrappedRoute: typeof WrappedRoute
 }
 
@@ -111,11 +143,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WrappedRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/play': {
+      id: '/play'
+      path: '/play'
+      fullPath: '/play'
+      preLoaderRoute: typeof PlayRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/onboarding': {
       id: '/onboarding'
       path: '/onboarding'
       fullPath: '/onboarding'
       preLoaderRoute: typeof OnboardingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/join': {
+      id: '/join'
+      path: '/join'
+      fullPath: '/join'
+      preLoaderRoute: typeof JoinRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dashboard': {
@@ -154,7 +200,9 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRoute,
   AuthRoute: AuthRoute,
   DashboardRoute: DashboardRoute,
+  JoinRoute: JoinRoute,
   OnboardingRoute: OnboardingRoute,
+  PlayRoute: PlayRoute,
   WrappedRoute: WrappedRoute,
 }
 export const routeTree = rootRouteImport
