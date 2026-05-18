@@ -163,17 +163,26 @@ function PlayPage() {
   const mainQuests = allQuests.filter((q) => q.type === "main");
   const sideQuests = allQuests.filter((q) => q.type === "side");
 
-  // I have verified every other pod member
-  const otherMembers = (members.data ?? []).filter((m) => m.id !== attendee.id);
-  const myVerifs = new Set((verifications.data ?? []).filter((v) => v.verifier_id === attendee.id).map((v) => v.verified_id));
-  const iAmFullyVerified = otherMembers.length > 0 && otherMembers.every((m) => myVerifs.has(m.id));
-
-  // Pod fully cross-verified? (every member has verified every other member)
+  // Transitive (undirected) connected component including me
+  const verifList = verifications.data ?? [];
   const memberIds = (members.data ?? []).map((m) => m.id);
-  const verifSet = new Set((verifications.data ?? []).map((v) => `${v.verifier_id}->${v.verified_id}`));
-  const allCrossVerified = memberIds.length > 1 && memberIds.every((vId) =>
-    memberIds.every((dId) => vId === dId || verifSet.has(`${vId}->${dId}`))
-  );
+  const adj = new Map<string, Set<string>>();
+  memberIds.forEach((id) => adj.set(id, new Set()));
+  for (const v of verifList) {
+    adj.get(v.verifier_id)?.add(v.verified_id);
+    adj.get(v.verified_id)?.add(v.verifier_id);
+  }
+  const myComponent = new Set<string>([attendee.id]);
+  const queue = [attendee.id];
+  while (queue.length) {
+    const n = queue.shift()!;
+    for (const nb of adj.get(n) ?? []) if (!myComponent.has(nb)) { myComponent.add(nb); queue.push(nb); }
+  }
+  const iAmFullyVerified = memberIds.length > 0 && myComponent.size === memberIds.length;
+  // Can submit side quests if my chain has ≥2 people (me + at least one verified peer)
+  const canSubmitSideQuest = myComponent.size >= 2;
+
+  const allCrossVerified = iAmFullyVerified; // pod considered active when everyone in one component
   const pendingSubmission = (submissions.data ?? []).some((s) => s.status === "pending");
 
   const groupState: "inactive" | "awaiting" | "active" | "none" =
