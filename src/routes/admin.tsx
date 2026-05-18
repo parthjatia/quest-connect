@@ -1,15 +1,16 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, Plus, Trash2, Sparkles, ArrowLeft, UserPlus, Wand2, Lock, Unlock, FileText } from "lucide-react";
+import { Loader2, Plus, Trash2, Sparkles, ArrowLeft, UserPlus, Wand2, Lock, Unlock, FileText, Check, X as XIcon, Clock } from "lucide-react";
 import { MOCK_ATTENDEES } from "@/lib/mock-attendees";
-import { buildPods, type MatchInput } from "@/lib/matchmaker";
 import { getRegistrationOpen, setRegistrationOpen } from "@/lib/event-settings";
+import { runLlmMatchmaker } from "@/lib/matchmaker.functions";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({ meta: [{ title: "Admin — Quest Connect" }] }),
