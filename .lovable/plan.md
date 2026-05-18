@@ -1,75 +1,75 @@
-# Simplify EventQuest: No-Auth Demo Mode
+# Plan: Quest Connect — Signup → Pods → Gated Quests → Transcripts → Summary
 
-Goal: two windows total. Pick a role on landing → land directly inside the one event. Admin gets full control, attendee just types a name and is in.
+## 1. Attendee signup form (`/join`)
 
-## New flow
+Replace the current "pick name from roster" UI with a real signup form collecting:
+- Full name
+- University
+- Academic background
+- AI experience (none / beginner / intermediate / advanced)
+- Track intent
+- Event goal
 
-```
-/  (landing: two big cards)
- ├── "I'm the Admin"     → /admin
- └── "I'm an Attendee"   → /join  → /play
-```
+On submit → insert into `attendees`, store id in `localStorage`, navigate to `/play`.
+If registration is closed (see step 2), still allow signup but set `group_id = null` and a `late = true` flag so they're excluded from pods.
 
-No email, no password, no Supabase Auth. Single global event lives in the DB.
+Admin keeps the "seed roster" button for demo data.
 
-## Window 1 — Landing (`/`)
+## 2. Registration lock + pod generation (`/admin`)
 
-Replace current marketing index with a vibrant two-card chooser:
-- Left card: "Admin / Organizer" → `/admin`
-- Right card: "Attendee / Player" → `/join`
-- Energetic gradient bg, big emoji, hover lift.
+Add a single app-level setting `registration_open` (boolean).
 
-## Window 2a — Admin (`/admin`)
+- New table `event_settings` (single row): `registration_open boolean`, `pods_locked boolean`.
+- Admin gets a toggle: **"Close registration"**. Once closed, `/join` form shows a banner "Registration closed — you can still join but won't be assigned a pod."
+- After closing, admin clicks **"Generate pods"** → runs existing `buildPods()` over attendees where `group_id IS NULL AND late IS NOT TRUE`, creates groups of 3–5, writes `group_id` + `pod_rationale`.
+- Admin can re-open / regenerate during demo.
 
-No login. Direct access (demo mode). Single page with tabs/sections:
-- **Quests**: list + add/edit/delete (title, emoji, points, main/side)
-- **Attendees**: live list with name, points, photos claimed
-- **Matchmaker button**: groups attendees (heuristic for now, AI later)
-- **Event Summary button**: shows current totals + leaderboard
+## 3. Pod-gate main quest
 
-## Window 2b — Attendee join (`/join`) then (`/play`)
+- Add a column `quests.is_pod_gate boolean` (default false). Seed one quest: "Meet your pod — take a selfie with your group" marked `is_pod_gate = true`, `type = 'main'`.
+- On `/play`, gate logic:
+  - If attendee has no pod → show "Waiting for organizer to create pods."
+  - Show main quests always.
+  - Show side quests **only if** this attendee has personally claimed the pod-gate quest (row exists in `completed_quests` for them).
+- Side quest list shows a locked overlay with "Complete 'Meet your pod' to unlock" until claimed.
 
-- `/join`: single input "What's your name?" → button "Join the Event"
-  - Inserts an attendee row with just `full_name`, stores the new `attendee_id` in `localStorage`
-  - Redirects to `/play`
-- `/play`: the dashboard
-  - Shows their name + points
-  - Lists all quests
-  - Each quest has a "Claim" button → upload photo dialog → calls `claim_quest`
-  - Shows AI feedback under claimed quests (keep existing Gemini call)
+## 4. Transcript upload per main quest
 
-## Data model changes
+- New table `quest_transcripts`:
+  - `attendee_id`, `quest_id`, `transcript_url` (markdown file in storage), `uploaded_at`.
+- New storage bucket `quest-transcripts` (private; anon insert allowed for demo).
+- On `/play`, each **main** quest card gets an "Upload transcript (.md)" button → uploads to bucket → inserts row.
+- Admin view lists transcripts per quest with download links.
 
-Currently `attendees.user_id` is `NOT NULL` and tied to `auth.users`. For demo mode:
-- Make `user_id` nullable
-- Add anonymous insert policy on `attendees` (anyone can insert a row with just a name)
-- Add anonymous insert policy on `completed_quests` (matched by `attendee_id` from localStorage)
-- Open `quests` read to anon
-- Open `quest-photos` bucket writes to anon (path = `anon/{attendee_id}/...`)
-- Admin route is unprotected (demo mode) — no role check
+## 5. View Summary button
 
-The `handle_new_user` trigger stays but becomes unused (no signups).
+- For each row in `completed_quests` on `/play`, add a **"View summary"** button.
+- Opens a modal showing:
+  - Placeholder hero image (use existing lime/black aesthetic, generated SVG or `/placeholder.svg`)
+  - Quest title, claimed timestamp, points earned
+  - Stub paragraph: "AI summary coming soon."
+- Cursor handoff: wire to real LLM summary later using `transcript_url` + `quest_photo_url`.
+
+---
 
 ## Files
 
-**New**
-- `src/routes/index.tsx` — replace with role chooser
-- `src/routes/join.tsx` — name-only signup
-- `src/routes/play.tsx` — attendee dashboard (port of `dashboard.tsx`, read attendee from localStorage)
-- `src/lib/local-attendee.ts` — tiny helper for localStorage attendee id
+**Migration** (single):
+- `event_settings` table + seed row
+- `attendees.late boolean default false`
+- `quests.is_pod_gate boolean default false` + seed pod-gate quest
+- `quest_transcripts` table + RLS (anon insert/select for demo)
+- Storage bucket `quest-transcripts` + policies
 
-**Modified**
-- `src/routes/admin.tsx` — strip auth gate, work as single-event control panel
-- `src/routes/__root.tsx` — remove auth-aware header, keep simple branded header
-- New migration: nullable user_id + anon RLS policies + storage policy
+**New / edited code**:
+- `src/routes/join.tsx` — replace with full signup form, read `registration_open`
+- `src/routes/admin.tsx` — add registration toggle, "Generate pods" button, transcripts panel
+- `src/routes/play.tsx` — gate side quests, add transcript upload, add "View summary" modal
+- `src/components/quest-summary-modal.tsx` (new)
+- `src/lib/local-attendee.ts` — extend stored shape
+- `src/lib/event-settings.ts` (new) — read/write helpers
 
-**Keep but unused for now**
-- `src/routes/auth.tsx`, `src/routes/onboarding.tsx`, `src/routes/wrapped.tsx` (we'll wire wrapped back in later)
-- `src/hooks/use-auth.ts`
-
-## What I will NOT touch this round
-- Wrapped/final artwork flow
-- Matchmaker LLM upgrade (keep heuristic visible in admin)
-- Icebreakers (skip — no onboarding form)
-
-After approval I'll run the migration, then build the 3 routes + simplified admin in one pass.
+## Cursor handoff (unchanged areas)
+- Real LLM summary from transcript + photo → wire in `quest-summary-modal.tsx`
+- Real matchmaker LLM → `src/lib/matchmaker.ts`
+- Production RLS (currently anon-permissive for demo)
