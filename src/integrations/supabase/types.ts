@@ -132,16 +132,19 @@ export type Database = {
           created_at: string
           group_name: string
           id: string
+          pod_rationale: string | null
         }
         Insert: {
           created_at?: string
           group_name: string
           id?: string
+          pod_rationale?: string | null
         }
         Update: {
           created_at?: string
           group_name?: string
           id?: string
+          pod_rationale?: string | null
         }
         Relationships: []
       }
