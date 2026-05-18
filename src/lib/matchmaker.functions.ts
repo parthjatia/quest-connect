@@ -152,7 +152,9 @@ export const runLlmMatchmaker = createServerFn({ method: "POST" }).handler(
         const missing = attendees.map((a) => a.id).filter((id) => !seen.has(id));
         if (missing.length && out.length) out[out.length - 1].push(...missing);
         if (out.length === 0) throw new Error("LLM returned no pods");
-        pods = out;
+        // Enforce hard 3-5 size constraint regardless of what the LLM did
+        pods = rebalance(out);
+        if (pods.length === 0) throw new Error("Could not form any valid pod (need ≥3 attendees)");
       } catch (e) {
         llmError = e instanceof Error ? e.message : String(e);
         console.error("LLM matchmaker failed, falling back:", llmError);
