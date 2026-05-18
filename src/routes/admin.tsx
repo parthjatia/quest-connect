@@ -10,7 +10,8 @@ import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 import { AppHeader } from "@/components/app-header";
 import { runMatchmaker, grantAdminToSelf } from "@/lib/matchmaker.functions";
-import { Shield, Sparkles, Crown, Loader2 } from "lucide-react";
+import { generateAdminSummary } from "@/lib/ai.functions";
+import { Shield, Sparkles, Crown, Loader2, FileText } from "lucide-react";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({ meta: [{ title: "Admin — EventQuest" }] }),
@@ -23,7 +24,10 @@ function AdminPage() {
   const qc = useQueryClient();
   const runMatch = useServerFn(runMatchmaker);
   const grant = useServerFn(grantAdminToSelf);
+  const summarize = useServerFn(generateAdminSummary);
   const [running, setRunning] = useState(false);
+  const [summarizing, setSummarizing] = useState(false);
+  const [summary, setSummary] = useState<string>("");
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/auth" });
@@ -68,11 +72,22 @@ function AdminPage() {
     setRunning(true);
     try {
       const res = await runMatch();
-      toast.success(`Created ${res.pods_created} pods · assigned ${res.attendees_assigned} attendees`);
+      toast.success(`Created ${res.pods_created} pods · assigned ${res.attendees_assigned} (${res.method})`);
+      if (res.rationale) toast.message(res.rationale);
       qc.invalidateQueries({ queryKey: ["leaderboard"] });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed");
     } finally { setRunning(false); }
+  };
+
+  const handleSummary = async () => {
+    setSummarizing(true);
+    try {
+      const res = await summarize();
+      setSummary(res.summary);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed");
+    } finally { setSummarizing(false); }
   };
 
   const handleClaimAdmin = async () => {
@@ -119,11 +134,24 @@ function AdminPage() {
             <h1 className="text-3xl font-bold">Organizer Console</h1>
             <p className="text-muted-foreground text-sm">Live leaderboard and matchmaking controls.</p>
           </div>
-          <Button onClick={handleMatchmake} disabled={running} size="lg" className="bg-gradient-hero shadow-glow">
-            {running ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
-            Run AI Matchmaker
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={handleSummary} disabled={summarizing} size="lg" variant="outline">
+              {summarizing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileText className="mr-2 h-4 w-4" />}
+              AI Event Summary
+            </Button>
+            <Button onClick={handleMatchmake} disabled={running} size="lg" className="bg-gradient-hero shadow-glow">
+              {running ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+              Run AI Matchmaker
+            </Button>
+          </div>
         </div>
+
+        {summary && (
+          <Card className="bg-gradient-card border-accent/40 shadow-glow">
+            <CardHeader><CardTitle className="text-base flex items-center gap-2"><Sparkles className="h-4 w-4 text-accent" />Event pulse</CardTitle></CardHeader>
+            <CardContent><p className="text-sm leading-relaxed">{summary}</p></CardContent>
+          </Card>
+        )}
 
         <Card className="bg-gradient-card border-border/60 shadow-card">
           <CardHeader>

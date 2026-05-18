@@ -10,6 +10,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 import { AppHeader } from "@/components/app-header";
+import { useServerFn } from "@tanstack/react-start";
+import { generateIcebreakers } from "@/lib/ai.functions";
 
 export const Route = createFileRoute("/onboarding")({
   head: () => ({ meta: [{ title: "Onboarding — EventQuest" }] }),
@@ -35,6 +37,7 @@ function Onboarding() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const icebreakersFn = useServerFn(generateIcebreakers);
 
   useEffect(() => {
     if (!authLoading && !user) navigate({ to: "/auth" });
@@ -55,11 +58,14 @@ function Onboarding() {
       .from("attendees")
       .update({ ...parsed.data, onboarded: true })
       .eq("user_id", user.id);
-    setLoading(false);
     if (error) {
+      setLoading(false);
       toast.error(error.message);
       return;
     }
+    // Generate icebreakers in the background; don't block navigation
+    icebreakersFn().catch((err) => console.error("Icebreaker gen failed:", err));
+    setLoading(false);
     toast.success("You're in. Let's quest.");
     navigate({ to: "/dashboard" });
   };
