@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -7,17 +7,21 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, Plus, Trash2, Sparkles, ArrowLeft, UserPlus, Wand2, Lock, Unlock, FileText, Check, X as XIcon, Clock } from "lucide-react";
-import { MOCK_ATTENDEES } from "@/lib/mock-attendees";
+import { Loader2, Plus, Trash2, Sparkles, ArrowLeft, Wand2, Lock, Unlock, FileText, Check, X as XIcon, Clock, Radio, LogOut } from "lucide-react";
 import { getRegistrationOpen, setRegistrationOpen } from "@/lib/event-settings";
 import { runLlmMatchmaker } from "@/lib/matchmaker.functions";
+import { getLocalAdmin, setLocalAdmin } from "@/lib/local-attendee";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({ meta: [{ title: "Admin — Quest Connect" }] }),
   component: AdminPage,
 });
 
-type Quest = { id: string; title: string; description: string; type: string; points_awarded: number; emoji: string | null };
+type Quest = {
+  id: string; title: string; description: string; type: string;
+  points_awarded: number; emoji: string | null;
+  start_at: string | null; end_at: string | null; is_live: boolean;
+};
 type Attendee = {
   id: string;
   full_name: string | null;
@@ -35,11 +39,21 @@ type Group = { id: string; group_name: string };
 
 function AdminPage() {
   const qc = useQueryClient();
+  const navigate = useNavigate();
+
+  // Admin guard
+  useEffect(() => {
+    if (!getLocalAdmin()) navigate({ to: "/auth" });
+  }, [navigate]);
 
   const quests = useQuery({
     queryKey: ["admin-quests"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("quests").select("*").order("type").order("points_awarded", { ascending: false });
+      const { data, error } = await supabase
+        .from("quests")
+        .select("id, title, description, type, points_awarded, emoji, start_at, end_at, is_live")
+        .order("type")
+        .order("start_at", { ascending: true, nullsFirst: false });
       if (error) throw error;
       return (data ?? []) as Quest[];
     },
@@ -80,17 +94,12 @@ function AdminPage() {
       .on("postgres_changes", { event: "*", schema: "public", table: "groups" }, () => {
         qc.invalidateQueries({ queryKey: ["admin-groups"] });
       })
+      .on("postgres_changes", { event: "*", schema: "public", table: "quests" }, () => {
+        qc.invalidateQueries({ queryKey: ["admin-quests"] });
+      })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [qc]);
-
-  const aiLevelToEnum = (s: string): "beginner" | "intermediate" | "power_user" | null => {
-    const t = (s || "").toLowerCase();
-    if (t.includes("power")) return "power_user";
-    if (t.includes("inter")) return "intermediate";
-    if (t.includes("begin")) return "beginner";
-    return null;
-  };
 
   const [togglingReg, setTogglingReg] = useState(false);
   const toggleRegistration = async () => {
@@ -102,36 +111,6 @@ function AdminPage() {
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed");
     } finally { setTogglingReg(false); }
-  };
-
-  const [seeding, setSeeding] = useState(false);
-  const seedMocks = async () => {
-    if (!confirm(`Seed ${MOCK_ATTENDEES.length} mock attendees? Existing ones stay.`)) return;
-    setSeeding(true);
-    try {
-      const existing = new Set((attendees.data ?? []).map((a) => (a.full_name ?? "").trim().toLowerCase()));
-      const fresh = MOCK_ATTENDEES.filter((m) => !existing.has(m.name.trim().toLowerCase()));
-      if (fresh.length === 0) { toast.info("All mock attendees already seeded."); return; }
-      const rows = fresh.map((m) => ({
-        full_name: m.name,
-        university: m.university,
-        academic_background: m.background,
-        ai_experience: aiLevelToEnum(m.ai_level),
-        track_intent: m.track,
-        event_goal: m.goal,
-        onboarded: true,
-      }));
-      // Insert in chunks to avoid payload limits
-      const chunk = 25;
-      for (let i = 0; i < rows.length; i += chunk) {
-        const { error } = await supabase.from("attendees").insert(rows.slice(i, i + chunk));
-        if (error) throw error;
-      }
-      toast.success(`Seeded ${rows.length} attendees`);
-      qc.invalidateQueries({ queryKey: ["admin-attendees"] });
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Seeding failed");
-    } finally { setSeeding(false); }
   };
 
   const [matching, setMatching] = useState(false);
@@ -155,6 +134,8 @@ function AdminPage() {
     } finally { setMatching(false); }
   };
 
+  const signOut = () => { setLocalAdmin(false); navigate({ to: "/" }); };
+
   const totalPoints = (attendees.data ?? []).reduce((s, a) => s + a.points, 0);
   const podCount = groups.data?.length ?? 0;
 
@@ -167,6 +148,9 @@ function AdminPage() {
             <span className="font-semibold tracking-tight">Quest Connect</span>
             <span className="text-[10px] uppercase tracking-[0.2em] text-lime border border-lime px-1.5 py-0.5">Admin</span>
           </div>
+          <Button variant="ghost" size="sm" onClick={signOut} className="text-muted-foreground hover:text-foreground">
+            <LogOut className="h-4 w-4 mr-1" /> Sign out
+          </Button>
         </div>
       </header>
 
@@ -175,48 +159,40 @@ function AdminPage() {
         <section className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-border border border-border">
           <Stat label="Attendees" value={attendees.data?.length ?? 0} />
           <Stat label="Total points" value={totalPoints} />
-          <Stat label="Quests live" value={quests.data?.length ?? 0} />
+          <Stat label="Quests" value={quests.data?.length ?? 0} />
           <Stat label="Pods" value={podCount} accent />
         </section>
 
-        {/* Registration control */}
-        <section className="border border-border p-5 flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
-          <div>
-            <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Registration</p>
-            <p className="text-sm mt-1">
-              {settings.data === false ? (
-                <span className="text-muted-foreground">Closed — new signups marked as late and excluded from pods.</span>
-              ) : (
-                <span className="text-lime">Open — new attendees can join and will be matched.</span>
-              )}
-            </p>
-          </div>
-          <Button onClick={toggleRegistration} disabled={togglingReg || settings.isLoading}
-            className={settings.data === false ? "bg-lime hover:opacity-90" : "bg-background border border-lime text-lime hover:bg-lime/10"}>
-            {togglingReg ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> :
-              settings.data === false ? <Unlock className="h-4 w-4 mr-2" /> : <Lock className="h-4 w-4 mr-2" />}
-            {settings.data === false ? "Re-open registration" : "Close registration"}
-          </Button>
-        </section>
-
-        {/* Seed + matchmaker actions */}
+        {/* Registration + matchmaker */}
         <section className="grid sm:grid-cols-2 gap-px bg-border border border-border">
-          <ActionBlock
-            label="Seed mock attendees"
-            blurb="Insert 100 hackathon attendees with university, background, AI level, track, and goal."
-            cta={seeding ? "Seeding…" : "Seed roster"}
-            icon={UserPlus}
-            onClick={seedMocks}
-            busy={seeding}
-          />
-          <ActionBlock
-            label="Run matchmaker"
-            blurb="Groups non-late attendees into pods of ~5, mixing AI levels & backgrounds within a shared track."
-            cta={matching ? "Matching…" : "Form pods"}
-            icon={Wand2}
-            onClick={runMatchmaker}
-            busy={matching}
-          />
+          <div className="bg-background p-5 flex flex-col gap-3">
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Registration</p>
+              <p className="text-sm mt-2">
+                {settings.data === false ? (
+                  <span className="text-muted-foreground">Closed — new signups marked as late.</span>
+                ) : (
+                  <span className="text-lime">Open — new attendees can join.</span>
+                )}
+              </p>
+            </div>
+            <Button onClick={toggleRegistration} disabled={togglingReg || settings.isLoading}
+              className={`self-start ${settings.data === false ? "bg-lime hover:opacity-90" : "bg-background border border-lime text-lime hover:bg-lime/10"}`}>
+              {togglingReg ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> :
+                settings.data === false ? <Unlock className="h-4 w-4 mr-2" /> : <Lock className="h-4 w-4 mr-2" />}
+              {settings.data === false ? "Re-open" : "Close registration"}
+            </Button>
+          </div>
+          <div className="bg-background p-5 flex flex-col gap-3">
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Matchmaker</p>
+              <p className="text-sm mt-2 text-muted-foreground">Groups non-late attendees into pods of 3–5 with shared goals.</p>
+            </div>
+            <Button onClick={runMatchmaker} disabled={matching} className="bg-lime hover:opacity-90 self-start">
+              {matching ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Wand2 className="h-4 w-4 mr-2" />}
+              {matching ? "Matching…" : "Form pods"}
+            </Button>
+          </div>
         </section>
 
         {/* Pending side-quest submissions */}
@@ -235,11 +211,12 @@ function AdminPage() {
                 return (
                   <div key={g.id} className="bg-background p-4">
                     <p className="text-sm font-semibold">{g.group_name}</p>
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-0.5">{members.length} members</p>
                     <ul className="mt-3 space-y-1">
                       {members.map((m) => (
                         <li key={m.id} className="text-xs flex items-center justify-between gap-2">
                           <span className="truncate">{m.full_name || "Unnamed"}</span>
-                          <span className="text-muted-foreground shrink-0 font-mono">{(m as Attendee & { verify_code?: string }).verify_code ?? "—"}</span>
+                          <span className="text-muted-foreground shrink-0 font-mono">{m.verify_code ?? "—"}</span>
                         </li>
                       ))}
                     </ul>
@@ -249,7 +226,6 @@ function AdminPage() {
             </div>
           </section>
         )}
-
 
         {/* Attendee list */}
         <section>
@@ -261,7 +237,7 @@ function AdminPage() {
             <div className="border border-border p-10 grid place-items-center"><Loader2 className="h-5 w-5 animate-spin text-lime" /></div>
           ) : (attendees.data ?? []).length === 0 ? (
             <div className="border border-border p-10 text-center text-sm text-muted-foreground">
-              No attendees yet. Hit "Seed roster" above.
+              No attendees yet. Have them sign up from the join page.
             </div>
           ) : (
             <div className="border border-border max-h-[480px] overflow-auto">
@@ -309,21 +285,11 @@ function Stat({ label, value, accent }: { label: string; value: React.ReactNode;
   );
 }
 
-function ActionBlock({
-  label, blurb, cta, icon: Icon, onClick, busy,
-}: { label: string; blurb: string; cta: string; icon: typeof UserPlus; onClick: () => void; busy: boolean }) {
-  return (
-    <div className="bg-background p-5 flex flex-col gap-3">
-      <div>
-        <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">{label}</p>
-        <p className="text-sm mt-2 text-muted-foreground">{blurb}</p>
-      </div>
-      <Button onClick={onClick} disabled={busy} className="bg-lime hover:opacity-90 self-start">
-        {busy ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Icon className="h-4 w-4 mr-2" />}
-        {cta}
-      </Button>
-    </div>
-  );
+function toLocalInputValue(iso: string | null) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
 function QuestManager({ quests, loading }: { quests: Quest[]; loading: boolean }) {
@@ -333,10 +299,15 @@ function QuestManager({ quests, loading }: { quests: Quest[]; loading: boolean }
   const [description, setDescription] = useState("");
   const [emoji, setEmoji] = useState("⭐");
   const [points, setPoints] = useState(10);
-  const [type, setType] = useState<"main" | "side">("side");
+  const [type, setType] = useState<"main" | "side">("main");
+  const [startAt, setStartAt] = useState("");
+  const [endAt, setEndAt] = useState("");
   const [busy, setBusy] = useState(false);
 
-  const reset = () => { setTitle(""); setDescription(""); setEmoji("⭐"); setPoints(10); setType("side"); };
+  const reset = () => {
+    setTitle(""); setDescription(""); setEmoji("⭐"); setPoints(10); setType("main");
+    setStartAt(""); setEndAt("");
+  };
 
   const add = async () => {
     if (!title.trim() || !description.trim()) return toast.error("Title and description required.");
@@ -344,6 +315,8 @@ function QuestManager({ quests, loading }: { quests: Quest[]; loading: boolean }
     try {
       const { error } = await supabase.from("quests").insert({
         title: title.trim(), description: description.trim(), emoji, points_awarded: points, type,
+        start_at: type === "main" && startAt ? new Date(startAt).toISOString() : null,
+        end_at: type === "main" && endAt ? new Date(endAt).toISOString() : null,
       });
       if (error) throw error;
       toast.success("Quest added");
@@ -361,9 +334,39 @@ function QuestManager({ quests, loading }: { quests: Quest[]; loading: boolean }
     qc.invalidateQueries({ queryKey: ["admin-quests"] });
   };
 
+  const goLive = async (id: string) => {
+    // Atomic-ish: unset all main is_live, then set this one
+    const { error: e1 } = await supabase.from("quests").update({ is_live: false }).eq("type", "main").eq("is_live", true);
+    if (e1) return toast.error(e1.message);
+    const { error: e2 } = await supabase.from("quests").update({ is_live: true }).eq("id", id);
+    if (e2) return toast.error(e2.message);
+    toast.success("Quest is now LIVE");
+    qc.invalidateQueries({ queryKey: ["admin-quests"] });
+  };
+
+  const stopLive = async (id: string) => {
+    const { error } = await supabase.from("quests").update({ is_live: false }).eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success("Stopped");
+    qc.invalidateQueries({ queryKey: ["admin-quests"] });
+  };
+
+  const updateTimes = async (id: string, start: string, end: string) => {
+    const { error } = await supabase.from("quests").update({
+      start_at: start ? new Date(start).toISOString() : null,
+      end_at: end ? new Date(end).toISOString() : null,
+    }).eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success("Times updated");
+    qc.invalidateQueries({ queryKey: ["admin-quests"] });
+  };
+
+  const mainQuests = quests.filter((q) => q.type === "main");
+  const sideQuests = quests.filter((q) => q.type === "side");
+
   return (
-    <section>
-      <div className="flex items-baseline justify-between mb-3">
+    <section className="space-y-6">
+      <div className="flex items-baseline justify-between">
         <h2 className="text-lg font-semibold tracking-tight">Quests</h2>
         <Button onClick={() => setOpen(!open)} size="sm" className="bg-lime hover:opacity-90 h-7 text-xs">
           <Plus className="h-3 w-3 mr-1" />{open ? "Cancel" : "New quest"}
@@ -371,7 +374,7 @@ function QuestManager({ quests, loading }: { quests: Quest[]; loading: boolean }
       </div>
 
       {open && (
-        <div className="border border-lime p-4 mb-4 space-y-3">
+        <div className="border border-lime p-4 space-y-3">
           <div className="grid grid-cols-[60px_1fr] gap-3">
             <div>
               <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Emoji</label>
@@ -379,12 +382,12 @@ function QuestManager({ quests, loading }: { quests: Quest[]; loading: boolean }
             </div>
             <div>
               <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Title</label>
-              <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Meet 3 founders" className="bg-background border-border" />
+              <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Opening keynote" className="bg-background border-border" />
             </div>
           </div>
           <div>
             <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Description</label>
-            <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} placeholder="What does the attendee need to do?" className="bg-background border-border" />
+            <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} className="bg-background border-border" />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -394,11 +397,23 @@ function QuestManager({ quests, loading }: { quests: Quest[]; loading: boolean }
             <div>
               <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Type</label>
               <div className="flex gap-2 mt-1">
-                <Button type="button" variant={type === "side" ? "default" : "outline"} size="sm" className={`flex-1 ${type === "side" ? "bg-lime hover:opacity-90" : ""}`} onClick={() => setType("side")}>Side</Button>
-                <Button type="button" variant={type === "main" ? "default" : "outline"} size="sm" className={`flex-1 ${type === "main" ? "bg-lime hover:opacity-90" : ""}`} onClick={() => setType("main")}>Main</Button>
+                <Button type="button" variant={type === "main" ? "default" : "outline"} size="sm" className={`flex-1 ${type === "main" ? "bg-lime hover:opacity-90" : ""}`} onClick={() => setType("main")}>Main (timeline)</Button>
+                <Button type="button" variant={type === "side" ? "default" : "outline"} size="sm" className={`flex-1 ${type === "side" ? "bg-lime hover:opacity-90" : ""}`} onClick={() => setType("side")}>Side (group)</Button>
               </div>
             </div>
           </div>
+          {type === "main" && (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Starts at</label>
+                <Input type="datetime-local" value={startAt} onChange={(e) => setStartAt(e.target.value)} className="bg-background border-border" />
+              </div>
+              <div>
+                <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Ends at</label>
+                <Input type="datetime-local" value={endAt} onChange={(e) => setEndAt(e.target.value)} className="bg-background border-border" />
+              </div>
+            </div>
+          )}
           <Button onClick={add} disabled={busy} className="w-full bg-lime hover:opacity-90">
             {busy ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
             Create quest
@@ -406,32 +421,97 @@ function QuestManager({ quests, loading }: { quests: Quest[]; loading: boolean }
         </div>
       )}
 
-      {loading ? (
-        <div className="border border-border p-10 grid place-items-center"><Loader2 className="h-5 w-5 animate-spin text-lime" /></div>
-      ) : quests.length === 0 ? (
-        <div className="border border-border p-10 text-center text-sm text-muted-foreground">No quests yet.</div>
-      ) : (
-        <div className="grid gap-px bg-border border border-border sm:grid-cols-2 lg:grid-cols-3">
-          {quests.map((q) => (
-            <div key={q.id} className="bg-background p-4 flex flex-col gap-2">
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="text-lg" aria-hidden>{q.emoji ?? "⭐"}</span>
-                  <h3 className="font-medium text-sm truncate">{q.title}</h3>
+      {/* Main quest timeline editor */}
+      <div>
+        <h3 className="text-sm font-semibold tracking-tight mb-2">Main quests — event timeline</h3>
+        {loading ? (
+          <div className="border border-border p-10 grid place-items-center"><Loader2 className="h-5 w-5 animate-spin text-lime" /></div>
+        ) : mainQuests.length === 0 ? (
+          <div className="border border-border p-8 text-center text-sm text-muted-foreground">No main quests yet.</div>
+        ) : (
+          <ol className="relative border-l border-border ml-3 space-y-3">
+            {mainQuests.map((q) => (
+              <li key={q.id} className="ml-6 relative">
+                <span className={`absolute -left-[34px] top-3 h-3 w-3 rounded-full border-2 ${q.is_live ? "bg-lime border-lime animate-pulse" : "bg-background border-border"}`} />
+                <div className={`border p-3 ${q.is_live ? "border-lime" : "border-border"}`}>
+                  <div className="flex items-start justify-between gap-2 flex-wrap">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-lg" aria-hidden>{q.emoji ?? "⭐"}</span>
+                        <p className="font-medium text-sm">{q.title}</p>
+                        {q.is_live && (
+                          <span className="text-[10px] uppercase tracking-wider text-lime border border-lime px-1.5 py-0.5 inline-flex items-center gap-1">
+                            <Radio className="h-3 w-3" /> LIVE NOW
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">{q.description}</p>
+                    </div>
+                    <span className="text-xs font-semibold text-lime shrink-0">+{q.points_awarded}</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 mt-3">
+                    <div>
+                      <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Start</label>
+                      <Input type="datetime-local" defaultValue={toLocalInputValue(q.start_at)}
+                        onBlur={(e) => updateTimes(q.id, e.target.value, toLocalInputValue(q.end_at))}
+                        className="bg-background border-border h-8 text-xs" />
+                    </div>
+                    <div>
+                      <label className="text-[10px] uppercase tracking-wider text-muted-foreground">End</label>
+                      <Input type="datetime-local" defaultValue={toLocalInputValue(q.end_at)}
+                        onBlur={(e) => updateTimes(q.id, toLocalInputValue(q.start_at), e.target.value)}
+                        className="bg-background border-border h-8 text-xs" />
+                    </div>
+                  </div>
+                  <div className="flex gap-2 mt-3">
+                    {q.is_live ? (
+                      <Button size="sm" onClick={() => stopLive(q.id)} variant="outline" className="h-7 text-xs border-destructive text-destructive hover:bg-destructive/10">
+                        Stop live
+                      </Button>
+                    ) : (
+                      <Button size="sm" onClick={() => goLive(q.id)} className="h-7 text-xs bg-lime hover:opacity-90">
+                        <Radio className="h-3 w-3 mr-1" /> Go live
+                      </Button>
+                    )}
+                    <Button variant="ghost" size="sm" onClick={() => del(q.id)} className="h-7 px-2 ml-auto">
+                      <Trash2 className="h-3 w-3 text-destructive" />
+                    </Button>
+                  </div>
                 </div>
-                <span className={`text-[10px] uppercase tracking-wider px-1.5 py-0.5 border ${q.type === "main" ? "border-lime text-lime" : "border-border text-muted-foreground"}`}>{q.type}</span>
+              </li>
+            ))}
+          </ol>
+        )}
+      </div>
+
+      {/* Side quests */}
+      <div>
+        <h3 className="text-sm font-semibold tracking-tight mb-2">Side quests — group challenges</h3>
+        {sideQuests.length === 0 ? (
+          <div className="border border-border p-8 text-center text-sm text-muted-foreground">No side quests yet.</div>
+        ) : (
+          <div className="grid gap-px bg-border border border-border sm:grid-cols-2 lg:grid-cols-3">
+            {sideQuests.map((q) => (
+              <div key={q.id} className="bg-background p-4 flex flex-col gap-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-lg" aria-hidden>{q.emoji ?? "⭐"}</span>
+                    <h3 className="font-medium text-sm truncate">{q.title}</h3>
+                  </div>
+                  <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 border border-border text-muted-foreground">side</span>
+                </div>
+                <p className="text-xs text-muted-foreground line-clamp-2">{q.description}</p>
+                <div className="mt-auto flex items-center justify-between pt-2">
+                  <span className="text-xs font-semibold text-lime">+{q.points_awarded} pts</span>
+                  <Button variant="ghost" size="sm" onClick={() => del(q.id)} className="h-7 px-2">
+                    <Trash2 className="h-3 w-3 text-destructive" />
+                  </Button>
+                </div>
               </div>
-              <p className="text-xs text-muted-foreground line-clamp-2">{q.description}</p>
-              <div className="mt-auto flex items-center justify-between pt-2">
-                <span className="text-xs font-semibold text-lime">+{q.points_awarded} pts</span>
-                <Button variant="ghost" size="sm" onClick={() => del(q.id)} className="h-7 px-2">
-                  <Trash2 className="h-3 w-3 text-destructive" />
-                </Button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+            ))}
+          </div>
+        )}
+      </div>
     </section>
   );
 }
@@ -569,4 +649,3 @@ function PendingSubmissionsQueue() {
     </section>
   );
 }
-
