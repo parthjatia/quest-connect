@@ -1041,11 +1041,11 @@ function MainQuestClaimDialog({
       const up = await supabase.storage.from("quest-photos").upload(path, file, { contentType: file.type });
       if (up.error) throw up.error;
       const { data: pub } = supabase.storage.from("quest-photos").getPublicUrl(path);
-      const { error } = await supabase.rpc("claim_quest_anon", {
+      const { error } = await supabase.rpc("claim_main_quest", {
         _attendee_id: attendeeId, _quest_id: quest.id, _photo_url: pub.publicUrl,
       });
       if (error) throw error;
-      toast.success(`+${quest.points_awarded} XP awarded!`);
+      toast.success("Submitted — waiting for admin review");
       onSubmitted();
       onClose();
     } catch (e) {
@@ -1059,7 +1059,7 @@ function MainQuestClaimDialog({
         <DialogHeader>
           <DialogTitle>{quest.emoji} {quest.title}</DialogTitle>
           <DialogDescription>
-            Upload a photo as proof. You'll be awarded <span className="text-lime font-semibold">+{quest.points_awarded} XP</span> instantly.
+            Upload a photo as proof. Once an admin approves it, you'll earn <span className="text-lime font-semibold">+{quest.points_awarded} XP</span>.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
