@@ -1,14 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  Sparkles, Upload, FileText, Wand2, Loader2, CheckCircle2, RefreshCw,
+  Sparkles, FileText, Wand2, Loader2, CheckCircle2, RefreshCw,
   ImageIcon, Quote, Layers, BookOpen, Zap, Star, Compass, Target,
-  MessageCircle, Palette, Gauge, X,
+  MessageCircle, Palette, Gauge, Check,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
 import { AppHeader } from "@/components/app-header";
+import { supabase } from "@/integrations/supabase/client";
 import {
   deriveTemplateId,
   type RecapPrefs,
@@ -101,11 +102,27 @@ type ResultState = { recap: RecapData; images: RecapImages } | null;
 
 function RecapPage() {
   const [transcript, setTranscript] = useState("");
+  const [selectedQuestId, setSelectedQuestId] = useState<string | null>(null);
+  const [loadingTranscript, setLoadingTranscript] = useState(false);
   const [prefs, setPrefs] = useState<RecapPrefs>({});
   const [loading, setLoading] = useState(false);
   const [loadingStep, setLoadingStep] = useState(0);
   const [result, setResult] = useState<ResultState>(null);
   const resultRef = useRef<HTMLDivElement | null>(null);
+
+  const questsQuery = useQuery({
+    queryKey: ["main-quest-transcripts"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("quests")
+        .select("id, title, emoji, transcript_url, type")
+        .eq("type", "main")
+        .not("transcript_url", "is", null)
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as Array<{ id: string; title: string; emoji: string | null; transcript_url: string }>;
+    },
+  });
 
   const wordCount = useMemo(
     () => (transcript.trim() ? transcript.trim().split(/\s+/).length : 0),
@@ -123,16 +140,23 @@ function RecapPage() {
     return () => clearInterval(id);
   }, [loading]);
 
-  const handleFile = useCallback(async (file: File) => {
-    if (!file) return;
-    if (!file.name.endsWith(".txt") && file.type && !file.type.startsWith("text/")) {
-      toast.error("Unsupported file", { description: "Please upload a .txt file." });
-      return;
+  const handlePickQuest = async (q: { id: string; title: string; transcript_url: string }) => {
+    setSelectedQuestId(q.id);
+    setLoadingTranscript(true);
+    try {
+      const res = await fetch(q.transcript_url);
+      if (!res.ok) throw new Error("Could not load transcript");
+      const text = await res.text();
+      if (!text.trim()) throw new Error("Transcript is empty");
+      setTranscript(text);
+      toast("Transcript loaded", { description: `${q.title} • ${text.split(/\s+/).length} words` });
+    } catch (e) {
+      setSelectedQuestId(null);
+      toast.error("Couldn't load transcript", { description: e instanceof Error ? e.message : "Try another quest." });
+    } finally {
+      setLoadingTranscript(false);
     }
-    const text = await file.text();
-    setTranscript(text);
-    toast("Transcript loaded", { description: `${file.name} • ${text.split(/\s+/).length} words` });
-  }, []);
+  };
 
   const onGenerate = async () => {
     if (!canGenerate) return;
@@ -234,10 +258,13 @@ function RecapPage() {
 
       <main className="mx-auto max-w-6xl px-4 pb-32 space-y-12">
         <TranscriptCard
+          quests={questsQuery.data ?? []}
+          questsLoading={questsQuery.isLoading}
+          selectedQuestId={selectedQuestId}
+          loadingTranscript={loadingTranscript}
           transcript={transcript}
-          setTranscript={setTranscript}
           wordCount={wordCount}
-          onFile={handleFile}
+          onPick={handlePickQuest}
         />
 
         <section className="space-y-6">
@@ -337,69 +364,77 @@ function Hero() {
 
 // ---------------- Transcript ----------------
 
+type QuestPick = { id: string; title: string; emoji: string | null; transcript_url: string };
+
 function TranscriptCard(props: {
+  quests: QuestPick[];
+  questsLoading: boolean;
+  selectedQuestId: string | null;
+  loadingTranscript: boolean;
   transcript: string;
-  setTranscript: (v: string) => void;
   wordCount: number;
-  onFile: (f: File) => void;
+  onPick: (q: QuestPick) => void;
 }) {
-  const { transcript, setTranscript, wordCount, onFile } = props;
-  const [dragging, setDragging] = useState(false);
-  const inputRef = useRef<HTMLInputElement | null>(null);
+  const { quests, questsLoading, selectedQuestId, loadingTranscript, transcript, wordCount, onPick } = props;
 
   return (
     <section className="space-y-4">
       <SectionHeader
         kicker="Step 1"
-        title="Bring your transcript"
-        description="Paste it in, or drop a .txt file. We never store it server-side."
+        title="Choose a quest transcript"
+        description="Pick one of the main quests the organizer has uploaded. We'll turn it into your recap."
       />
-      <div
-        className={`recap-glass rounded-2xl p-5 transition ${dragging ? "recap-glow" : ""}`}
-        onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
-        onDragLeave={() => setDragging(false)}
-        onDrop={(e) => {
-          e.preventDefault(); setDragging(false);
-          const f = e.dataTransfer.files?.[0];
-          if (f) onFile(f);
-        }}
-      >
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div className="flex items-center gap-2 text-sm text-silver/80">
-            <FileText className="h-4 w-4 text-cyan-soft" />
-            Transcript • <span className="font-mono text-cyan-soft">{wordCount.toLocaleString()}</span> words
+      <div className="recap-glass rounded-2xl p-5">
+        {questsLoading ? (
+          <div className="flex items-center gap-2 text-sm text-silver/80 py-4">
+            <Loader2 className="h-4 w-4 animate-spin" /> Loading available quests…
           </div>
-          <div className="flex items-center gap-2">
-            <input
-              ref={inputRef}
-              type="file"
-              accept=".txt,text/plain"
-              className="hidden"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) onFile(f);
-              }}
-            />
-            <Button variant="outline" size="sm" className="rounded-xl" onClick={() => inputRef.current?.click()}>
-              <Upload className="mr-2 h-4 w-4" /> Upload .txt
-            </Button>
-            {transcript && (
-              <Button variant="ghost" size="sm" className="rounded-xl" onClick={() => setTranscript("")}>
-                <X className="mr-1 h-4 w-4" /> Clear
-              </Button>
-            )}
+        ) : quests.length === 0 ? (
+          <div className="text-sm text-silver/70 py-4">
+            No transcripts have been uploaded yet by the organizer. Check back after a main quest wraps up.
           </div>
-        </div>
-        <Textarea
-          value={transcript}
-          onChange={(e) => setTranscript(e.target.value)}
-          placeholder="Paste meeting notes, an event transcript, talk summary, or interview here…"
-          className="mt-4 min-h-[220px] resize-y rounded-xl border-white/10 bg-background/40 text-foreground placeholder:text-muted-foreground/70 focus-visible:ring-primary/40"
-        />
+        ) : (
+          <div className="grid gap-2 sm:grid-cols-2">
+            {quests.map((q) => {
+              const active = q.id === selectedQuestId;
+              return (
+                <button
+                  key={q.id}
+                  type="button"
+                  onClick={() => onPick(q)}
+                  disabled={loadingTranscript}
+                  className={`flex items-center justify-between gap-3 rounded-xl border px-4 py-3 text-left transition ${
+                    active
+                      ? "border-cyan-soft bg-cyan-soft/10"
+                      : "border-white/10 hover:border-cyan-soft/50 hover:bg-white/5"
+                  } ${loadingTranscript && !active ? "opacity-50" : ""}`}
+                >
+                  <span className="flex items-center gap-3 min-w-0">
+                    <span className="text-xl shrink-0">{q.emoji ?? "⭐"}</span>
+                    <span className="text-sm font-medium truncate">{q.title}</span>
+                  </span>
+                  {active && loadingTranscript ? (
+                    <Loader2 className="h-4 w-4 animate-spin text-cyan-soft shrink-0" />
+                  ) : active ? (
+                    <Check className="h-4 w-4 text-cyan-soft shrink-0" />
+                  ) : null}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {transcript && (
+          <div className="mt-4 flex items-center gap-2 text-xs text-silver/70">
+            <FileText className="h-3.5 w-3.5 text-cyan-soft" />
+            Loaded • <span className="font-mono text-cyan-soft">{wordCount.toLocaleString()}</span> words ready
+          </div>
+        )}
       </div>
     </section>
   );
 }
+
 
 // ---------------- Preference ----------------
 
