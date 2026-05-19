@@ -492,11 +492,42 @@ export function VibeMapSection({ currentAttendeeId }: Props) {
   );
 }
 
-function MetricRow({ label, value }: { label: string; value: string }) {
+const HEAT_COLOR = {
+  "very-hot": "oklch(0.72 0.24 25)",
+  "hot": "oklch(0.8 0.2 55)",
+  "warm": "oklch(0.86 0.16 90)",
+  "cold": "oklch(0.5 0.06 250)",
+} as const;
+
+const HEAT_LABEL = {
+  "very-hot": "Very hot",
+  "hot": "Hot",
+  "warm": "Warm",
+  "cold": "Cold",
+} as const;
+
+function StatColumnChart({
+  stats,
+}: {
+  stats: { label: string; value: number; max: number }[];
+}) {
   return (
-    <div className="flex items-baseline justify-between gap-3">
-      <dt className="text-muted-foreground">{label}</dt>
-      <dd className="font-semibold tabular-nums">{value}</dd>
+    <div className="flex items-end justify-between gap-3 h-32 pt-2">
+      {stats.map((s) => {
+        const pct = s.max > 0 ? Math.max(6, Math.min(100, (s.value / s.max) * 100)) : 6;
+        return (
+          <div key={s.label} className="flex flex-col items-center gap-1.5 flex-1 h-full">
+            <span className="text-xs font-semibold tabular-nums text-foreground">{s.value}</span>
+            <div className="w-full flex-1 flex items-end">
+              <div
+                className="w-full rounded-t-md bg-gradient-to-t from-lime/40 to-lime shadow-[0_0_10px_oklch(0.9_0.22_130/0.4)] transition-all duration-500"
+                style={{ height: `${pct}%` }}
+              />
+            </div>
+            <span className="text-[10px] text-muted-foreground text-center leading-tight">{s.label}</span>
+          </div>
+        );
+      })}
     </div>
   );
 }
