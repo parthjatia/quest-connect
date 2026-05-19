@@ -24,27 +24,31 @@ function SponsorPage() {
   const [goal, setGoal] = useState<SponsorGoal>("hiring");
   const [filters, setFilters] = useState<SponsorTargetFilter[]>(["technical builders", "sponsor-open attendees"]);
   const [selectedZone, setSelectedZone] = useState<EventZone | null>(null);
-  const [quest, setQuest] = useState<SponsorQuest | null>(null);
+  const [launchedQuests, setLaunchedQuests] = useState<SponsorQuest[]>([]);
 
   const zones = useMemo(
     () => aggregateSponsorZones(MOCK_ATTENDEES, goal, filters),
     [goal, filters],
   );
-  const hottest = zones[0] ?? null;
-  const focused = selectedZone ? zones.find((z) => z.zone === selectedZone) ?? hottest : hottest;
-  const action = useMemo(() => (focused ? generateSponsorAction(focused, goal, filters) : null), [focused, goal, filters]);
+  const bestZone = zones[0] ?? null;
+  const isManualSelection = selectedZone !== null;
+  const focused = isManualSelection
+    ? zones.find((z) => z.zone === selectedZone) ?? null
+    : bestZone;
+  const action = useMemo(
+    () => (focused ? generateSponsorAction(focused, goal, filters) : null),
+    [focused, goal, filters],
+  );
 
-  // Active quest only shows when it still matches current selection
-  const activeQuest = quest && quest.zone === focused?.zone && quest.goal === goal ? quest : null;
+  const hasLaunchedQuest = launchedQuests.length > 0;
 
   const floorplanZones = zones.map((z) => ({
     zone: z.zone,
     heatLevel: z.heatLevel,
     intensity: z.intensity,
-    label: z.totalCount > 0 ? `${z.highFitCount}/${z.totalCount} · ${z.averageScore}` : "—",
+    label: z.totalCount > 0 ? `${z.highFitCount}/${z.totalCount} · avg ${z.averageScore}` : "—",
   }));
 
-  // Engagement stats (deterministic mock derived from data)
   const totalHighFit = zones.reduce((s, z) => s + z.highFitCount, 0);
   const activeZones = zones.filter((z) => z.totalCount > 0).length;
   const boothVisits = 40 + totalHighFit * 3;
@@ -53,6 +57,13 @@ function SponsorPage() {
 
   const toggleFilter = (f: SponsorTargetFilter) =>
     setFilters((cur) => (cur.includes(f) ? cur.filter((x) => x !== f) : [...cur, f]));
+
+  const handleLaunchQuest = () => {
+    if (!focused) return;
+    const quest = generateSponsorQuest(goal, filters, focused);
+    if (!quest) return;
+    setLaunchedQuests((cur) => [{ ...quest, id: `${quest.id}-${Date.now()}` }, ...cur]);
+  };
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -64,16 +75,17 @@ function SponsorPage() {
       </header>
 
       <main className="mx-auto max-w-6xl px-6 py-8 space-y-6">
-        {/* Title */}
         <div>
           <p className="text-[10px] uppercase tracking-[0.2em] text-lime">Sponsor Radar</p>
           <h1 className="text-3xl font-semibold tracking-tight mt-1">Where is your audience right now?</h1>
           <p className="text-sm text-muted-foreground mt-1.5 max-w-2xl">
-            Privacy-safe attendee clusters by zone. No exact seats. No GPS. Sponsor-open people only show by name when they opt in.
+            Privacy-safe attendee clusters by zone. Sponsor-open people only show by name when they opt in.
+          </p>
+          <p className="text-[11px] text-muted-foreground/70 mt-2 max-w-2xl leading-relaxed">
+            Demo data shown. In production this connects to attendee check-ins, quest activity, and sponsor interactions.
           </p>
         </div>
 
-        {/* Stats bar */}
         <div className="grid gap-px bg-border border border-border sm:grid-cols-5">
           <Stat label="High-fit attendees" value={String(totalHighFit)} />
           <Stat label="Active zones" value={`${activeZones}/8`} />
@@ -82,7 +94,6 @@ function SponsorPage() {
           <Stat label="Heatmap → quest" value={`${conversion}%`} />
         </div>
 
-        {/* Goal + filters */}
         <div className="border border-border bg-card p-4 space-y-4">
           <div>
             <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-2">Sponsor goal</p>
@@ -90,7 +101,7 @@ function SponsorPage() {
               {SPONSOR_GOALS.map((g) => (
                 <button
                   key={g}
-                  onClick={() => { setGoal(g); setQuest(null); }}
+                  onClick={() => setGoal(g)}
                   className={cn(
                     "text-xs px-3 py-1.5 border rounded-sm transition-colors capitalize",
                     g === goal
@@ -111,7 +122,7 @@ function SponsorPage() {
                 return (
                   <button
                     key={f}
-                    onClick={() => { toggleFilter(f); setQuest(null); }}
+                    onClick={() => toggleFilter(f)}
                     className={cn(
                       "text-xs px-2.5 py-1 border rounded-sm transition-colors",
                       on
@@ -125,7 +136,7 @@ function SponsorPage() {
               })}
               {filters.length > 0 && (
                 <button
-                  onClick={() => { setFilters([]); setQuest(null); }}
+                  onClick={() => setFilters([])}
                   className="text-xs px-2.5 py-1 text-muted-foreground hover:text-foreground"
                 >
                   clear
@@ -135,24 +146,55 @@ function SponsorPage() {
           </div>
         </div>
 
-        {/* Heatmap + action panel */}
         <div className="grid gap-4 lg:grid-cols-[1.5fr_1fr]">
-          <Floorplan
-            zones={floorplanZones}
-            selectedZone={selectedZone}
-            onSelectZone={(z) => setSelectedZone(z === selectedZone ? null : z)}
-          />
+          <div className="space-y-2">
+            <Floorplan
+              zones={floorplanZones}
+              selectedZone={selectedZone}
+              bestZone={bestZone?.zone ?? null}
+              onSelectZone={(z) => setSelectedZone(z === selectedZone ? null : z)}
+            />
+            <p className="text-[11px] text-muted-foreground/80">
+              Zone-level only. No GPS. No exact seats.
+            </p>
+          </div>
 
           <div className="border border-border bg-card p-5 space-y-4">
             {focused && focused.totalCount > 0 ? (
               <>
-                <div>
-                  <p className="text-[10px] uppercase tracking-[0.2em] text-lime">Best sponsor move</p>
-                  <h3 className="text-lg font-semibold mt-1">{focused.zone}</h3>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {focused.highFitCount} high-fit · avg fit {focused.averageScore}
-                    {focused.anonymousCount > 0 && ` · ${focused.anonymousCount} anonymous`}
+                <div className="flex items-start justify-between gap-2">
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-lime">
+                    {isManualSelection ? "Selected zone" : "Best sponsor move"}
                   </p>
+                  {isManualSelection && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedZone(null)}
+                      className="text-[11px] text-lime hover:underline shrink-0"
+                    >
+                      Back to best zone
+                    </button>
+                  )}
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-semibold">{focused.zone}</h3>
+                  <dl className="mt-3 space-y-2 text-sm">
+                    <MetricRow label="Total sponsor opportunity" value={String(focused.totalScore)} />
+                    <MetricRow label="High-fit attendees" value={String(focused.highFitCount)} />
+                    <MetricRow label="Average fit score" value={String(focused.averageScore)} />
+                  </dl>
+                  {!isManualSelection && (
+                    <p className="text-[11px] text-muted-foreground mt-3 leading-relaxed">
+                      Best zone is based on total sponsor opportunity: fit score × number of relevant attendees.
+                      {focused.anonymousCount > 0 && ` Includes ${focused.anonymousCount} anonymous in the heat.`}
+                    </p>
+                  )}
+                  {isManualSelection && focused.anonymousCount > 0 && (
+                    <p className="text-[11px] text-muted-foreground mt-2">
+                      {focused.anonymousCount} anonymous included in zone heat only.
+                    </p>
+                  )}
                 </div>
 
                 {action && (
@@ -164,7 +206,6 @@ function SponsorPage() {
                   </div>
                 )}
 
-                {/* Visible sponsor-open attendees */}
                 <div>
                   <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-1.5">
                     Sponsor-open people here
@@ -196,20 +237,10 @@ function SponsorPage() {
                   )}
                 </div>
 
-                <div className="border-t border-border pt-3 space-y-2">
-                  <Button
-                    onClick={() => setQuest(generateSponsorQuest(goal, filters, focused))}
-                    className="w-full"
-                  >
-                    Launch a sponsor quest
+                <div className="border-t border-border pt-3">
+                  <Button onClick={handleLaunchQuest} className="w-full">
+                    {hasLaunchedQuest ? "Launch another sponsor quest" : "Launch a sponsor quest"}
                   </Button>
-                  {activeQuest && (
-                    <div className="border border-lime/40 bg-lime/5 p-3">
-                      <p className="text-[10px] uppercase tracking-[0.2em] text-lime">Generated quest</p>
-                      <p className="text-sm font-semibold mt-1">{activeQuest.title}</p>
-                      <p className="text-[11px] text-muted-foreground mt-1">{activeQuest.description}</p>
-                    </div>
-                  )}
                 </div>
               </>
             ) : (
@@ -221,7 +252,33 @@ function SponsorPage() {
           </div>
         </div>
 
-        {/* Audience clusters table */}
+        {launchedQuests.length > 0 && (
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-2">Launched sponsor quests</p>
+            <div className="space-y-2">
+              {launchedQuests.map((q) => (
+                <div key={q.id} className="border border-lime/40 bg-lime/5 p-4 space-y-2">
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="text-sm font-semibold">{q.title}</p>
+                    <span className="text-[10px] uppercase tracking-[0.15em] text-lime shrink-0">{q.status}</span>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">{q.description}</p>
+                  <dl className="grid gap-1.5 text-[11px] sm:grid-cols-2">
+                    <QuestDetail label="Target zone" value={q.zone} />
+                    <QuestDetail label="Sponsor goal" value={q.goal} />
+                    <QuestDetail
+                      label="Target audience"
+                      value={q.targetFilters.length ? q.targetFilters.join(", ") : "All attendees in zone"}
+                    />
+                    <QuestDetail label="Reward points" value={String(q.rewardPoints)} />
+                  </dl>
+                  <p className="text-xs text-foreground pt-1">{q.ctaText}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div>
           <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-2">Audience clusters by zone</p>
           <div className="grid gap-px bg-border border border-border sm:grid-cols-2 lg:grid-cols-4">
@@ -231,15 +288,21 @@ function SponsorPage() {
                 onClick={() => setSelectedZone(z.zone === selectedZone ? null : z.zone)}
                 className={cn(
                   "bg-background p-3 text-left hover:bg-card transition-colors",
-                  selectedZone === z.zone && "bg-card",
+                  selectedZone === z.zone && "bg-card ring-1 ring-inset ring-lime/50",
+                  bestZone?.zone === z.zone && selectedZone !== z.zone && "ring-1 ring-inset ring-lime/25",
                 )}
               >
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-2">
                   <p className="text-sm font-semibold">{z.zone}</p>
-                  <span className="text-xs text-lime font-semibold">{z.averageScore}</span>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {bestZone?.zone === z.zone && (
+                      <span className="text-[9px] uppercase tracking-wider text-lime">best</span>
+                    )}
+                    <span className="text-xs text-muted-foreground tabular-nums">{z.totalScore}</span>
+                  </div>
                 </div>
                 <p className="text-[11px] text-muted-foreground mt-1">
-                  {z.highFitCount} high-fit · {z.totalCount} total
+                  {z.highFitCount} high-fit · avg {z.averageScore} · {z.totalCount} total
                   {z.anonymousCount > 0 && ` · ${z.anonymousCount} anon`}
                 </p>
                 {z.dominantInterests.length > 0 && (
@@ -258,7 +321,7 @@ function SponsorPage() {
         </div>
 
         <p className="text-[11px] text-muted-foreground">
-          Privacy: zone-level aggregation only. No exact seats. Names visible only for attendees who set themselves as visible <em>and</em> open to sponsors.
+          Privacy: zone-level aggregation only. Names visible only for attendees who set themselves as visible <em>and</em> open to sponsors.
         </p>
       </main>
 
@@ -267,6 +330,24 @@ function SponsorPage() {
           Back to <Link to="/" className="text-lime hover:underline">home</Link>.
         </div>
       </footer>
+    </div>
+  );
+}
+
+function MetricRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-baseline justify-between gap-3">
+      <dt className="text-muted-foreground">{label}</dt>
+      <dd className="font-semibold tabular-nums">{value}</dd>
+    </div>
+  );
+}
+
+function QuestDetail({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <dt className="text-muted-foreground">{label}</dt>
+      <dd className="text-foreground capitalize">{value}</dd>
     </div>
   );
 }

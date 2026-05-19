@@ -230,7 +230,12 @@ export function aggregateVibeMapZones(
       heatLevel: heatLevelFor(avg, matches.length),
       intensity: Math.min(1, total / maxTotal),
     };
-  }).sort((a, b) => b.totalScore - a.totalScore);
+  }).sort(
+    (a, b) =>
+      b.totalScore - a.totalScore
+      || b.matchingCount - a.matchingCount
+      || b.averageScore - a.averageScore,
+  );
 }
 
 export function generateAttendeeSuggestedAction(

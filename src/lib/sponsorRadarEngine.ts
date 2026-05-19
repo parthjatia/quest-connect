@@ -36,10 +36,15 @@ export type SponsorAction = {
 };
 
 export type SponsorQuest = {
+  id: string;
   title: string;
   description: string;
   zone: EventZone;
   goal: SponsorGoal;
+  targetFilters: SponsorTargetFilter[];
+  rewardPoints: number;
+  status: "Live demo quest";
+  ctaText: string;
 };
 
 const has = (arr: string[], v: string) =>
@@ -253,7 +258,12 @@ export function aggregateSponsorZones(
       heatLevel: heatLevelFor(avg, matches.length),
       intensity: Math.min(1, total / maxTotal),
     };
-  }).sort((a, b) => b.totalScore - a.totalScore);
+  }).sort(
+    (a, b) =>
+      b.totalScore - a.totalScore
+      || b.highFitCount - a.highFitCount
+      || b.averageScore - a.averageScore,
+  );
 }
 
 // ---- Action + quest generators (deterministic, depend on zone + goal + filters) ----
@@ -365,10 +375,17 @@ export function generateSponsorQuest(
   ].filter(Boolean);
   const flavor = dominant.length ? ` Tuned for ${dominant.join(", ")} crowd in ${hottest.zone}.` : ` Run at ${hottest.zone}.`;
 
+  const rewardPoints = 75 + (seed % 4) * 25;
+
   return {
+    id: `sq-${sponsorGoal}-${hottest.zone}-${seed}`,
     title,
     description: `${title}.${flavor}`,
     zone: hottest.zone,
     goal: sponsorGoal,
+    targetFilters: [...targetFilters],
+    rewardPoints,
+    status: "Live demo quest",
+    ctaText: "Complete at the sponsor booth to earn points",
   };
 }

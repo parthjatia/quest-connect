@@ -12,6 +12,7 @@ export type FloorplanZone = {
 type Props = {
   zones: FloorplanZone[];
   selectedZone?: EventZone | null;
+  bestZone?: EventZone | null;
   onSelectZone?: (z: EventZone) => void;
   youZone?: EventZone | null;
 };
@@ -28,7 +29,7 @@ function heatColor(h: HeatLevel, intensity: number) {
   }
 }
 
-export function Floorplan({ zones, selectedZone, onSelectZone, youZone }: Props) {
+export function Floorplan({ zones, selectedZone, bestZone, onSelectZone, youZone }: Props) {
   const byZone = new Map(zones.map((z) => [z.zone, z]));
   return (
     <div className="border border-border bg-card p-3">
@@ -41,14 +42,22 @@ export function Floorplan({ zones, selectedZone, onSelectZone, youZone }: Props)
             const data = byZone.get(z);
             const fill = data ? heatColor(data.heatLevel, data.intensity) : heatColor("cold", 0);
             const isSelected = selectedZone === z;
+            const isBest = bestZone === z && !isSelected;
             const isYou = youZone === z;
             return (
               <g key={z} onClick={() => onSelectZone?.(z)} className={onSelectZone ? "cursor-pointer" : ""}>
                 <rect
                   x={layout.x} y={layout.y} width={layout.w} height={layout.h}
                   fill={fill}
-                  stroke={isSelected ? "oklch(0.9 0.22 130)" : "oklch(0.35 0.005 250)"}
-                  strokeWidth={isSelected ? 0.5 : 0.2}
+                  stroke={
+                    isSelected
+                      ? "oklch(0.9 0.22 130)"
+                      : isBest
+                        ? "oklch(0.9 0.22 130 / 0.55)"
+                        : "oklch(0.35 0.005 250)"
+                  }
+                  strokeWidth={isSelected ? 0.5 : isBest ? 0.35 : 0.2}
+                  strokeDasharray={isBest ? "1.2 0.8" : undefined}
                   rx="0.8"
                 />
                 <text
@@ -90,6 +99,12 @@ export function Floorplan({ zones, selectedZone, onSelectZone, youZone }: Props)
         <Legend swatch="oklch(0.78 0.2 50 / 0.7)" label="hot" />
         <Legend swatch="oklch(0.85 0.18 85 / 0.6)" label="warm" />
         <Legend swatch="oklch(0.55 0.05 240 / 0.3)" label="cold" />
+        {bestZone && (
+          <span className="flex items-center gap-1.5">
+            <span className="inline-block h-2 w-3 rounded-sm border border-dashed border-lime/70" />
+            best zone
+          </span>
+        )}
         {youZone && (
           <span className="flex items-center gap-1.5">
             <span className="inline-block h-2 w-2 rounded-full bg-lime" />
