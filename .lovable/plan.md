@@ -1,23 +1,23 @@
-## Plan
+I’ll make **Clear all** restore the event to a clean starting state where all live counters are zero.
 
-1. **Replace the current reset RPC with a direct SQL reset**
-   - Update `admin_clear_attendees_and_pods()` so it runs one simple, ordered database cleanup:
-     - clear pod verification rows
-     - clear attendee meet rows
-     - clear completed quest/submission/transcript rows tied to attendees/pods
-     - clear every attendee row for this event
-     - clear every group/pod row
-   - Return the actual counts removed so the admin toast can confirm what happened.
+Plan:
+1. Replace the current Clear all backend with one direct reset operation that clears:
+   - all attendees
+   - all pods/groups
+   - pod verifications
+   - attendee meet records
+   - completed quests
+   - group quest submissions
+   - quest transcripts
+2. Make the admin button report the final state, not just attempted delete counts:
+   - attendees = 0
+   - pods = 0
+   - related activity tables = 0
+3. Add a verification read after the reset so the backend fails loudly if anything remains instead of showing success.
+4. Keep quests and event settings untouched, so only attendees/pods/activity are reset.
+5. Fix matchmaker separately right after this reset is reliable: it should create pods from the current attendee list and fall back if the LLM fails.
 
-2. **Make the admin server action call only that SQL function**
-   - Keep `clearAllDataFn` as a thin backend call to the reset function.
-   - Add explicit error logging and return counts for attendees and groups/pods.
-
-3. **Keep the UI behavior simple**
-   - The Clear all button continues to call the backend reset.
-   - After success, refresh attendee, group/pod, and pending submission queries.
-   - Quests and event settings remain untouched.
-
-4. **Verify against the real database**
-   - Before/after check row counts for `attendees`, `groups`, and related pod/quest activity tables.
-   - Confirm the counts become zero for attendees and groups/pods.
+Technical details:
+- The reset should happen in a single database function/RPC or tightly ordered server action so foreign-key/order issues cannot leave partial data.
+- The admin UI should invalidate attendee, pod, and pending-submission queries after success so the page immediately shows zero.
+- I’ll verify with database row counts after implementing.
