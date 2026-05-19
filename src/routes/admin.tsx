@@ -431,17 +431,22 @@ function QuestManager({ quests, loading }: { quests: Quest[]; loading: boolean }
   };
 
   const del = async (id: string) => {
-    if (!confirm("Delete this quest?")) return;
+    if (deletingId) return;
+    if (!confirm("Delete this quest? This also removes related submissions and completions.")) return;
+    setDeletingId(id);
     try {
       await deleteQuest({ data: { id } });
-      toast.success("Deleted");
+      toast.success("Quest deleted");
       await Promise.all([
         qc.invalidateQueries({ queryKey: ["admin-quests"] }),
         qc.invalidateQueries({ queryKey: ["admin-pending-submissions"] }),
         qc.invalidateQueries({ queryKey: ["admin-attendees"] }),
       ]);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to delete");
+      console.error("[admin] delete quest failed", e);
+      toast.error(e instanceof Error ? e.message : "Failed to delete quest");
+    } finally {
+      setDeletingId(null);
     }
   };
 
