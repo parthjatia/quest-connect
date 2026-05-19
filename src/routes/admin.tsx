@@ -224,8 +224,6 @@ function AdminPage() {
         {/* Pending side-quest submissions */}
         <PendingSubmissionsQueue />
 
-        {/* Transcripts panel */}
-        <TranscriptsPanel />
 
         {/* Pods — compact list */}
         {podCount > 0 && (
@@ -555,7 +553,13 @@ function QuestManager({ quests, loading }: { quests: Quest[]; loading: boolean }
                     <span className="text-lg" aria-hidden>{q.emoji ?? "⭐"}</span>
                     <h3 className="font-medium text-sm truncate">{q.title}</h3>
                   </div>
-                  <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 border border-border text-muted-foreground">side</span>
+                  {q.created_by_sponsor ? (
+                    <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 border border-lime text-lime shrink-0">
+                      sponsor · {q.created_by_sponsor}
+                    </span>
+                  ) : (
+                    <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 border border-border text-muted-foreground">side</span>
+                  )}
                 </div>
                 <p className="text-xs text-muted-foreground line-clamp-2">{q.description}</p>
                 <div className="mt-auto flex items-center justify-between pt-2">
