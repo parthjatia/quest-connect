@@ -49,6 +49,35 @@ function PlayPage() {
   const [activeMainClaim, setActiveMainClaim] = useState<Quest | null>(null);
   const prevPointsRef = useRef<number | null>(null);
   const [xpPulse, setXpPulse] = useState(false);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !attendee) return;
+    if (!file.type.startsWith("image/")) return toast.error("Pick an image file");
+    if (file.size > 5 * 1024 * 1024) return toast.error("Image must be under 5 MB");
+    setAvatarUploading(true);
+    try {
+      const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+      const path = `${attendee.id}-${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage.from("avatars").upload(path, file, {
+        cacheControl: "3600",
+        upsert: false,
+        contentType: file.type,
+      });
+      if (upErr) throw upErr;
+      const { data: pub } = supabase.storage.from("avatars").getPublicUrl(path);
+      const { error: updErr } = await supabase.from("attendees").update({ avatar_url: pub.publicUrl }).eq("id", attendee.id);
+      if (updErr) throw updErr;
+      await qc.invalidateQueries({ queryKey: ["me", attendee.id] });
+      toast.success("Photo updated");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Upload failed");
+    } finally {
+      setAvatarUploading(false);
+    }
+  };
 
   useEffect(() => {
     const a = getLocalAttendee();
