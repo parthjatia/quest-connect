@@ -402,6 +402,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_clear_attendees_and_pods: { Args: never; Returns: Json }
       approve_group_submission: {
         Args: { _note?: string; _submission_id: string }
         Returns: Json
