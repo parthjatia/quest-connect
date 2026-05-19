@@ -294,11 +294,24 @@ function PlayPage() {
               </div>
             )}
           </div>
-          <div className="p-5 sm:w-64 bg-card/40">
-            <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Your code — share with your pod</p>
-            <p className="font-mono text-3xl font-bold tracking-[0.3em] text-lime mt-2">{me.data?.verify_code ?? "----"}</p>
-            <p className="text-[10px] text-muted-foreground mt-2">Pod members enter this to confirm they met you.</p>
+          <div className="p-5 sm:w-72 bg-card/40 flex flex-col gap-4">
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Your code — share with your pod</p>
+              <p className="font-mono text-3xl font-bold tracking-[0.3em] text-lime mt-2">{me.data?.verify_code ?? "----"}</p>
+            </div>
+            <div className="border-t border-border pt-4">
+              <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Total XP</p>
+              <p className={`text-4xl font-bold tracking-tight mt-1 transition-all duration-500 ${xpPulse ? "text-lime scale-110" : "text-foreground"}`}>
+                {me.data?.points ?? 0}
+              </p>
+              <p className="text-[10px] text-muted-foreground mt-1">
+                {Math.max(0, (me.data?.points ?? 0) - (me.data?.pod_bonus_points ?? 0) - (me.data?.meet_bonus_points ?? 0))} quests
+                {" · "}{me.data?.pod_bonus_points ?? 0} pod
+                {" · "}{me.data?.meet_bonus_points ?? 0} meets
+              </p>
+            </div>
           </div>
+
         </section>
 
         {/* Pod */}
