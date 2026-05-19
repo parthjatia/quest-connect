@@ -406,6 +406,7 @@ function QuestManager({ quests, loading }: { quests: Quest[]; loading: boolean }
   const [startAt, setStartAt] = useState("");
   const [endAt, setEndAt] = useState("");
   const [busy, setBusy] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const reset = () => {
     setTitle(""); setDescription(""); setEmoji("⭐"); setPoints(10); setType("main");
