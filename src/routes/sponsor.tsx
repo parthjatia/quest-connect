@@ -1,13 +1,15 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { getLocalSponsor, clearLocalSponsor } from "@/lib/local-attendee";
+import { reviewSponsorCompletionFn } from "@/lib/sponsor.functions";
 import { toast } from "sonner";
-import { ArrowLeft, LogOut, Loader2, Plus, Sparkles, Clock, Check, X as XIcon, Radio } from "lucide-react";
+import { ArrowLeft, LogOut, Loader2, Sparkles, Clock, Check, X as XIcon, Radio, ExternalLink } from "lucide-react";
 
 export const Route = createFileRoute("/sponsor")({
   head: () => ({ meta: [{ title: "Sponsor portal — Quest Connect" }] }),
