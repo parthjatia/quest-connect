@@ -307,62 +307,77 @@ export function VibeMapSection({ currentAttendeeId }: Props) {
               </p>
             </div>
 
-            <div className="rounded-2xl border border-border/70 bg-card/90 p-5 space-y-4 shadow-sm">
+            <div className="space-y-3">
               {emptyFilters ? (
-                <div className="text-sm text-muted-foreground space-y-2">
+                <div className="rounded-2xl border border-border/70 bg-card/90 p-5 text-sm text-muted-foreground space-y-2 shadow-sm">
                   <p className="font-semibold text-foreground">No attendees match these filters yet.</p>
                   <p>Try removing one filter.</p>
                 </div>
               ) : focused && focused.matchingCount > 0 ? (
                 <>
-                  <div className="flex items-start justify-between gap-2">
-                    <p className="text-[10px] uppercase tracking-[0.2em] text-lime">
-                      {isManualSelection ? "Selected zone" : "Best move right now"}
-                    </p>
-                    {isManualSelection && (
-                      <button
-                        type="button"
-                        onClick={() => setSelectedZone(null)}
-                        className="text-[11px] text-lime hover:underline shrink-0"
-                      >
-                        Back to best zone
-                      </button>
-                    )}
-                  </div>
-
-                  <div>
+                  {/* Bubble A — Stats column chart */}
+                  <div className="rounded-2xl border border-border/70 bg-card/90 p-5 space-y-4 shadow-sm">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-[10px] uppercase tracking-[0.2em] text-lime">
+                        {isManualSelection ? "Selected zone" : "Best move right now"}
+                      </p>
+                      {isManualSelection && (
+                        <button
+                          type="button"
+                          onClick={() => setSelectedZone(null)}
+                          className="text-[11px] text-lime hover:underline shrink-0"
+                        >
+                          Back to best zone
+                        </button>
+                      )}
+                    </div>
                     <h3 className="text-lg font-semibold">{focused.zone}</h3>
-                    <dl className="mt-3 space-y-2 text-sm">
-                      <MetricRow label="Total match strength" value={String(focused.totalScore)} />
-                      <MetricRow label="Matching people" value={String(focused.matchingCount)} />
-                      <MetricRow label="Average score" value={String(focused.averageScore)} />
-                    </dl>
+
+                    <StatColumnChart
+                      stats={[
+                        {
+                          label: "Match strength",
+                          value: focused.totalScore,
+                          max: Math.max(...zones.map((z) => z.totalScore), 1),
+                        },
+                        {
+                          label: "Matching people",
+                          value: focused.matchingCount,
+                          max: Math.max(...zones.map((z) => z.matchingCount), 1),
+                        },
+                        {
+                          label: "Avg score",
+                          value: focused.averageScore,
+                          max: 100,
+                        },
+                      ]}
+                    />
+
                     {!isManualSelection && (
-                      <p className="text-[11px] text-muted-foreground mt-3 leading-relaxed">
+                      <p className="text-[11px] text-muted-foreground leading-relaxed">
                         Best because this zone has the strongest combined match strength, not just the highest average.
                         {focused.anonymousCount > 0 && ` Includes ${focused.anonymousCount} anonymous in the heat.`}
                       </p>
                     )}
                     {isManualSelection && focused.anonymousCount > 0 && (
-                      <p className="text-[11px] text-muted-foreground mt-2">
+                      <p className="text-[11px] text-muted-foreground">
                         {focused.anonymousCount} anonymous included in zone heat only.
                       </p>
                     )}
                   </div>
 
-                  {focused.topSharedTags.length > 0 && (
-                    <div>
-                      <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-1.5">Strongest shared</p>
+                  {/* Bubble B — Top matches */}
+                  <div className="rounded-2xl border border-border/70 bg-card/90 p-5 space-y-3 shadow-sm">
+                    <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Top matches there</p>
+
+                    {focused.topSharedTags.length > 0 && (
                       <div className="flex flex-wrap gap-1.5">
                         {focused.topSharedTags.map((t) => (
-                          <span key={t} className="text-xs px-2 py-0.5 border border-border text-muted-foreground">{t}</span>
+                          <span key={t} className="text-[10px] px-2 py-0.5 border border-border text-muted-foreground rounded-full">{t}</span>
                         ))}
                       </div>
-                    </div>
-                  )}
+                    )}
 
-                  <div>
-                    <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-1.5">Top matches there</p>
                     {focused.topMatches.length === 0 ? (
                       <p className="text-xs text-muted-foreground">Only anonymous people in this zone. The heat is real, the names are private.</p>
                     ) : (
@@ -386,23 +401,24 @@ export function VibeMapSection({ currentAttendeeId }: Props) {
                         ))}
                       </ul>
                     )}
+
+                    {focused.zone !== myZone && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={isSavingZone || !meWithZone}
+                        onClick={() => void handleZoneChange(focused.zone)}
+                        className="w-full rounded-full border-lime/40 text-lime hover:bg-lime/10"
+                      >
+                        {isSavingZone ? "Saving…" : `I'm heading to ${focused.zone}`}
+                      </Button>
+                    )}
                   </div>
 
-                  {focused && focused.zone !== myZone && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      disabled={isSavingZone || !meWithZone}
-                      onClick={() => void handleZoneChange(focused.zone)}
-                      className="w-full rounded-full border-lime/40 text-lime hover:bg-lime/10"
-                    >
-                      {isSavingZone ? "Saving…" : `I'm heading to ${focused.zone}`}
-                    </Button>
-                  )}
-
+                  {/* Bubble C — Step 3 icebreaker */}
                   {action && (
-                    <div className="rounded-xl border border-border/60 bg-secondary/20 p-3 space-y-2">
+                    <div className="rounded-2xl border border-border/70 bg-card/90 p-5 space-y-2 shadow-sm">
                       <p className="text-[10px] uppercase tracking-[0.2em] text-lime">Step 3 · Your icebreaker</p>
                       <p className="text-sm italic leading-relaxed">"{action.openingLine}"</p>
                       <p className="text-[11px] text-muted-foreground">{action.why}</p>
@@ -410,7 +426,7 @@ export function VibeMapSection({ currentAttendeeId }: Props) {
                   )}
                 </>
               ) : (
-                <div className="text-sm text-muted-foreground space-y-2">
+                <div className="rounded-2xl border border-border/70 bg-card/90 p-5 text-sm text-muted-foreground space-y-2 shadow-sm">
                   <p className="font-semibold text-foreground">No strong matches yet.</p>
                   <p>Try removing one filter, or update your zone to see what's around you.</p>
                 </div>
@@ -418,41 +434,57 @@ export function VibeMapSection({ currentAttendeeId }: Props) {
             </div>
           </div>
 
-          <div>
-            <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-2">All zones</p>
-            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-              {zones.map((z) => (
-                <button
-                  key={z.zone}
-                  onClick={() => setSelectedZone(z.zone === selectedZone ? null : z.zone)}
-                  className={cn(
-                    "rounded-xl border border-border/50 bg-background/80 p-3 text-left transition-all duration-200",
-                    "hover:border-border hover:bg-card hover:shadow-md",
-                    selectedZone === z.zone && "border-lime/50 bg-card shadow-[0_0_16px_oklch(0.9_0.22_130/0.15)]",
-                    bestZone?.zone === z.zone && selectedZone !== z.zone && "border-lime/25",
-                  )}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-sm font-semibold">{z.zone}</p>
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      {bestZone?.zone === z.zone && (
-                        <span className="text-[9px] uppercase tracking-wider text-lime">best</span>
-                      )}
-                      <HeatPill heat={z.heatLevel} />
-                    </div>
-                  </div>
-                  <p className="text-[11px] text-muted-foreground mt-1">
-                    {z.matchingCount} match · avg {z.averageScore} · strength {z.totalScore}
-                    {z.anonymousCount > 0 && ` · ${z.anonymousCount} anon`}
-                  </p>
-                  {z.topSharedTags.length > 0 && (
-                    <p className="text-[10px] text-muted-foreground mt-1.5 truncate">
-                      {z.topSharedTags.join(" · ")}
+          <div className="space-y-4">
+            <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">All zones · grouped by heat</p>
+            {(["very-hot", "hot", "warm", "cold"] as const).map((heat) => {
+              const group = zones.filter((z) => z.heatLevel === heat);
+              if (group.length === 0) return null;
+              const color = HEAT_COLOR[heat];
+              return (
+                <div key={heat} className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className="h-2.5 w-2.5 rounded-full"
+                      style={{ background: color, boxShadow: `0 0 8px ${color}` }}
+                    />
+                    <p className="text-[11px] uppercase tracking-[0.18em] font-semibold" style={{ color }}>
+                      {HEAT_LABEL[heat]}
                     </p>
-                  )}
-                </button>
-              ))}
-            </div>
+                    <span className="text-[10px] text-muted-foreground">{group.length} zone{group.length === 1 ? "" : "s"}</span>
+                  </div>
+                  <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                    {group.map((z) => (
+                      <button
+                        key={z.zone}
+                        onClick={() => setSelectedZone(z.zone === selectedZone ? null : z.zone)}
+                        className={cn(
+                          "rounded-xl border border-border/50 bg-background/80 p-3 text-left transition-all duration-200 border-l-4",
+                          "hover:border-border hover:bg-card hover:shadow-md",
+                          selectedZone === z.zone && "bg-card shadow-[0_0_16px_oklch(0.9_0.22_130/0.15)]",
+                        )}
+                        style={{ borderLeftColor: color }}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-sm font-semibold">{z.zone}</p>
+                          {bestZone?.zone === z.zone && (
+                            <span className="text-[9px] uppercase tracking-wider text-lime shrink-0">best</span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-muted-foreground mt-1">
+                          {z.matchingCount} match · avg {z.averageScore} · strength {z.totalScore}
+                          {z.anonymousCount > 0 && ` · ${z.anonymousCount} anon`}
+                        </p>
+                        {z.topSharedTags.length > 0 && (
+                          <p className="text-[10px] text-muted-foreground mt-1.5 truncate">
+                            {z.topSharedTags.join(" · ")}
+                          </p>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </>
       )}
