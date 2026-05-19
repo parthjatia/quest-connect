@@ -1,47 +1,40 @@
-# Fix XP Flow End-to-End
+# Main-quest proofs require admin approval
 
-## What's broken today
-
-1. **Main quests have no claim UI.** The timeline shows them but there's no "submit proof" button, so users can never earn the points the admin set on a main quest. `completed_quests` is empty in the database.
-2. **Users can't see their XP.** `/play` never renders `me.data.points`. Even when side-quest approval or sponsor approval awards points (those backend paths work), the user has no number to watch go up.
-3. **Sponsor approvals don't refresh the player UI.** Realtime only subscribes to `pod_verifications`, `group_quest_submissions`, and `groups` — not `completed_quests`. When a sponsor approves a submission, the player keeps seeing "pending" until manual reload.
-4. **No celebration when XP lands.** A toast on point change makes "I got XP" obvious for the demo.
+Currently main-quest claims call `claim_quest_anon` which inserts with `verification_status='auto'` and immediately recalcs points. Switch to a pending → admin review flow, matching how side quests already work.
 
 ## Changes
 
-### 1. Main-quest proof + auto-award (frontend only — RPC already exists)
+### 1. Migration: two new RPCs
 
-The `claim_quest_anon(_attendee_id, _quest_id, _photo_url)` RPC already validates the photo, inserts into `completed_quests` with `verification_status='auto'`, and calls `recalc_attendee_points`. Wire it up:
+- `claim_main_quest(_attendee_id, _quest_id, _photo_url)` — inserts/upserts into `completed_quests` with `verification_status='pending'`, photo stored, **no** `recalc_attendee_points` call. ON CONFLICT updates the photo and resets status to pending (allows resubmit after rejection).
+- `review_main_quest(_completed_id, _approve, _note)` — sets status to `approved` or `rejected`, stamps `verified_at`, sets `reviewer_note`, and calls `recalc_attendee_points` only on approve.
 
-- Add a "Submit proof" button on each main-quest card in `MainQuestTimeline` (when not yet completed and `kind !== "upcoming"` — only the current one is claimable, matching existing gating).
-- New `MainQuestClaimDialog` (mirrors `GroupSubmitDialog`): camera/file upload → upload to `quest-photos` bucket under `attendees/{attendeeId}/{questId}-{ts}.{ext}` → call `supabase.rpc("claim_quest_anon", { _attendee_id, _quest_id, _photo_url })` → invalidate `["completed"]`, `["me"]`.
-- Once completed, show the submitted photo + "Approved · +N XP" chip (data already in `completed_quests.quest_photo_url`).
+`recalc_attendee_points` already counts only `('auto','approved')`, so pending rows correctly contribute zero XP.
 
-### 2. XP total widget on /play
+### 2. `src/routes/play.tsx` — MainQuestClaimDialog
 
-In the profile section header (right column near the verify code), render a prominent XP block:
+- Switch RPC call from `claim_quest_anon` to `claim_main_quest`.
+- Toast: "Submitted — waiting for admin review" (not "+XP awarded").
+- In `MainQuestTimeline`, render three states based on `completed_quests.verification_status`:
+  - `pending`: photo + "Awaiting admin review" yellow chip, no XP claimed yet.
+  - `approved`: photo + "+N XP awarded" lime chip (today's done state).
+  - `rejected`: photo + "Rejected — {reviewer_note}" + Resubmit button reopening the dialog.
+- "Current" detection: treat only quests with no completion OR a `rejected` completion as claimable; a `pending` row blocks resubmit until reviewed.
 
-- Big number: `me.data.points` with label "Total XP".
-- Small breakdown line: `quests · pod bonus · meet bonus` derived from `points - pod_bonus_points - meet_bonus_points` for quest XP.
-- Animate increases with a brief lime pulse + `toast.success("+N XP")` when `me.data.points` increases between renders (track previous value in a ref).
+### 3. `src/routes/admin.tsx` — new `PendingMainQuestQueue`
 
-### 3. Realtime: also subscribe to `completed_quests` for this attendee
+New section above or beside `PendingSubmissionsQueue` (mirrors its structure):
+- Query `completed_quests` joined with `quests` (where `quests.type='main'`) and `attendees(full_name)`, ordered by `claimed_at desc`, limit 50.
+- Realtime channel on `completed_quests` to invalidate.
+- For each row show: attendee name, quest title/emoji, photo, status chip. Pending rows get Approve / Reject buttons calling `review_main_quest`. On reject, prompt for an optional note.
+- On approve: toast "+N XP awarded to {name}"; invalidate admin attendees + this queue.
 
-Extend the realtime channel (the one that exists even without a pod — currently gated on `me.data?.group_id`; split it so a per-attendee channel always runs):
+### 4. No change to `claim_quest_anon`
 
-- New always-on channel `attendee-{attendeeId}` listening to `completed_quests` filtered by `attendee_id=eq.{attendeeId}` and to `attendees` filtered by `id=eq.{attendeeId}`.
-- On any event → invalidate `["completed"]` and `["me"]`. This catches sponsor approvals (which `UPDATE`s completed_quests + attendees.points via the RPC) and the auto-award path.
-
-### 4. Migration: enable realtime on the relevant tables
-
-Add `ALTER PUBLICATION supabase_realtime ADD TABLE public.completed_quests; ALTER PUBLICATION supabase_realtime ADD TABLE public.attendees;` (idempotent — wrap in DO block to ignore if already added). Also `ALTER TABLE ... REPLICA IDENTITY FULL` for both so UPDATEs deliver full rows.
-
-## Files touched
-
-- `src/routes/play.tsx` — add XP widget, claim button + dialog, second realtime channel, points-change toast.
-- `supabase/migrations/<new>.sql` — realtime publication + replica identity.
+Leave the function in place (sponsor/legacy paths may reference it) but stop calling it from main-quest UI.
 
 ## Out of scope
 
-- Admin-side review for main quests (current design: photo proof = auto-award, same as `claim_quest_anon` already does). If the user wants admin approval on main quests too, that's a follow-up.
-- Quest activity score / level math beyond raw `points`.
+- Side-quest flow (already admin-approved, working).
+- Sponsor flow (already sponsor-approved, working).
+- Backfill of any existing `verification_status='auto'` main-quest rows — DB shows zero completions today.

@@ -422,6 +422,10 @@ export type Database = {
         Args: { _note?: string; _submission_id: string }
         Returns: Json
       }
+      claim_main_quest: {
+        Args: { _attendee_id: string; _photo_url: string; _quest_id: string }
+        Returns: Json
+      }
       claim_quest: {
         Args: { _photo_url: string; _quest_id: string }
         Returns: Json
@@ -454,6 +458,10 @@ export type Database = {
       reject_group_submission: {
         Args: { _note?: string; _submission_id: string }
         Returns: undefined
+      }
+      review_main_quest: {
+        Args: { _approve: boolean; _completed_id: string; _note?: string }
+        Returns: Json
       }
       sponsor_review_completion: {
         Args: {

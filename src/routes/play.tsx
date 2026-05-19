@@ -558,13 +558,18 @@ function MainQuestTimeline({
   onSummary: (q: Quest) => void;
   onClaim: (q: Quest) => void;
 }) {
-  // Find current = first not completed; reorder: current first, then completed (most recent first)
-  const currentIdx = quests.findIndex((q) => !completedMap.has(q.id));
+  // A quest is "settled" only when its completion is approved/auto.
+  // Pending or rejected rows don't count as done — user is still working on it.
+  const isApproved = (qid: string) => {
+    const s = completedMap.get(qid)?.verification_status;
+    return s === "approved" || s === "auto";
+  };
+  const currentIdx = quests.findIndex((q) => !isApproved(q.id));
   const current = currentIdx >= 0 ? quests[currentIdx] : null;
   const completedQuests = quests
-    .filter((q) => completedMap.has(q.id))
+    .filter((q) => isApproved(q.id))
     .sort((a, b) => (completedMap.get(b.id)?.claimed_at ?? "").localeCompare(completedMap.get(a.id)?.claimed_at ?? ""));
-  const upcoming = quests.filter((q, i) => i > currentIdx && !completedMap.has(q.id));
+  const upcoming = quests.filter((q, i) => i > currentIdx && !isApproved(q.id));
 
   const ordered = [
     ...(current ? [{ q: current, kind: "current" as const }] : []),
@@ -584,17 +589,26 @@ function MainQuestTimeline({
         <ol className="relative border-l border-border ml-3 space-y-4">
           {ordered.map(({ q, kind }) => {
             const done = completedMap.get(q.id);
-            const dot = kind === "current" ? "bg-lime border-lime" : kind === "done" ? "bg-background border-lime" : "bg-background border-border";
+            const status = done?.verification_status;
+            const isPending = status === "pending";
+            const isRejected = status === "rejected";
+            const isApprovedDone = kind === "done";
+            const dot = kind === "current" ? "bg-lime border-lime" : isApprovedDone ? "bg-background border-lime" : "bg-background border-border";
+            const borderCls = kind === "current"
+              ? (isPending ? "border-yellow-500/60" : isRejected ? "border-destructive" : "border-lime")
+              : "border-border";
             return (
               <li key={q.id} className="ml-6 relative">
                 <span className={`absolute -left-[34px] top-2 h-3 w-3 rounded-full border-2 ${dot}`} />
-                <div className={`border p-4 ${kind === "current" ? "border-lime" : "border-border"}`}>
+                <div className={`border p-4 ${borderCls}`}>
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="text-lg" aria-hidden>{q.emoji ?? "⭐"}</span>
                         <h3 className="font-medium">{q.title}</h3>
-                        {kind === "current" && <span className="text-[10px] uppercase tracking-wider text-lime border border-lime px-1.5 py-0.5">Current</span>}
+                        {kind === "current" && !done && <span className="text-[10px] uppercase tracking-wider text-lime border border-lime px-1.5 py-0.5">Current</span>}
+                        {isPending && <span className="text-[10px] uppercase tracking-wider text-yellow-400 border border-yellow-500/50 px-1.5 py-0.5">Awaiting review</span>}
+                        {isRejected && <span className="text-[10px] uppercase tracking-wider text-destructive border border-destructive px-1.5 py-0.5">Rejected</span>}
                       </div>
                       <p className="text-xs text-muted-foreground mt-1">{q.description}</p>
                     </div>
@@ -604,14 +618,25 @@ function MainQuestTimeline({
                   {done?.quest_photo_url && (
                     <img src={done.quest_photo_url} alt="" className="mt-3 h-24 w-full object-cover border border-border" />
                   )}
+                  {isRejected && done?.reviewer_note && (
+                    <p className="text-[11px] text-destructive mt-2 italic">Reviewer: {done.reviewer_note}</p>
+                  )}
 
                   <div className="mt-3 flex flex-wrap items-center gap-2">
-                    {!done && kind === "current" && (
+                    {kind === "current" && !done && (
                       <Button size="sm" onClick={() => onClaim(q)} className="h-7 text-xs bg-lime hover:opacity-90">
                         <Upload className="h-3 w-3 mr-1" /> Submit proof · +{q.points_awarded} XP
                       </Button>
                     )}
-                    {done && (
+                    {isPending && (
+                      <span className="text-[10px] uppercase tracking-wider text-yellow-400">Admin reviewing your photo…</span>
+                    )}
+                    {isRejected && (
+                      <Button size="sm" onClick={() => onClaim(q)} className="h-7 text-xs bg-lime hover:opacity-90">
+                        <Upload className="h-3 w-3 mr-1" /> Resubmit proof
+                      </Button>
+                    )}
+                    {isApprovedDone && (
                       <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider text-lime">
                         <CheckCircle2 className="h-3 w-3" /> +{q.points_awarded} XP awarded
                       </span>
@@ -619,18 +644,19 @@ function MainQuestTimeline({
                     {!done && kind === "upcoming" && (
                       <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Locked — finish current first</span>
                     )}
+
                     {q.transcript_url ? (
                       <Button
                         size="sm"
-                        disabled={!done}
+                        disabled={!isApprovedDone}
                         onClick={() => onSummary(q)}
-                        className={`h-7 text-xs ${done ? "bg-lime hover:opacity-90" : ""}`}
-                        variant={done ? "default" : "outline"}
+                        className={`h-7 text-xs ${isApprovedDone ? "bg-lime hover:opacity-90" : ""}`}
+                        variant={isApprovedDone ? "default" : "outline"}
                       >
                         <Sparkles className="h-3 w-3 mr-1" /> Visual recap
                       </Button>
                     ) : (
-                      done && (
+                      isApprovedDone && (
                         <span className="text-[10px] text-muted-foreground">
                           Waiting for organizer to upload the conversation (.md)
                         </span>
@@ -1041,11 +1067,11 @@ function MainQuestClaimDialog({
       const up = await supabase.storage.from("quest-photos").upload(path, file, { contentType: file.type });
       if (up.error) throw up.error;
       const { data: pub } = supabase.storage.from("quest-photos").getPublicUrl(path);
-      const { error } = await supabase.rpc("claim_quest_anon", {
+      const { error } = await supabase.rpc("claim_main_quest", {
         _attendee_id: attendeeId, _quest_id: quest.id, _photo_url: pub.publicUrl,
       });
       if (error) throw error;
-      toast.success(`+${quest.points_awarded} XP awarded!`);
+      toast.success("Submitted — waiting for admin review");
       onSubmitted();
       onClose();
     } catch (e) {
@@ -1059,7 +1085,7 @@ function MainQuestClaimDialog({
         <DialogHeader>
           <DialogTitle>{quest.emoji} {quest.title}</DialogTitle>
           <DialogDescription>
-            Upload a photo as proof. You'll be awarded <span className="text-lime font-semibold">+{quest.points_awarded} XP</span> instantly.
+            Upload a photo as proof. Once an admin approves it, you'll earn <span className="text-lime font-semibold">+{quest.points_awarded} XP</span>.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-3">

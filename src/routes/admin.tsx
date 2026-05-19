@@ -263,8 +263,12 @@ function AdminPage() {
         {/* Sponsor quest proposals */}
         <SponsorProposals quests={quests.data ?? []} />
 
+        {/* Pending main-quest photo proofs */}
+        <PendingMainQuestQueue />
+
         {/* Pending side-quest submissions */}
         <PendingSubmissionsQueue />
+
 
 
         {/* Pods — compact list */}
@@ -859,6 +863,87 @@ function SponsorProposals({ quests }: { quests: Quest[] }) {
           </div>
         ))}
       </div>
+    </section>
+  );
+}
+
+function PendingMainQuestQueue() {
+  const qc = useQueryClient();
+  const rowsQ = useQuery({
+    queryKey: ["admin-pending-main-quests"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("completed_quests")
+        .select("id, attendee_id, quest_id, quest_photo_url, claimed_at, verification_status, reviewer_note, attendees(full_name), quests!inner(title, emoji, points_awarded, type)")
+        .eq("quests.type", "main")
+        .order("claimed_at", { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  useEffect(() => {
+    const ch = supabase
+      .channel("admin-main-quests")
+      .on("postgres_changes", { event: "*", schema: "public", table: "completed_quests" },
+        () => qc.invalidateQueries({ queryKey: ["admin-pending-main-quests"] }))
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [qc]);
+
+  const act = async (id: string, approve: boolean, name?: string, pts?: number) => {
+    const note = approve ? undefined : (prompt("Reason for rejection (optional)") || undefined);
+    const { error } = await supabase.rpc("review_main_quest", { _completed_id: id, _approve: approve, _note: note ?? null });
+    if (error) return toast.error(error.message);
+    toast.success(approve ? `+${pts ?? 0} XP awarded to ${name ?? "attendee"}` : "Rejected");
+    qc.invalidateQueries({ queryKey: ["admin-pending-main-quests"] });
+    qc.invalidateQueries({ queryKey: ["admin-attendees"] });
+  };
+
+  const rows = rowsQ.data ?? [];
+  const pending = rows.filter((r: any) => r.verification_status === "pending");
+
+  return (
+    <section>
+      <div className="flex items-baseline justify-between mb-3">
+        <h2 className="text-lg font-semibold tracking-tight">Main-quest proofs</h2>
+        <p className="text-xs text-muted-foreground">{pending.length} awaiting review</p>
+      </div>
+      {rows.length === 0 ? (
+        <div className="border border-border p-8 text-center text-sm text-muted-foreground">No main-quest submissions yet.</div>
+      ) : (
+        <div className="grid gap-px bg-border border border-border sm:grid-cols-2 lg:grid-cols-3">
+          {rows.map((r: any) => (
+            <div key={r.id} className="bg-background p-3 flex flex-col gap-2">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-sm font-medium truncate">{r.quests?.emoji} {r.quests?.title}</p>
+                <span className={`text-[10px] uppercase tracking-wider px-1.5 py-0.5 border ${
+                  r.verification_status === "pending" ? "border-yellow-500/50 text-yellow-400" :
+                  r.verification_status === "approved" || r.verification_status === "auto" ? "border-lime text-lime" :
+                  "border-destructive text-destructive"
+                }`}>{r.verification_status}</span>
+              </div>
+              <p className="text-xs text-muted-foreground">{r.attendees?.full_name ?? "—"} · +{r.quests?.points_awarded} XP</p>
+              {r.quest_photo_url && <img src={r.quest_photo_url} alt="" className="h-32 w-full object-cover border border-border" />}
+              {r.verification_status === "pending" && (
+                <div className="flex gap-2 mt-1">
+                  <Button size="sm" onClick={() => act(r.id, true, r.attendees?.full_name, r.quests?.points_awarded)} className="flex-1 h-7 text-xs bg-lime hover:opacity-90">
+                    <Check className="h-3 w-3 mr-1" /> Approve
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => act(r.id, false)} className="flex-1 h-7 text-xs border-destructive text-destructive hover:bg-destructive/10">
+                    <XIcon className="h-3 w-3 mr-1" /> Reject
+                  </Button>
+                </div>
+              )}
+              {r.reviewer_note && <p className="text-[10px] text-muted-foreground italic">Note: {r.reviewer_note}</p>}
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground inline-flex items-center gap-1">
+                <Clock className="h-3 w-3" /> {new Date(r.claimed_at).toLocaleString()}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
     </section>
   );
 }
