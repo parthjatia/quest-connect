@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { supabase } from "@/integrations/supabase/client";
 import { getLocalAttendee, clearLocalAttendee } from "@/lib/local-attendee";
 import { toast } from "sonner";
-import { Loader2, Camera, LogOut, CheckCircle2, Lock, Upload, Eye, Pencil, Check, X, Clock, Users } from "lucide-react";
+import { Loader2, Camera, LogOut, CheckCircle2, Lock, Upload, Eye, Sparkles, Pencil, Check, X, Clock, Users } from "lucide-react";
 import { QuestSummaryModal } from "@/components/quest-summary-modal";
 import { QuestVisualSummaryModal } from "@/components/quest-visual-summary-modal";
 import { VibeMapSection } from "@/components/vibe-map/vibe-map-section";
@@ -455,7 +455,7 @@ function MainQuestTimeline({
     <section>
       <div className="flex items-baseline justify-between mb-3">
         <h2 className="text-lg font-semibold tracking-tight">Main quests</h2>
-        <p className="text-xs text-muted-foreground">Individual · timeline</p>
+        <p className="text-xs text-muted-foreground">Organizer uploads .md · you run visual recap</p>
       </div>
       {quests.length === 0 ? (
         <div className="border border-border p-8 text-center text-sm text-muted-foreground">No main quests yet.</div>
@@ -493,14 +493,25 @@ function MainQuestTimeline({
                     {!done && kind === "upcoming" && (
                       <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Locked — finish current first</span>
                     )}
-                    {done && (
-                      <Button variant="outline" size="sm" onClick={() => onSummary(q)}
-                        className="h-7 text-xs border-border hover:border-lime hover:text-lime">
-                        <Eye className="h-3 w-3 mr-1" /> View summary
-                      </Button>
+                    {!done && q.transcript_url && kind === "current" && (
+                      <span className="text-[10px] text-muted-foreground">Visual recap unlocks after you claim</span>
                     )}
-                    {done && !q.transcript_url && (
-                      <span className="text-[10px] text-muted-foreground">Transcript pending from organizer</span>
+                    {q.transcript_url ? (
+                      <Button
+                        size="sm"
+                        disabled={!done}
+                        onClick={() => onSummary(q)}
+                        className={`h-7 text-xs ${done ? "bg-lime hover:opacity-90" : ""}`}
+                        variant={done ? "default" : "outline"}
+                      >
+                        <Sparkles className="h-3 w-3 mr-1" /> Visual recap
+                      </Button>
+                    ) : (
+                      done && (
+                        <span className="text-[10px] text-muted-foreground">
+                          Waiting for organizer to upload the conversation (.md)
+                        </span>
+                      )
                     )}
                   </div>
                 </div>

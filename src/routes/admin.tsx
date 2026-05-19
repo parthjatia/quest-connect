@@ -558,7 +558,9 @@ function AdminQuestTranscriptUpload({
 
   return (
     <div className="mt-3 flex flex-wrap items-center gap-2">
-      <p className="text-[10px] uppercase tracking-wider text-muted-foreground w-full">Event transcript (.md)</p>
+      <p className="text-[10px] uppercase tracking-wider text-muted-foreground w-full">
+        Conversation transcript (.md) — attendees use this for visual recap
+      </p>
       {existingUrl && (
         <a
           href={existingUrl}
@@ -587,7 +589,7 @@ function AdminQuestTranscriptUpload({
         className="h-7 text-xs border-dashed border-border hover:border-lime hover:text-lime"
       >
         {busy ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Upload className="h-3 w-3 mr-1" />}
-        {existingUrl ? "Replace transcript" : "Upload transcript"}
+        {existingUrl ? "Replace .md" : "Upload .md"}
       </Button>
     </div>
   );
