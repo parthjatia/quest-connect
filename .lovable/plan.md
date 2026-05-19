@@ -1,51 +1,47 @@
-## Goal
+# Fix XP Flow End-to-End
 
-The 100 rows in `attendees` all have `current_zone = NULL` and empty `interests/goals/skills/personality_tags/looking_for`. The Vibe Map reads these directly, so every zone scores 0 and the heatmap behaves erratically. Fix the data, confirm the end-to-end flow, and clean up the heatmap visuals which are currently a noisy mix of red/orange/yellow bubbles + glows + cluster dots across all 8 zones.
+## What's broken today
 
-## 1. Seed dummy values for existing attendees
+1. **Main quests have no claim UI.** The timeline shows them but there's no "submit proof" button, so users can never earn the points the admin set on a main quest. `completed_quests` is empty in the database.
+2. **Users can't see their XP.** `/play` never renders `me.data.points`. Even when side-quest approval or sponsor approval awards points (those backend paths work), the user has no number to watch go up.
+3. **Sponsor approvals don't refresh the player UI.** Realtime only subscribes to `pod_verifications`, `group_quest_submissions`, and `groups` — not `completed_quests`. When a sponsor approves a submission, the player keeps seeing "pending" until manual reload.
+4. **No celebration when XP lands.** A toast on point change makes "I got XP" obvious for the demo.
 
-Run a single data update (via the insert tool) that fills the empty profile fields for every current attendee using deterministic SQL — no migration, no schema change:
+## Changes
 
-- `current_zone`: pick one of the 8 `EVENT_ZONES` deterministically from `id` so zones are well-distributed (roughly 12–13 per zone).
-- `interests`, `goals`, `skills`, `personality_tags`, `looking_for`: assign one of ~8 curated "persona packs" (mirroring `ENRICH_PACKS` in `attendeeDataAdapter.ts`) chosen by `hash(id) % 8`, so the data lines up with what the Vibe Map filters already key off (AI, startups, design, fintech, sports tech, gaming, robotics, consulting).
-- `track`: derive from the persona pack ("AI", "Startup", "Design", "Fintech", "Sports Tech", "Gaming", "Robotics").
-- Only update rows where the field is `NULL` / empty array — never clobber attendees that already filled their profile.
-- Keep `discovery_visibility = true` (already the default) and `sponsor_open` untouched.
+### 1. Main-quest proof + auto-award (frontend only — RPC already exists)
 
-This makes the Vibe Map fully functional against live data without changing how the data adapter or engine work.
+The `claim_quest_anon(_attendee_id, _quest_id, _photo_url)` RPC already validates the photo, inserts into `completed_quests` with `verification_status='auto'`, and calls `recalc_attendee_points`. Wire it up:
 
-## 2. End-to-end Vibe Map verification
+- Add a "Submit proof" button on each main-quest card in `MainQuestTimeline` (when not yet completed and `kind !== "upcoming"` — only the current one is claimable, matching existing gating).
+- New `MainQuestClaimDialog` (mirrors `GroupSubmitDialog`): camera/file upload → upload to `quest-photos` bucket under `attendees/{attendeeId}/{questId}-{ts}.{ext}` → call `supabase.rpc("claim_quest_anon", { _attendee_id, _quest_id, _photo_url })` → invalidate `["completed"]`, `["me"]`.
+- Once completed, show the submitted photo + "Approved · +N XP" chip (data already in `completed_quests.quest_photo_url`).
 
-After the data is in, verify:
-- Heatmap renders non-zero matching counts across multiple zones.
-- "Find filters from my profile" applies and produces a non-empty `bestZone`.
-- "I'm here now" zone selector saves to the DB (`updateAttendeeZone`) and the bubble follows the user.
-- Selecting another zone shows top matches with names + shared tags.
+### 2. XP total widget on /play
 
-If any step misbehaves, fix it in `vibeMap.functions.ts` / `vibeMapEngine.ts` / `vibe-map-section.tsx` — but I expect the seeding alone is enough since the engine itself is unchanged.
+In the profile section header (right column near the verify code), render a prominent XP block:
 
-## 3. Heatmap UI polish (`src/components/vibe-map/floorplan.tsx`)
+- Big number: `me.data.points` with label "Total XP".
+- Small breakdown line: `quests · pod bonus · meet bonus` derived from `points - pod_bonus_points - meet_bonus_points` for quest XP.
+- Animate increases with a brief lime pulse + `toast.success("+N XP")` when `me.data.points` increases between renders (track previous value in a ref).
 
-Current issues: 4-step heat scale (very-hot/hot/warm/cold) uses red→orange→yellow→blue, plus a soft glow ellipse behind every zone, plus 1–3 small heat-bubble circles at the bottom of each zone. With 8 zones this reads as scattered, multi-colored noise.
+### 3. Realtime: also subscribe to `completed_quests` for this attendee
 
-Cleanup:
-- Collapse to a single brand hue (lime) and vary only **lightness + opacity** by intensity, instead of switching hue per heat level. The "best zone" already uses lime — extending it consistently makes the map feel intentional.
-- Drop the bottom `<HeatBubbles>` cluster entirely (the rounded zone tile + glow already conveys intensity; the dots add visual noise).
-- Soften the per-zone glow ellipse: smaller radius, lower opacity, only render for zones with `matchingCount > 0`.
-- "Cold" zones become a flat muted card surface (no colored fill, no glow) so the eye is drawn only to zones with real matches.
-- Keep selected/best ring + "you" dot exactly as-is (already clean).
-- Update the legend chips to reflect the new scale: `quiet → some → strong → top match` (single hue ramp).
+Extend the realtime channel (the one that exists even without a pod — currently gated on `me.data?.group_id`; split it so a per-attendee channel always runs):
 
-No layout/zone-coordinate changes.
+- New always-on channel `attendee-{attendeeId}` listening to `completed_quests` filtered by `attendee_id=eq.{attendeeId}` and to `attendees` filtered by `id=eq.{attendeeId}`.
+- On any event → invalidate `["completed"]` and `["me"]`. This catches sponsor approvals (which `UPDATE`s completed_quests + attendees.points via the RPC) and the auto-award path.
+
+### 4. Migration: enable realtime on the relevant tables
+
+Add `ALTER PUBLICATION supabase_realtime ADD TABLE public.completed_quests; ALTER PUBLICATION supabase_realtime ADD TABLE public.attendees;` (idempotent — wrap in DO block to ignore if already added). Also `ALTER TABLE ... REPLICA IDENTITY FULL` for both so UPDATEs deliver full rows.
 
 ## Files touched
 
-- Data: one `supabase--insert` call (UPDATE on `public.attendees`) — no migration.
-- `src/components/vibe-map/floorplan.tsx` — color scale + remove bubble cluster + soften glow.
-- Possibly `src/components/vibe-map/vibe-map-section.tsx` if the legend label text lives there (it doesn't — it's in floorplan).
+- `src/routes/play.tsx` — add XP widget, claim button + dialog, second realtime channel, points-change toast.
+- `supabase/migrations/<new>.sql` — realtime publication + replica identity.
 
 ## Out of scope
 
-- Schema changes, RLS changes, new tables.
-- Sponsor Radar, quests, pods.
-- The vibe map matching algorithm itself.
+- Admin-side review for main quests (current design: photo proof = auto-award, same as `claim_quest_anon` already does). If the user wants admin approval on main quests too, that's a follow-up.
+- Quest activity score / level math beyond raw `points`.
