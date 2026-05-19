@@ -258,10 +258,13 @@ function RecapPage() {
 
       <main className="mx-auto max-w-6xl px-4 pb-32 space-y-12">
         <TranscriptCard
+          quests={questsQuery.data ?? []}
+          questsLoading={questsQuery.isLoading}
+          selectedQuestId={selectedQuestId}
+          loadingTranscript={loadingTranscript}
           transcript={transcript}
-          setTranscript={setTranscript}
           wordCount={wordCount}
-          onFile={handleFile}
+          onPick={handlePickQuest}
         />
 
         <section className="space-y-6">
