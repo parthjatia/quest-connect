@@ -76,7 +76,7 @@ export function FloatingDecor({
             opacity: s.opacity,
             animationDelay: `${s.delay}s`,
             animationDuration: `${s.duration}s`,
-            filter: variant === "coin-rain" ? "drop-shadow(0 8px 18px rgba(0, 180, 255, 0.35))" : "drop-shadow(0 4px 12px rgba(0,0,0,0.4))",
+            filter: variant === "coin-rain" ? "drop-shadow(0 8px 18px rgba(251, 191, 36, 0.45))" : "drop-shadow(0 4px 12px rgba(0,0,0,0.4))",
           }}
         />
       ))}
