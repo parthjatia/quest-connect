@@ -47,70 +47,152 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
-  --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Fraunces", "Cormorant Garamond", ui-serif, Georgia, serif;
+  --font-sans: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
 }
 
 :root {
-  --radius: 0.375rem;
-  /* Quest Connect — near-black canvas, white text, neon lime accents */
-  --background: oklch(0.13 0.005 250);
-  --foreground: oklch(0.98 0.003 250);
-  --card: oklch(0.16 0.005 250);
-  --card-foreground: oklch(0.98 0.003 250);
-  --popover: oklch(0.15 0.005 250);
-  --popover-foreground: oklch(0.98 0.003 250);
-  --primary: oklch(0.9 0.22 130);             /* neon lime */
-  --primary-foreground: oklch(0.13 0.005 250);
-  --secondary: oklch(0.2 0.005 250);
-  --secondary-foreground: oklch(0.98 0.003 250);
-  --muted: oklch(0.18 0.005 250);
-  --muted-foreground: oklch(0.65 0.01 250);
-  --accent: oklch(0.9 0.22 130);              /* neon lime */
-  --accent-foreground: oklch(0.13 0.005 250);
-  --destructive: oklch(0.65 0.22 25);
-  --destructive-foreground: oklch(0.98 0.003 250);
-  --success: oklch(0.9 0.22 130);
-  --success-foreground: oklch(0.13 0.005 250);
-  --warning: oklch(0.82 0.18 80);
-  --warning-foreground: oklch(0.13 0.005 250);
-  --border: oklch(0.25 0.005 250);
-  --input: oklch(0.2 0.005 250);
-  --ring: oklch(0.9 0.22 130);
-  --chart-1: oklch(0.9 0.22 130);
-  --chart-2: oklch(0.7 0.05 250);
-  --chart-3: oklch(0.5 0.05 250);
-  --chart-4: oklch(0.85 0.15 90);
-  --chart-5: oklch(0.6 0.1 200);
-  --sidebar: oklch(0.13 0.005 250);
-  --sidebar-foreground: oklch(0.98 0.003 250);
-  --sidebar-primary: oklch(0.9 0.22 130);
-  --sidebar-primary-foreground: oklch(0.13 0.005 250);
-  --sidebar-accent: oklch(0.2 0.005 250);
-  --sidebar-accent-foreground: oklch(0.98 0.003 250);
-  --sidebar-border: oklch(0.25 0.005 250);
-  --sidebar-ring: oklch(0.9 0.22 130);
+  --radius: 0.625rem;
 
-  --gradient-hero: oklch(0.13 0.005 250);
-  --gradient-card: oklch(0.16 0.005 250);
-  --shadow-glow: 0 0 0 1px oklch(0.9 0.22 130 / 0.4);
-  --shadow-card: 0 1px 0 0 oklch(0.25 0.005 250);
+  /* === Midnight Vintage Festival Zine ===
+     Warm espresso base, antique gold accents, muted coral/sage highlights.
+     A premium festival-pass / zine artifact, not a SaaS dashboard. */
+
+  /* Base — warm espresso, never cold black */
+  --background: oklch(0.16 0.018 40);              /* deep espresso */
+  --foreground: oklch(0.96 0.018 80);              /* warm cream */
+  --card: oklch(0.21 0.022 38);                    /* warm charcoal w/ plum hint */
+  --card-foreground: oklch(0.96 0.018 80);
+  --popover: oklch(0.19 0.022 35);
+  --popover-foreground: oklch(0.96 0.018 80);
+
+  /* Primary — antique gold */
+  --primary: oklch(0.82 0.13 78);
+  --primary-foreground: oklch(0.16 0.018 40);
+
+  /* Secondary — warm midnight brown */
+  --secondary: oklch(0.25 0.022 38);
+  --secondary-foreground: oklch(0.96 0.018 80);
+
+  --muted: oklch(0.23 0.018 38);
+  --muted-foreground: oklch(0.72 0.025 70);
+
+  /* Accent — warm amber */
+  --accent: oklch(0.82 0.13 78);
+  --accent-foreground: oklch(0.16 0.018 40);
+
+  --destructive: oklch(0.62 0.18 25);              /* muted coral-red */
+  --destructive-foreground: oklch(0.97 0.01 80);
+  --success: oklch(0.72 0.11 155);                 /* sage green */
+  --success-foreground: oklch(0.14 0.02 40);
+  --warning: oklch(0.78 0.15 60);                  /* burnt amber */
+  --warning-foreground: oklch(0.14 0.02 40);
+
+  --border: oklch(0.32 0.022 45 / 0.7);            /* thin warm border */
+  --input: oklch(0.24 0.02 38);
+  --ring: oklch(0.82 0.13 78 / 0.55);
+
+  /* Charts — vintage palette */
+  --chart-1: oklch(0.82 0.13 78);   /* gold */
+  --chart-2: oklch(0.68 0.13 25);   /* coral */
+  --chart-3: oklch(0.72 0.11 155);  /* sage */
+  --chart-4: oklch(0.6 0.09 350);   /* dusty rose */
+  --chart-5: oklch(0.66 0.1 200);   /* muted teal */
+
+  --sidebar: oklch(0.18 0.02 40);
+  --sidebar-foreground: oklch(0.96 0.018 80);
+  --sidebar-primary: oklch(0.82 0.13 78);
+  --sidebar-primary-foreground: oklch(0.16 0.018 40);
+  --sidebar-accent: oklch(0.24 0.022 38);
+  --sidebar-accent-foreground: oklch(0.96 0.018 80);
+  --sidebar-border: oklch(0.3 0.02 45 / 0.6);
+  --sidebar-ring: oklch(0.82 0.13 78 / 0.5);
+
+  /* Layered backgrounds — paper / gradient / glow */
+  --gradient-hero: linear-gradient(135deg,
+    oklch(0.82 0.13 78) 0%,
+    oklch(0.7 0.16 45) 55%,
+    oklch(0.62 0.14 20) 100%);
+  --gradient-card: linear-gradient(160deg,
+    oklch(0.22 0.022 38) 0%,
+    oklch(0.19 0.022 35) 100%);
+  --gradient-warm: linear-gradient(135deg,
+    oklch(0.78 0.13 65),
+    oklch(0.65 0.16 20));
+  --gradient-rose: linear-gradient(135deg,
+    oklch(0.7 0.11 30),
+    oklch(0.55 0.12 355));
+  --gradient-sage: linear-gradient(135deg,
+    oklch(0.74 0.1 155),
+    oklch(0.55 0.09 195));
+
+  --shadow-glow: 0 0 0 1px oklch(0.82 0.13 78 / 0.35),
+                 0 10px 40px -12px oklch(0.82 0.13 78 / 0.35);
+  --shadow-card: 0 1px 0 0 oklch(0.4 0.02 45 / 0.25),
+                 0 8px 24px -12px oklch(0 0 0 / 0.45);
+  --shadow-ticket: 6px 6px 0 0 oklch(0.12 0.015 40),
+                   0 14px 30px -18px oklch(0 0 0 / 0.6);
+
+  /* Subtle paper grain for body */
+  --paper-grain:
+    radial-gradient(1200px 700px at 8% -10%, oklch(0.7 0.16 45 / 0.07), transparent 60%),
+    radial-gradient(900px 600px at 100% 0%, oklch(0.6 0.1 350 / 0.05), transparent 55%),
+    radial-gradient(700px 500px at 50% 110%, oklch(0.7 0.11 155 / 0.04), transparent 60%);
 }
 
 @layer base {
   * { border-color: var(--color-border); }
   html, body {
     background-color: var(--color-background);
+    background-image: var(--paper-grain);
+    background-attachment: fixed;
     color: var(--color-foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  h1, h2, h3, .font-display {
     font-family: var(--font-display);
+    letter-spacing: -0.01em;
   }
 }
 
 @layer utilities {
   .bg-gradient-hero { background: var(--gradient-hero); }
   .bg-gradient-card { background: var(--gradient-card); }
+  .bg-gradient-warm { background: var(--gradient-warm); }
+  .bg-gradient-rose { background: var(--gradient-rose); }
+  .bg-gradient-sage { background: var(--gradient-sage); }
   .shadow-glow { box-shadow: var(--shadow-glow); }
   .shadow-card { box-shadow: var(--shadow-card); }
-  .text-lime { color: oklch(0.9 0.22 130); }
-  .border-lime { border-color: oklch(0.9 0.22 130); }
-  .bg-lime { background-color: oklch(0.9 0.22 130); color: oklch(0.13 0.005 250); }
+  .shadow-ticket { box-shadow: var(--shadow-ticket); }
+
+  /* Legacy "lime" utilities re-bound to antique gold so existing
+     components keep working while looking warm + vintage. */
+  .text-lime  { color: oklch(0.86 0.13 80); }
+  .border-lime{ border-color: oklch(0.82 0.13 78); }
+  .bg-lime    { background-color: oklch(0.82 0.13 78); color: oklch(0.16 0.018 40); }
+
+  /* Optional accent helpers used across pages */
+  .text-coral { color: oklch(0.72 0.15 25); }
+  .text-sage  { color: oklch(0.78 0.1 155); }
+  .text-rose-dust { color: oklch(0.72 0.09 355); }
+
+  /* Subtle zine paper texture for premium cards */
+  .paper-texture {
+    background-image:
+      repeating-linear-gradient(
+        115deg,
+        oklch(1 0 0 / 0.012) 0 2px,
+        transparent 2px 5px
+      ),
+      var(--gradient-card);
+  }
+
+  /* Ticket / pass perforation accent */
+  .ticket-edge {
+    -webkit-mask-image: radial-gradient(circle at 0 50%, transparent 6px, black 6.5px),
+                        radial-gradient(circle at 100% 50%, transparent 6px, black 6.5px);
+    -webkit-mask-composite: source-in;
+  }
 }
