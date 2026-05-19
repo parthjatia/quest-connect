@@ -2,8 +2,8 @@ import { createServerFn } from "@tanstack/react-start";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { trackLabel, goalLabel } from "@/lib/attendee-options";
 
-const OPENAI_ENDPOINT = "https://api.openai.com/v1/chat/completions";
-const OPENAI_MODEL = "gpt-5.2";
+const AI_GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
+const AI_MODEL = "google/gemini-2.5-pro";
 
 type Attendee = {
   id: string;
