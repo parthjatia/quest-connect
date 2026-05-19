@@ -51,8 +51,16 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Quest Connect — Event matchmaking & quests" },
+      { title: "Quey — Event matchmaking & quests" },
       { name: "description", content: "Turn your event into a quest. Earn points, find your squad, ship your wrapped." },
+      { property: "og:title", content: "Quey — Event matchmaking & quests" },
+      { name: "twitter:title", content: "Quey — Event matchmaking & quests" },
+      { property: "og:description", content: "Turn your event into a quest. Earn points, find your squad, ship your wrapped." },
+      { name: "twitter:description", content: "Turn your event into a quest. Earn points, find your squad, ship your wrapped." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/ec102e0f-fc01-4741-88fa-cbdae9d633a2/id-preview-4d8f845c--8f20bf77-857d-47b3-8a84-a4b6a723d4a9.lovable.app-1779179032624.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/ec102e0f-fc01-4741-88fa-cbdae9d633a2/id-preview-4d8f845c--8f20bf77-857d-47b3-8a84-a4b6a723d4a9.lovable.app-1779179032624.png" },
+      { name: "twitter:card", content: "summary_large_image" },
+      { property: "og:type", content: "website" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
