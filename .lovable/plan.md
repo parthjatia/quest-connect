@@ -1,56 +1,52 @@
-## Part 1 — New profile fields
+## Goals
 
-**Migration** (`attendees`):
-- `linkedin_url text` (nullable)
-- `github_url text` (nullable)
-- `hobbies text[]` default `'{}'`
+1. Wipe the database to a clean slate (0 attendees, 0 quests, 0 side quests, 0 pods, 0 submissions, 0 verifications, 0 meets, 0 completions).
+2. Add a one-click "Seed 100 mock attendees" button in admin that inserts 100 rows from `src/lib/mock-attendees.ts` instantly.
+3. Keep "Clear all" wiping everything (attendees + quests + pods + dependent rows) so the admin can fully reset.
+4. Pods table in admin only renders after matchmaking has produced groups (already the case via `podCount > 0`, but make this explicit and add an empty-state hint so it's clear pods appear only post-matchmaking).
 
-**Form (`src/routes/join.tsx`)**
-- Two URL inputs (LinkedIn, GitHub) — optional, Zod-validated `z.string().url().optional().or(z.literal(""))`, with `.linkedin.com` / `.github.com` soft hint.
-- Hobbies: chip input — type → Enter/comma adds a tag, click X to remove. Max ~10 tags, each ≤30 chars, trimmed/deduped. Stored as `text[]`.
-- All three are optional; submit writes them alongside existing fields.
+## Part 1 — Database wipe (one-time)
 
-**Display**
-- `src/routes/play.tsx` profile section: show LinkedIn/GitHub as icon links, hobbies as small chips.
-- `src/routes/admin.tsx` attendees table: add a compact "Links" column (LI / GH icons) and hobbies tooltip.
-- `src/lib/attendeeDataAdapter.ts`: surface `hobbies` into the derived `interests`/tags array so vibe map + sponsor radar pick them up.
+Run a data delete (no schema change) that clears:
+- `pod_verifications`, `attendee_meets`, `completed_quests`, `group_quest_submissions`, `quest_transcripts`
+- `attendees`, `groups`
+- `quests` (both main + side)
 
-## Part 2 — Two-stage OpenAI matchmaker
+`event_settings` and `user_roles` are left intact.
 
-Rewrite `src/lib/matchmaker.functions.ts`. Replace the Lovable AI Gateway call with OpenAI's API directly, using the existing `OPENAI_API_KEY` secret and model `gpt-5.2`. Keep the same server-fn entry point `runLlmMatchmaker` and the same wipe/write logic so `admin.tsx` doesn't change.
+## Part 2 — "Seed 100 mock attendees" button
 
-**Stage 0 — Local clustering (deterministic, no LLM)**
-1. Pull eligible attendees (`late=false`, `group_id IS NULL`), including new `hobbies`/`linkedin_url`/`github_url`.
-2. Bucket by `(track_intent, event_goal)` composite key — these are now hard enums so grouping is exact.
-3. Any bucket with ≥3 attendees is a **strict cluster** (both match).
-4. Leftovers from buckets <3 fall into a **relaxed pool**: re-bucket by `event_goal` only, then by `track_intent` only, picking whichever yields the larger ≥3 group for each leftover. Anything still orphaned goes into an "Open" cluster.
+**Location**: `src/routes/admin.tsx`, in the Attendees section header next to "Clear all".
 
-**Stage 1 — OpenAI diversity pass (per cluster)**
-For each cluster with ≥3 members, call gpt-5.2 with:
-- System prompt: "You are a hackathon matchmaker. The attendees below already share track+goal alignment. Split them into pods of 3–5, MAXIMIZING diversity across `university`, `academic_background`, `ai_experience`, `hobbies`. Every attendee must appear in exactly one pod. Respond ONLY as JSON: `{pods:[{member_ids:[...], rationale:"..."}]}`."
-- User payload: compact JSON of cluster members (id, uni, bg, ai, hobbies, track, goal).
-- `response_format: { type: "json_object" }`.
+**Behavior**:
+- Inserts the first 100 entries from `MOCK_ATTENDEES` (`src/lib/mock-attendees.ts`) into the `attendees` table in one bulk `supabase.from("attendees").insert([...])` call.
+- Maps each mock row to DB columns:
+  - `full_name` ← `name`
+  - `university` ← `university`
+  - `academic_background` ← `background`
+  - `ai_experience` ← lowercase of `ai_level` mapped to enum (`beginner` / `intermediate` / `power_user`)
+  - `track_intent` ← reverse-mapped from track label to enum key (using `TRACK_OPTIONS` in `src/lib/attendee-options.ts`)
+  - `event_goal` ← reverse-mapped from goal label to enum key
+  - `track` ← original label (kept for legacy `track` column)
+  - `user_id` ← `null` (anon rows; RLS `anon insert attendee` policy allows this)
+  - `late` ← `false`, `points` ← `0`, `group_id` ← `null`
+- Toast on success ("Seeded 100 mock attendees"); invalidates `admin-attendees` query.
+- Confirm dialog if any attendees already exist.
 
-After response: validate IDs ⊂ cluster, dedupe, append any missing to last pod, then run existing `rebalance()` to enforce 3–5.
+## Part 3 — Pods visibility
 
-**Stage 2 — Write**
-Same as today: insert `groups` row per pod (use the LLM `rationale` as `group_name` if short, else "Unnamed pod"; store full rationale in `pod_rationale` which already exists), then update `attendees.group_id`. Return `{ pods_created, method: "openai" | "heuristic", clusters: N, error? }`.
-
-**Fallback**
-If OpenAI 401/402/429/timeout for a cluster → run the existing `heuristicPods` on that cluster only. Other clusters still get the LLM treatment. Method reported is `"mixed"` in that case.
-
-**Admin UI tweak (`src/routes/admin.tsx`)**
-- Toast message reports cluster count + method (e.g., "4 pods across 3 clusters via OpenAI").
-
-## Technical details
-
-- Endpoint: `https://api.openai.com/v1/chat/completions`, header `Authorization: Bearer ${process.env.OPENAI_API_KEY}`, `model: "gpt-5.2"`, `response_format: { type: "json_object" }`.
-- Read `OPENAI_API_KEY` inside `.handler()`, not at module scope.
-- No DB changes for matchmaker — `groups.pod_rationale` and `groups.group_name` already exist.
-- Types regenerate after migration; no manual `types.ts` edits.
+Current code already gates the Pods section with `{podCount > 0 && ...}`. Make it stricter:
+- Pods section only renders when `groups.data` has rows AND at least one attendee has a `group_id` (i.e. matchmaking has actually assigned members).
+- Add a small caption under the Matchmaker card: "Pods appear after matchmaking is run."
 
 ## Out of scope
 
-- No URL preview / scraping of LinkedIn or GitHub.
-- No re-import of existing free-text interests into the new hobbies column.
-- Existing `wrapped.functions.ts` / `ai.functions.ts` keep using the Lovable AI Gateway; only matchmaker moves to OpenAI direct.
+- No DB schema changes.
+- No changes to matchmaker logic or signup form.
+- Mock list isn't expanded — uses the first 100 from the existing 904-line mock file.
+
+## Technical notes
+
+- The wipe uses the data-change tool (not a migration) since it's row deletion only.
+- Seed insert is a single client-side call from `admin.tsx` using the existing anon `supabase` client; no server function needed.
+- Reverse-mapping helpers (label → enum key) added to `src/lib/attendee-options.ts` if not already present.

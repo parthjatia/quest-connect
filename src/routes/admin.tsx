@@ -11,7 +11,8 @@ import { Loader2, Plus, Trash2, Sparkles, ArrowLeft, Wand2, Lock, Unlock, FileTe
 import { getRegistrationOpen, setRegistrationOpen } from "@/lib/event-settings";
 import { runLlmMatchmaker } from "@/lib/matchmaker.functions";
 import { getLocalAdmin, setLocalAdmin } from "@/lib/local-attendee";
-import { trackLabel } from "@/lib/attendee-options";
+import { trackLabel, trackValueFromLabel, goalValueFromLabel } from "@/lib/attendee-options";
+import { MOCK_ATTENDEES } from "@/lib/mock-attendees";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({ meta: [{ title: "Admin — Quest Connect" }] }),
@@ -146,25 +147,65 @@ function AdminPage() {
 
   const [clearing, setClearing] = useState(false);
   const clearAllAttendees = async () => {
-    if (!confirm("Delete ALL attendees, pods, verifications, completions and submissions? This cannot be undone.")) return;
-    if (!confirm("Really delete EVERYTHING attendee-related? Last chance.")) return;
+    if (!confirm("Delete ALL attendees, pods, quests, submissions and related records? This cannot be undone.")) return;
+    if (!confirm("Really wipe EVERYTHING (attendees, pods, quests, side quests)? Last chance.")) return;
     setClearing(true);
     try {
       await supabase.from("pod_verifications").delete().not("id", "is", null);
+      await supabase.from("attendee_meets").delete().not("id", "is", null);
       await supabase.from("completed_quests").delete().not("id", "is", null);
       await supabase.from("group_quest_submissions").delete().not("id", "is", null);
+      await supabase.from("quest_transcripts").delete().not("id", "is", null);
       await supabase.from("attendees").delete().not("id", "is", null);
       await supabase.from("groups").delete().not("id", "is", null);
-      toast.success("All attendees cleared");
+      await supabase.from("quests").delete().not("id", "is", null);
+      toast.success("Everything cleared");
       qc.invalidateQueries({ queryKey: ["admin-attendees"] });
       qc.invalidateQueries({ queryKey: ["admin-groups"] });
+      qc.invalidateQueries({ queryKey: ["admin-quests"] });
       qc.invalidateQueries({ queryKey: ["admin-pending-submissions"] });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to clear");
     } finally { setClearing(false); }
   };
 
+  const [seeding, setSeeding] = useState(false);
+  const seedMockAttendees = async () => {
+    const existing = attendees.data?.length ?? 0;
+    if (existing > 0 && !confirm(`There are already ${existing} attendees. Add 100 more mock attendees?`)) return;
+    setSeeding(true);
+    try {
+      const aiMap: Record<string, "beginner" | "intermediate" | "power_user"> = {
+        beginner: "beginner",
+        intermediate: "intermediate",
+        advanced: "power_user",
+        "power user": "power_user",
+        power_user: "power_user",
+      };
+      const rows = MOCK_ATTENDEES.slice(0, 100).map((m) => ({
+        user_id: null,
+        full_name: m.name,
+        university: m.university,
+        academic_background: m.background,
+        ai_experience: aiMap[m.ai_level.trim().toLowerCase()] ?? "beginner",
+        track_intent: trackValueFromLabel(m.track),
+        event_goal: goalValueFromLabel(m.goal),
+        track: m.track,
+        late: false,
+        points: 0,
+      }));
+      const { error } = await supabase.from("attendees").insert(rows);
+      if (error) throw error;
+      toast.success(`Seeded ${rows.length} mock attendees`);
+      qc.invalidateQueries({ queryKey: ["admin-attendees"] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to seed");
+    } finally { setSeeding(false); }
+  };
+
   const totalPoints = (quests.data ?? []).reduce((s, q) => s + (q.points_awarded ?? 0), 0);
+  const assignedCount = (attendees.data ?? []).filter((a) => !!a.group_id).length;
+  const podsVisible = (groups.data?.length ?? 0) > 0 && assignedCount > 0;
   const podCount = groups.data?.length ?? 0;
 
   return (
@@ -220,6 +261,7 @@ function AdminPage() {
               {matching ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Wand2 className="h-4 w-4 mr-2" />}
               {matching ? "Matching…" : "Form pods"}
             </Button>
+            <p className="text-[11px] text-muted-foreground">Pods appear below only after matchmaking is run.</p>
           </div>
         </section>
 
@@ -231,7 +273,7 @@ function AdminPage() {
 
 
         {/* Pods — compact list */}
-        {podCount > 0 && (
+        {podsVisible && (
           <section>
             <div className="flex items-baseline justify-between mb-3">
               <h2 className="text-lg font-semibold tracking-tight">Pods</h2>
@@ -276,6 +318,16 @@ function AdminPage() {
             <h2 className="text-lg font-semibold tracking-tight">Attendees</h2>
             <div className="flex items-center gap-3">
               <p className="text-xs text-muted-foreground">Sorted by points · live</p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={seedMockAttendees}
+                disabled={seeding}
+                className="h-7 text-xs border-lime text-lime hover:bg-lime/10"
+              >
+                {seeding ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Plus className="h-3 w-3 mr-1" />}
+                Seed 100 mock
+              </Button>
               <Button
                 variant="outline"
                 size="sm"
