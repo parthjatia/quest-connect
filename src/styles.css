@@ -309,3 +309,89 @@
     background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
   }
 }
+
+@layer utilities {
+  /* === Personalized Visual Recap utilities === */
+  .recap-glass {
+    background: linear-gradient(180deg, oklch(0.22 0.03 258 / 0.55), oklch(0.16 0.025 258 / 0.55));
+    backdrop-filter: blur(18px) saturate(140%);
+    -webkit-backdrop-filter: blur(18px) saturate(140%);
+    border: 1px solid oklch(1 0 0 / 0.08);
+    box-shadow:
+      0 1px 0 oklch(1 0 0 / 0.06) inset,
+      0 30px 60px -30px oklch(0 0 0 / 0.7);
+  }
+  .recap-glass-strong {
+    background: linear-gradient(180deg, oklch(0.26 0.035 258 / 0.7), oklch(0.18 0.03 258 / 0.7));
+    backdrop-filter: blur(22px) saturate(150%);
+    -webkit-backdrop-filter: blur(22px) saturate(150%);
+    border: 1px solid oklch(1 0 0 / 0.1);
+    box-shadow:
+      0 1px 0 oklch(1 0 0 / 0.08) inset,
+      0 40px 80px -40px oklch(0 0 0 / 0.8);
+  }
+  .recap-glow {
+    box-shadow:
+      0 0 0 1px oklch(0.72 0.18 245 / 0.35),
+      0 10px 40px -10px oklch(0.72 0.18 245 / 0.4),
+      0 0 60px -10px oklch(0.82 0.12 215 / 0.35);
+  }
+  .recap-glow-soft {
+    box-shadow:
+      0 0 0 1px oklch(0.72 0.18 245 / 0.18),
+      0 6px 30px -10px oklch(0.72 0.18 245 / 0.25);
+  }
+  .recap-shine { position: relative; overflow: hidden; }
+  .recap-shine::after {
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background: linear-gradient(115deg, transparent 30%, oklch(1 0 0 / 0.12) 50%, transparent 70%);
+    transform: translateX(-120%);
+    transition: transform 1.2s ease;
+  }
+  .recap-shine:hover::after { transform: translateX(120%); }
+
+  @keyframes recap-float-a {
+    0%, 100% { transform: translate3d(0,0,0) rotate(0deg); }
+    50% { transform: translate3d(20px,-30px,0) rotate(6deg); }
+  }
+  @keyframes recap-float-b {
+    0%, 100% { transform: translate3d(0,0,0) rotate(0deg); }
+    50% { transform: translate3d(-25px,20px,0) rotate(-5deg); }
+  }
+  @keyframes recap-shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+  @keyframes recap-pulse-glow {
+    0%, 100% { opacity: 0.55; }
+    50% { opacity: 1; }
+  }
+  .recap-float-a { animation: recap-float-a 14s ease-in-out infinite; }
+  .recap-float-b { animation: recap-float-b 18s ease-in-out infinite; }
+  .recap-shimmer {
+    background: linear-gradient(90deg,
+      oklch(0.22 0.03 258 / 0.6) 0%,
+      oklch(0.32 0.04 250 / 0.8) 45%,
+      oklch(0.78 0.14 235 / 0.25) 50%,
+      oklch(0.32 0.04 250 / 0.8) 55%,
+      oklch(0.22 0.03 258 / 0.6) 100%);
+    background-size: 200% 100%;
+    animation: recap-shimmer 2.4s linear infinite;
+  }
+  .recap-pulse { animation: recap-pulse-glow 2.4s ease-in-out infinite; }
+
+  .recap-bg {
+    background:
+      radial-gradient(1200px 600px at 10% -10%, oklch(0.32 0.12 250 / 0.35), transparent 60%),
+      radial-gradient(900px 500px at 110% 10%, oklch(0.4 0.14 220 / 0.28), transparent 60%),
+      radial-gradient(800px 800px at 50% 120%, oklch(0.3 0.1 270 / 0.3), transparent 60%),
+      oklch(0.1 0.02 258);
+  }
+
+  .comic-panel {
+    border: 2px solid oklch(1 0 0 / 0.14);
+    border-radius: 18px;
+    background: linear-gradient(180deg, oklch(0.2 0.03 258 / 0.7), oklch(0.14 0.025 258 / 0.7));
+    box-shadow: 6px 6px 0 oklch(0.72 0.18 245 / 0.25), 0 30px 60px -30px oklch(0 0 0 / 0.6);
+  }
+}
