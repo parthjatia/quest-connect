@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { trackLabel, goalLabel } from "@/lib/attendee-options";
 
 const AI_GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
@@ -70,7 +71,7 @@ export const generateIcebreakers = createServerFn({ method: "POST" })
     const { data: a, error } = await supabaseAdmin
       .from("attendees").select("*").eq("user_id", context.userId).single();
     if (error || !a) throw new Error("Attendee not found");
-    const profile = `${a.full_name}, ${a.academic_background} from ${a.university}. Track: ${a.track_intent}. Goal: ${a.event_goal}. AI level: ${a.ai_experience}.`;
+    const profile = `${a.full_name}, ${a.academic_background} from ${a.university}. Track: ${trackLabel(a.track_intent)}. Goal: ${goalLabel(a.event_goal)}. AI level: ${a.ai_experience}.`;
     const res = await callGateway("google/gemini-2.5-flash", [
       { role: "system", content: "Generate 3 punchy icebreaker openers (one sentence each) that this attendee can say to strangers at a hackathon. Return as a numbered list, no preamble." },
       { role: "user", content: profile },

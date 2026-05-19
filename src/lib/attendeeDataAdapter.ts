@@ -3,6 +3,7 @@ import type { Database, Json } from "@/integrations/supabase/types";
 import {
   Attendee, CURRENT_USER, DiscoveryVisibility, EVENT_ZONES, EventZone, MOCK_ATTENDEES,
 } from "@/data/mockEventData";
+import { trackLabel, goalLabel } from "@/lib/attendee-options";
 
 export type DbAttendeeRow = Database["public"]["Tables"]["attendees"]["Row"];
 
@@ -89,9 +90,9 @@ function needsEnrichment(row: DbAttendeeRow): boolean {
 
 function enrichFromRow(row: DbAttendeeRow, base: Attendee): Attendee {
   const pack = ENRICH_PACKS[hashId(row.id) % ENRICH_PACKS.length];
-  const fromGoal = row.event_goal?.trim();
+  const fromGoal = row.event_goal ? goalLabel(row.event_goal) : undefined;
   const fromBg = row.academic_background?.trim();
-  const fromTrack = row.track_intent?.trim() || row.track?.trim();
+  const fromTrack = row.track_intent ? trackLabel(row.track_intent) : (row.track?.trim() || undefined);
 
   const interests = base.interests.length
     ? base.interests
@@ -139,7 +140,7 @@ export function dbRowToAttendee(row: DbAttendeeRow, options?: { enrich?: boolean
     interests: parseStringArray(row.interests),
     goals: parseStringArray(row.goals),
     skills: parseStringArray(row.skills),
-    track: (row.track ?? row.track_intent ?? "Startup").trim() || "Startup",
+    track: (row.track?.trim() || (row.track_intent ? trackLabel(row.track_intent) : "")) || "Startup",
     personalityTags: [
       ...new Set([
         ...parseStringArray(row.personality_tags),
@@ -154,8 +155,8 @@ export function dbRowToAttendee(row: DbAttendeeRow, options?: { enrich?: boolean
     lookingFor: parseStringArray(row.looking_for),
   };
 
-  if (row.event_goal?.trim() && !base.goals.some((g) => normEq(g, row.event_goal!))) {
-    base.goals.push(row.event_goal.trim());
+  if (row.event_goal && !base.goals.some((g) => normEq(g, goalLabel(row.event_goal)))) {
+    base.goals.push(goalLabel(row.event_goal));
   }
   if (row.academic_background?.trim() && !base.skills.some((s) => normEq(s, row.academic_background!))) {
     base.skills.push(row.academic_background.trim());

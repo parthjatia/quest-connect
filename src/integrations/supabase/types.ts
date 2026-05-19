@@ -44,7 +44,7 @@ export type Database = {
           created_at: string
           current_zone: string | null
           discovery_visibility: boolean
-          event_goal: string | null
+          event_goal: Database["public"]["Enums"]["event_goal"] | null
           full_name: string | null
           goals: string[] | null
           group_id: string | null
@@ -63,7 +63,7 @@ export type Database = {
           skills: string[] | null
           sponsor_open: boolean
           track: string | null
-          track_intent: string | null
+          track_intent: Database["public"]["Enums"]["track_intent"] | null
           university: string | null
           updated_at: string
           user_id: string | null
@@ -79,7 +79,7 @@ export type Database = {
           created_at?: string
           current_zone?: string | null
           discovery_visibility?: boolean
-          event_goal?: string | null
+          event_goal?: Database["public"]["Enums"]["event_goal"] | null
           full_name?: string | null
           goals?: string[] | null
           group_id?: string | null
@@ -98,7 +98,7 @@ export type Database = {
           skills?: string[] | null
           sponsor_open?: boolean
           track?: string | null
-          track_intent?: string | null
+          track_intent?: Database["public"]["Enums"]["track_intent"] | null
           university?: string | null
           updated_at?: string
           user_id?: string | null
@@ -114,7 +114,7 @@ export type Database = {
           created_at?: string
           current_zone?: string | null
           discovery_visibility?: boolean
-          event_goal?: string | null
+          event_goal?: Database["public"]["Enums"]["event_goal"] | null
           full_name?: string | null
           goals?: string[] | null
           group_id?: string | null
@@ -133,7 +133,7 @@ export type Database = {
           skills?: string[] | null
           sponsor_open?: boolean
           track?: string | null
-          track_intent?: string | null
+          track_intent?: Database["public"]["Enums"]["track_intent"] | null
           university?: string | null
           updated_at?: string
           user_id?: string | null
@@ -434,8 +434,20 @@ export type Database = {
     Enums: {
       ai_experience: "beginner" | "intermediate" | "power_user"
       app_role: "admin" | "user"
+      event_goal:
+        | "working_product"
+        | "job_internship"
+        | "experience"
+        | "new_connections"
       quest_type: "main" | "side"
       submission_status: "pending" | "approved" | "rejected"
+      track_intent:
+        | "ai_for_business"
+        | "creative_marketing"
+        | "dev_tools_infra"
+        | "fintech_payments"
+        | "health_sustainability"
+        | "open_track"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -565,8 +577,22 @@ export const Constants = {
     Enums: {
       ai_experience: ["beginner", "intermediate", "power_user"],
       app_role: ["admin", "user"],
+      event_goal: [
+        "working_product",
+        "job_internship",
+        "experience",
+        "new_connections",
+      ],
       quest_type: ["main", "side"],
       submission_status: ["pending", "approved", "rejected"],
+      track_intent: [
+        "ai_for_business",
+        "creative_marketing",
+        "dev_tools_infra",
+        "fintech_payments",
+        "health_sustainability",
+        "open_track",
+      ],
     },
   },
 } as const

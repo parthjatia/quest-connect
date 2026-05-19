@@ -11,6 +11,7 @@ import { Loader2, Plus, Trash2, Sparkles, ArrowLeft, Wand2, Lock, Unlock, FileTe
 import { getRegistrationOpen, setRegistrationOpen } from "@/lib/event-settings";
 import { runLlmMatchmaker } from "@/lib/matchmaker.functions";
 import { getLocalAdmin, setLocalAdmin } from "@/lib/local-attendee";
+import { trackLabel } from "@/lib/attendee-options";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({ meta: [{ title: "Admin — Quest Connect" }] }),
@@ -308,7 +309,7 @@ function AdminPage() {
                       <td className="p-2 text-muted-foreground">{i + 1}</td>
                       <td className="p-2 font-medium">{a.full_name || "Unnamed"}</td>
                       <td className="p-2 text-muted-foreground hidden md:table-cell truncate max-w-[200px]">{a.university ?? "—"}</td>
-                      <td className="p-2 text-muted-foreground hidden lg:table-cell truncate max-w-[180px]">{a.track_intent ?? "—"}</td>
+                      <td className="p-2 text-muted-foreground hidden lg:table-cell truncate max-w-[180px]">{trackLabel(a.track_intent)}</td>
                       <td className="p-2 text-muted-foreground hidden sm:table-cell">{a.ai_experience ?? "—"}</td>
                       <td className="p-2 text-right text-lime font-semibold">{a.points}</td>
                     </tr>
