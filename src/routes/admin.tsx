@@ -200,6 +200,8 @@ function AdminPage() {
   };
 
   const totalPoints = (quests.data ?? []).reduce((s, q) => s + (q.points_awarded ?? 0), 0);
+  const assignedCount = (attendees.data ?? []).filter((a) => !!a.group_id).length;
+  const podsVisible = (groups.data?.length ?? 0) > 0 && assignedCount > 0;
   const podCount = groups.data?.length ?? 0;
 
   return (
