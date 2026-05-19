@@ -251,7 +251,7 @@ function PlayPage() {
   const profileBits = [me.data?.university, me.data?.academic_background, me.data?.ai_experience, trackLabel(me.data?.track_intent)].filter(Boolean) as string[];
 
   return (
-    <div className="relative min-h-screen bg-background text-foreground pb-24 overflow-hidden">
+    <div className="play-light-text relative min-h-screen bg-background text-foreground pb-24 overflow-hidden">
       <FloatingDecor variant="ambient" className="fixed inset-0 z-0" />
       <header className="relative z-10 border-b border-border">
         <div className="mx-auto max-w-5xl px-6 py-3 flex items-center justify-between text-sm">
