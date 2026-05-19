@@ -42,6 +42,9 @@ function PlayPage() {
   
   const [activeGroupSubmit, setActiveGroupSubmit] = useState<Quest | null>(null);
   const [activeSponsorClaim, setActiveSponsorClaim] = useState<Quest | null>(null);
+  const [activeMainClaim, setActiveMainClaim] = useState<Quest | null>(null);
+  const prevPointsRef = useRef<number | null>(null);
+  const [xpPulse, setXpPulse] = useState(false);
 
   useEffect(() => {
     const a = getLocalAttendee();
