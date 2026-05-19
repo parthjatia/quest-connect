@@ -33,8 +33,23 @@ function JoinPage() {
   const [goal, setGoal] = useState<EventGoal | "">("");
   const [country, setCountry] = useState("");
   const [age, setAge] = useState<string>("");
+  const [linkedin, setLinkedin] = useState("");
+  const [github, setGithub] = useState("");
+  const [hobbies, setHobbies] = useState<string[]>([]);
+  const [hobbyDraft, setHobbyDraft] = useState("");
   const [busy, setBusy] = useState(false);
   const [welcome, setWelcome] = useState<{ id: string; name: string; code: string } | null>(null);
+
+  const addHobby = (raw: string) => {
+    const v = raw.trim().replace(/,$/, "").trim();
+    if (!v) return;
+    if (v.length > 30) return toast.error("Hobby too long (max 30 chars)");
+    if (hobbies.length >= 10) return toast.error("Max 10 hobbies");
+    if (hobbies.some((h) => h.toLowerCase() === v.toLowerCase())) { setHobbyDraft(""); return; }
+    setHobbies([...hobbies, v]);
+    setHobbyDraft("");
+  };
+  const removeHobby = (h: string) => setHobbies(hobbies.filter((x) => x !== h));
 
   useEffect(() => {
     if (getLocalAttendee()) navigate({ to: "/play" });
@@ -46,12 +61,19 @@ function JoinPage() {
   });
   const isOpen = settings.data !== false;
 
+  const validUrl = (u: string) => {
+    if (!u.trim()) return true;
+    try { new URL(u.trim()); return true; } catch { return false; }
+  };
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (name.trim().length < 2) return toast.error("Name required.");
     if (!university.trim() || !background.trim() || !track || !goal) {
       return toast.error("Please fill out all fields.");
     }
+    if (!validUrl(linkedin)) return toast.error("LinkedIn must be a valid URL.");
+    if (!validUrl(github)) return toast.error("GitHub must be a valid URL.");
     setBusy(true);
     try {
       const { data, error } = await supabase
@@ -65,6 +87,9 @@ function JoinPage() {
           event_goal: goal,
           country: country.trim() || null,
           age: age ? Number(age) : null,
+          linkedin_url: linkedin.trim() || null,
+          github_url: github.trim() || null,
+          hobbies,
           onboarded: true,
           late: !isOpen,
         })
