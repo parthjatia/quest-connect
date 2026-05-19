@@ -5,6 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { getLocalAttendee } from "@/lib/local-attendee";
 import { generateWrappedInsight } from "@/lib/wrapped.functions";
 import { X, Loader2 } from "lucide-react";
+import { FloatingDecor } from "@/components/floating-decor";
+import { AnimatedHeadline } from "@/components/animated-text";
 
 export const Route = createFileRoute("/wrapped")({
   head: () => ({ meta: [{ title: "Your Event Wrapped" }] }),
@@ -191,10 +193,11 @@ function WrappedPage() {
       {/* slide */}
       <div
         key={slide.key}
-        className="absolute inset-0 flex flex-col justify-end px-8 pb-24 pt-20 animate-[wrappedIn_500ms_ease-out]"
+        className="absolute inset-0 flex flex-col justify-end px-8 pb-24 pt-20 animate-[wrappedIn_500ms_ease-out] hue-drift overflow-hidden"
         style={{ background: grad }}
       >
-        <div className="max-w-2xl">
+        <FloatingDecor variant="dense" />
+        <div className="relative z-10 max-w-2xl">
           <div className="text-[11px] uppercase tracking-[0.3em] font-semibold opacity-90 mb-4">{slide.kicker}</div>
           <h1
             className="font-extrabold leading-[0.95] tracking-tight"
@@ -207,7 +210,7 @@ function WrappedPage() {
               wordBreak: "break-word",
             }}
           >
-            {slide.headline}
+            <AnimatedHeadline stagger={25}>{slide.headline}</AnimatedHeadline>
           </h1>
           {slide.big && (
             <div className="mt-2 text-2xl sm:text-3xl font-bold opacity-90">{slide.big}</div>
@@ -216,7 +219,7 @@ function WrappedPage() {
             <p className="mt-6 text-sm sm:text-base opacity-85 max-w-xl">{slide.sub}</p>
           )}
         </div>
-        <div className="absolute bottom-6 left-0 right-0 text-center text-[10px] uppercase tracking-[0.3em] opacity-50">
+        <div className="absolute bottom-6 left-0 right-0 text-center text-[10px] uppercase tracking-[0.3em] opacity-50 z-10">
           {idx >= slides.length - 1 ? "Tap to return" : "Tap to continue"}
         </div>
       </div>
