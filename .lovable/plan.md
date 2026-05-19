@@ -1,19 +1,45 @@
-Two small UI changes:
+## 1. Pods in a compact window (admin)
+File: `src/routes/admin.tsx`
 
-### 1. Floorplan — add visible heat bubbles per zone
-File: `src/components/vibe-map/floorplan.tsx`
+Wrap the existing "Pods" section in the same compact scrollable container the Attendees table uses (`border border-border max-h-[480px] overflow-auto`). Each pod becomes a single-row entry with: pod name, member count badge, and a comma-separated list of member names + their 4-char verify codes — instead of the current full-grid cards. This matches the attendee table's visual density.
 
-Inside each zone rect, render a small cluster of solid colored bubbles that match its heat level (so the heat is unmistakable, not just a tinted fill):
-- `very-hot` → 3 small red circles (oklch 0.72 0.24 25)
-- `hot` → 2 orange circles (oklch 0.8 0.2 55)
-- `warm` → 1 yellow circle (oklch 0.86 0.16 90)
-- `cold/quiet` → 1 small dim blue dot (oklch 0.5 0.06 250)
+## 2. Remove /onboarding
+- Delete `src/routes/onboarding.tsx`.
+- In `src/routes/dashboard.tsx` (line 41), remove the `useEffect` that navigates to `/onboarding` when `me.data.onboarded` is false.
+- The router tree (`routeTree.gen.ts`) will auto-regenerate.
 
-Bubbles render at the bottom-center of each zone rect, each ~r=0.7 in viewBox units, with a soft white stroke for contrast and using the existing `vibe-glow` filter so hot ones glow. The `you` lime dot and `best zone` animated ring stay as-is. Legend already lists all categories.
+## 3. Sponsor login + custom side quests with admin approval
 
-### 2. Prominent Recap CTA on /play
-File: `src/routes/play.tsx`
+### DB migration (one migration call)
+Add to existing `quests` table:
+- `created_by_sponsor text NULL` — sponsor handle that submitted it
+- `approval_status text NOT NULL DEFAULT 'approved'` (values: `pending`, `approved`, `rejected`) — existing quests default to approved
+- RLS: allow anon/auth `INSERT` only when `type='side'` AND `approval_status='pending'` AND `created_by_sponsor IS NOT NULL`
 
-Add a big call-to-action card right under the profile/verify-code section linking to `/recap`. Styling: dark glass card with cyan/lime gradient, `Sparkles` icon, headline "Personalized Visual Recap", short subline, and a primary button "Open recap →". Uses TanStack `Link to="/recap"`.
+### Sponsor sign-in (`src/routes/auth.tsx`)
+Add a third auth mode: `mode=sponsor`. Sponsor enters a handle (e.g. `sponsor1`) — no password, just stored in localStorage via a new helper `setLocalSponsor(handle)` in `src/lib/local-attendee.ts`. Add a switcher link "Are you a sponsor?".
 
-No backend/data changes. Recap feature itself already exists at `/recap`.
+### Sponsor dashboard (`src/routes/sponsor.tsx`)
+Replace the current Sponsor Radar page content with a simple sponsor portal:
+- Header showing sponsor handle + sign out
+- Card "Propose a side quest" — form with title, description, emoji, points (5/10/15), submit button
+- Card "My submitted quests" — lists this sponsor's quests with status badge (pending/approved/rejected)
+- Guard: redirect to `/auth?mode=sponsor` if no local sponsor handle
+- The existing Sponsor Radar feature is moved to `/sponsor-radar` (separate route file) so we don't lose it.
+
+### Admin approval (`src/routes/admin.tsx`)
+New section "Sponsor quest proposals" listing quests where `approval_status='pending'`. Each card: sponsor handle, title, description, points, Approve / Reject buttons that update `approval_status`.
+
+### Attendee visibility
+Update `src/routes/play.tsx` (and any other place quests are read for attendees) to filter `approval_status='approved'` so pending sponsor quests don't appear until approved.
+
+## 4. Clear all attendees (admin)
+New "Danger zone" button in admin header area:
+- Confirms with `confirm("Delete ALL attendees, pods, verifications, completions and submissions? This cannot be undone.")`
+- Runs deletes in order: `pod_verifications`, `completed_quests`, `group_quest_submissions`, `attendees`, then `groups` (cascade-safe order). Uses supabase client (RLS already allows anon/authed manage on these).
+- Toast on success; invalidates `admin-attendees`, `admin-groups`, `admin-pending-submissions`.
+
+## Out of scope
+- No password protection for sponsors (mirrors current attendee 4-char-code simplicity).
+- No email notifications for approvals.
+- Sponsor Radar moves to `/sponsor-radar`; not deleted.

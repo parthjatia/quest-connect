@@ -95,7 +95,7 @@ function PlayPage() {
   const quests = useQuery({
     queryKey: ["quests"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("quests").select("*").order("created_at", { ascending: true });
+      const { data, error } = await supabase.from("quests").select("*").eq("approval_status", "approved").order("created_at", { ascending: true });
       if (error) throw error;
       return (data ?? []) as Quest[];
     },

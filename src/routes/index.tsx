@@ -50,11 +50,12 @@ function Landing() {
             variant="yellow"
           />
           <DoorCard
-            to="/sponsor"
+            to="/auth"
+            search={{ mode: "sponsor" }}
             tag="Sponsor"
-            title="Find your audience"
-            blurb="See privacy-safe attendee clusters, launch booth quests, and create better touchpoints with the right people."
-            cta="Open sponsor radar"
+            title="Submit a side quest"
+            blurb="Sign in as a sponsor and propose your own side quest for attendees. An organizer reviews before it goes live."
+            cta="Open sponsor portal"
             variant="green"
           />
         </div>
@@ -103,7 +104,7 @@ function DoorCard({
   variant,
 }: {
   to: string;
-  search?: { mode: "admin" };
+  search?: { mode: "admin" | "sponsor" };
   tag: string;
   title: string;
   blurb: string;

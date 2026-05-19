@@ -22,6 +22,8 @@ type Quest = {
   points_awarded: number; emoji: string | null;
   start_at: string | null; end_at: string | null; is_live: boolean;
   transcript_url: string | null;
+  approval_status?: "pending" | "approved" | "rejected";
+  created_by_sponsor?: string | null;
 };
 type Attendee = {
   id: string;
@@ -52,7 +54,7 @@ function AdminPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("quests")
-        .select("id, title, description, type, points_awarded, emoji, start_at, end_at, is_live, transcript_url")
+        .select("id, title, description, type, points_awarded, emoji, start_at, end_at, is_live, transcript_url, approval_status, created_by_sponsor")
         .order("type")
         .order("start_at", { ascending: true, nullsFirst: false });
       if (error) throw error;
@@ -137,6 +139,26 @@ function AdminPage() {
 
   const signOut = () => { setLocalAdmin(false); navigate({ to: "/" }); };
 
+  const [clearing, setClearing] = useState(false);
+  const clearAllAttendees = async () => {
+    if (!confirm("Delete ALL attendees, pods, verifications, completions and submissions? This cannot be undone.")) return;
+    if (!confirm("Really delete EVERYTHING attendee-related? Last chance.")) return;
+    setClearing(true);
+    try {
+      await supabase.from("pod_verifications").delete().not("id", "is", null);
+      await supabase.from("completed_quests").delete().not("id", "is", null);
+      await supabase.from("group_quest_submissions").delete().not("id", "is", null);
+      await supabase.from("attendees").delete().not("id", "is", null);
+      await supabase.from("groups").delete().not("id", "is", null);
+      toast.success("All attendees cleared");
+      qc.invalidateQueries({ queryKey: ["admin-attendees"] });
+      qc.invalidateQueries({ queryKey: ["admin-groups"] });
+      qc.invalidateQueries({ queryKey: ["admin-pending-submissions"] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to clear");
+    } finally { setClearing(false); }
+  };
+
   const totalPoints = (quests.data ?? []).reduce((s, q) => s + (q.points_awarded ?? 0), 0);
   const podCount = groups.data?.length ?? 0;
 
@@ -196,34 +218,51 @@ function AdminPage() {
           </div>
         </section>
 
+        {/* Sponsor quest proposals */}
+        <SponsorProposals quests={quests.data ?? []} />
+
         {/* Pending side-quest submissions */}
         <PendingSubmissionsQueue />
 
         {/* Transcripts panel */}
         <TranscriptsPanel />
 
-        {/* Pods */}
+        {/* Pods — compact list */}
         {podCount > 0 && (
           <section>
-            <h2 className="text-lg font-semibold tracking-tight mb-3">Pods</h2>
-            <div className="grid gap-px bg-border border border-border sm:grid-cols-2 lg:grid-cols-3">
-              {(groups.data ?? []).map((g) => {
-                const members = (attendees.data ?? []).filter((a) => a.group_id === g.id);
-                return (
-                  <div key={g.id} className="bg-background p-4">
-                    <p className="text-sm font-semibold">{g.group_name}</p>
-                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-0.5">{members.length} members</p>
-                    <ul className="mt-3 space-y-1">
-                      {members.map((m) => (
-                        <li key={m.id} className="text-xs flex items-center justify-between gap-2">
-                          <span className="truncate">{m.full_name || "Unnamed"}</span>
-                          <span className="text-muted-foreground shrink-0 font-mono">{m.verify_code ?? "—"}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                );
-              })}
+            <div className="flex items-baseline justify-between mb-3">
+              <h2 className="text-lg font-semibold tracking-tight">Pods</h2>
+              <p className="text-xs text-muted-foreground">{podCount} pods · live</p>
+            </div>
+            <div className="border border-border max-h-[360px] overflow-auto">
+              <table className="w-full text-sm">
+                <thead className="text-[10px] uppercase tracking-wider text-muted-foreground bg-card sticky top-0">
+                  <tr>
+                    <th className="text-left p-2">Pod</th>
+                    <th className="text-left p-2 w-16">Size</th>
+                    <th className="text-left p-2">Members (code)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(groups.data ?? []).map((g) => {
+                    const members = (attendees.data ?? []).filter((a) => a.group_id === g.id);
+                    return (
+                      <tr key={g.id} className="border-t border-border align-top">
+                        <td className="p-2 font-medium">{g.group_name}</td>
+                        <td className="p-2 text-lime font-semibold">{members.length}</td>
+                        <td className="p-2 text-muted-foreground text-xs">
+                          {members.map((m) => (
+                            <span key={m.id} className="inline-block mr-2">
+                              {m.full_name || "Unnamed"}{" "}
+                              <span className="font-mono text-foreground/70">({m.verify_code ?? "—"})</span>
+                            </span>
+                          ))}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           </section>
         )}
@@ -232,7 +271,19 @@ function AdminPage() {
         <section>
           <div className="flex items-baseline justify-between mb-3">
             <h2 className="text-lg font-semibold tracking-tight">Attendees</h2>
-            <p className="text-xs text-muted-foreground">Sorted by points · live</p>
+            <div className="flex items-center gap-3">
+              <p className="text-xs text-muted-foreground">Sorted by points · live</p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={clearAllAttendees}
+                disabled={clearing}
+                className="h-7 text-xs border-destructive text-destructive hover:bg-destructive/10"
+              >
+                {clearing ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Trash2 className="h-3 w-3 mr-1" />}
+                Clear all
+              </Button>
+            </div>
           </div>
           {attendees.isLoading ? (
             <div className="border border-border p-10 grid place-items-center"><Loader2 className="h-5 w-5 animate-spin text-lime" /></div>
@@ -725,6 +776,54 @@ function PendingSubmissionsQueue() {
           ))}
         </div>
       )}
+    </section>
+  );
+}
+
+function SponsorProposals({ quests }: { quests: Quest[] }) {
+  const qc = useQueryClient();
+  const pending = quests.filter((q) => q.approval_status === "pending" && q.created_by_sponsor);
+
+  const decide = async (id: string, approve: boolean) => {
+    const status = approve ? "approved" : "rejected";
+    const { error } = await supabase.from("quests").update({ approval_status: status }).eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success(approve ? "Approved — quest is live for attendees" : "Rejected");
+    qc.invalidateQueries({ queryKey: ["admin-quests"] });
+  };
+
+  if (pending.length === 0) return null;
+
+  return (
+    <section>
+      <div className="flex items-baseline justify-between mb-3">
+        <h2 className="text-lg font-semibold tracking-tight">Sponsor quest proposals</h2>
+        <p className="text-xs text-muted-foreground">{pending.length} awaiting review</p>
+      </div>
+      <div className="grid gap-px bg-border border border-border sm:grid-cols-2 lg:grid-cols-3">
+        {pending.map((q) => (
+          <div key={q.id} className="bg-background p-4 space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-sm font-semibold truncate">{q.emoji} {q.title}</p>
+              <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 border border-yellow-500/50 text-yellow-400">
+                pending
+              </span>
+            </div>
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+              by {q.created_by_sponsor} · +{q.points_awarded} pts
+            </p>
+            <p className="text-xs text-muted-foreground line-clamp-4">{q.description}</p>
+            <div className="flex gap-2 pt-1">
+              <Button size="sm" onClick={() => decide(q.id, true)} className="flex-1 h-7 text-xs bg-lime hover:opacity-90">
+                <Check className="h-3 w-3 mr-1" /> Approve
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => decide(q.id, false)} className="flex-1 h-7 text-xs border-destructive text-destructive hover:bg-destructive/10">
+                <XIcon className="h-3 w-3 mr-1" /> Reject
+              </Button>
+            </div>
+          </div>
+        ))}
+      </div>
     </section>
   );
 }
