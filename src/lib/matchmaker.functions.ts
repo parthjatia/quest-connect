@@ -86,7 +86,7 @@ export const runLlmMatchmaker = createServerFn({ method: "POST" }).handler(
       if (aErr) throw new Error(`assign attendees: ${aErr.message}`);
     }
 
-    console.log(`[matchmaker] created ${pending.length} pods (method=${method})`);
+    console.log(`[matchmaker] created ${pending.length} pods (method=${method}) in ${Date.now() - t0}ms`);
 
 
     return {
