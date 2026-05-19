@@ -33,8 +33,23 @@ function JoinPage() {
   const [goal, setGoal] = useState<EventGoal | "">("");
   const [country, setCountry] = useState("");
   const [age, setAge] = useState<string>("");
+  const [linkedin, setLinkedin] = useState("");
+  const [github, setGithub] = useState("");
+  const [hobbies, setHobbies] = useState<string[]>([]);
+  const [hobbyDraft, setHobbyDraft] = useState("");
   const [busy, setBusy] = useState(false);
   const [welcome, setWelcome] = useState<{ id: string; name: string; code: string } | null>(null);
+
+  const addHobby = (raw: string) => {
+    const v = raw.trim().replace(/,$/, "").trim();
+    if (!v) return;
+    if (v.length > 30) return toast.error("Hobby too long (max 30 chars)");
+    if (hobbies.length >= 10) return toast.error("Max 10 hobbies");
+    if (hobbies.some((h) => h.toLowerCase() === v.toLowerCase())) { setHobbyDraft(""); return; }
+    setHobbies([...hobbies, v]);
+    setHobbyDraft("");
+  };
+  const removeHobby = (h: string) => setHobbies(hobbies.filter((x) => x !== h));
 
   useEffect(() => {
     if (getLocalAttendee()) navigate({ to: "/play" });
@@ -46,12 +61,19 @@ function JoinPage() {
   });
   const isOpen = settings.data !== false;
 
+  const validUrl = (u: string) => {
+    if (!u.trim()) return true;
+    try { new URL(u.trim()); return true; } catch { return false; }
+  };
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (name.trim().length < 2) return toast.error("Name required.");
     if (!university.trim() || !background.trim() || !track || !goal) {
       return toast.error("Please fill out all fields.");
     }
+    if (!validUrl(linkedin)) return toast.error("LinkedIn must be a valid URL.");
+    if (!validUrl(github)) return toast.error("GitHub must be a valid URL.");
     setBusy(true);
     try {
       const { data, error } = await supabase
@@ -65,6 +87,9 @@ function JoinPage() {
           event_goal: goal,
           country: country.trim() || null,
           age: age ? Number(age) : null,
+          linkedin_url: linkedin.trim() || null,
+          github_url: github.trim() || null,
+          hobbies,
           onboarded: true,
           late: !isOpen,
         })
@@ -203,6 +228,54 @@ function JoinPage() {
                       {opt.label}
                     </button>
                   ))}
+                </div>
+              </Field>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <Field label="LinkedIn URL (optional)">
+                  <Input value={linkedin} onChange={(e) => setLinkedin(e.target.value)} maxLength={200}
+                    placeholder="https://linkedin.com/in/you" className="bg-background border-border" />
+                </Field>
+                <Field label="GitHub URL (optional)">
+                  <Input value={github} onChange={(e) => setGithub(e.target.value)} maxLength={200}
+                    placeholder="https://github.com/you" className="bg-background border-border" />
+                </Field>
+              </div>
+
+              <Field label="Hobbies & special interests (optional)">
+                <div className="space-y-2">
+                  <Input
+                    value={hobbyDraft}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      if (v.endsWith(",")) addHobby(v);
+                      else setHobbyDraft(v);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") { e.preventDefault(); addHobby(hobbyDraft); }
+                      else if (e.key === "Backspace" && !hobbyDraft && hobbies.length) {
+                        removeHobby(hobbies[hobbies.length - 1]);
+                      }
+                    }}
+                    onBlur={() => hobbyDraft && addHobby(hobbyDraft)}
+                    maxLength={30}
+                    placeholder="e.g. chess, climbing, sci-fi (Enter to add)"
+                    className="bg-background border-border"
+                  />
+                  {hobbies.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {hobbies.map((h) => (
+                        <button
+                          key={h}
+                          type="button"
+                          onClick={() => removeHobby(h)}
+                          className="text-[10px] uppercase tracking-wider border border-lime/50 text-lime px-2 py-1 hover:bg-lime/10"
+                        >
+                          {h} ×
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </Field>
 

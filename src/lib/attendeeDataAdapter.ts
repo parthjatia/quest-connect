@@ -15,7 +15,7 @@ export type LiveAttendeeResult = {
 };
 
 const ATTENDEE_SELECT =
-  "id, user_id, full_name, university, age, country, track, track_intent, event_goal, academic_background, ai_experience, points, interests, goals, skills, personality_tags, current_zone, discovery_visibility, sponsor_open, met_attendee_ids, quest_activity_score, looking_for";
+  "id, user_id, full_name, university, age, country, track, track_intent, event_goal, academic_background, ai_experience, points, interests, goals, skills, personality_tags, current_zone, discovery_visibility, sponsor_open, met_attendee_ids, quest_activity_score, looking_for, hobbies, linkedin_url, github_url";
 
 const ZONES = EVENT_ZONES as readonly string[];
 
@@ -137,7 +137,7 @@ export function dbRowToAttendee(row: DbAttendeeRow, options?: { enrich?: boolean
     name,
     initials: initialsFromName(name),
     university: (row.university ?? "").trim() || "—",
-    interests: parseStringArray(row.interests),
+    interests: [...new Set([...parseStringArray(row.interests), ...parseStringArray(row.hobbies)])],
     goals: parseStringArray(row.goals),
     skills: parseStringArray(row.skills),
     track: (row.track?.trim() || (row.track_intent ? trackLabel(row.track_intent) : "")) || "Startup",

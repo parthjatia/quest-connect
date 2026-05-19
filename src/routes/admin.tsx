@@ -126,10 +126,14 @@ function AdminPage() {
     setMatching(true);
     try {
       const result = await matchmakerFn();
-      if (result.method === "ai") {
-        toast.success(`AI formed ${result.pods_created} pods`);
+      const clusters = (result as { clusters?: number }).clusters;
+      const clusterTxt = clusters ? ` across ${clusters} cluster${clusters === 1 ? "" : "s"}` : "";
+      if (result.method === "openai") {
+        toast.success(`OpenAI formed ${result.pods_created} pods${clusterTxt}`);
+      } else if (result.method === "mixed") {
+        toast.warning(`Formed ${result.pods_created} pods${clusterTxt} (some clusters fell back to heuristic)${result.error ? ` — ${result.error}` : ""}`);
       } else {
-        toast.warning(`Used heuristic fallback (${result.pods_created} pods)${result.error ? ` — ${result.error}` : ""}`);
+        toast.warning(`Used heuristic fallback (${result.pods_created} pods${clusterTxt})${result.error ? ` — ${result.error}` : ""}`);
       }
       qc.invalidateQueries({ queryKey: ["admin-attendees"] });
       qc.invalidateQueries({ queryKey: ["admin-groups"] });
