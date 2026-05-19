@@ -31,7 +31,7 @@ function Landing() {
           </p>
         </div>
 
-        <div className="grid gap-px bg-border border border-border mt-12 sm:grid-cols-3">
+        <div className="grid gap-6 mt-12 sm:grid-cols-3">
           <DoorCard
             to="/auth"
             search={{ mode: "admin" }}
@@ -39,6 +39,7 @@ function Landing() {
             title="Run the event"
             blurb="Seed attendees, manage quests, watch the leaderboard, launch sponsor activations."
             cta="Open admin"
+            variant="blue"
           />
           <DoorCard
             to="/auth"
@@ -46,6 +47,7 @@ function Landing() {
             title="Play the event"
             blurb="Join quests, find your people, earn points, and discover who to meet next."
             cta="Join in"
+            variant="yellow"
           />
           <DoorCard
             to="/sponsor"
@@ -53,6 +55,7 @@ function Landing() {
             title="Find your audience"
             blurb="See privacy-safe attendee clusters, launch booth quests, and create better touchpoints with the right people."
             cta="Open sponsor radar"
+            variant="green"
           />
         </div>
       </main>
