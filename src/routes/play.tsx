@@ -264,7 +264,7 @@ function PlayPage() {
         <NetworkPanel
           attendeeId={attendee.id}
           podVerifiedCount={new Set((verifications.data ?? []).filter((v) => v.verifier_id === attendee.id).map((v) => v.verified_id)).size}
-          meets={(meets.data ?? []) as Array<{ met_attendee_id: string; created_at: string; attendees: { full_name: string | null; university: string | null } | null }>}
+          meets={meets.data ?? []}
           onMeet={() => {
             qc.invalidateQueries({ queryKey: ["meets"] });
             qc.invalidateQueries({ queryKey: ["me"] });
