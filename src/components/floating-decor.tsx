@@ -11,7 +11,7 @@ import diamondGem from "@/assets/diamond-gem.png";
 
 type Variant = "coin-rain" | "ambient" | "dense";
 
-const COINS = [coinBlue, coinCyan, coinNavy];
+const COINS = [coinCyan, coinNavy];
 const PROPS = [diceRed, diceBlack, joystick, cassette, starBurst, diamondGem];
 
 // Stable pseudo-random based on seed index — no hydration mismatch.
