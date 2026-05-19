@@ -152,8 +152,8 @@ function AdminPage() {
     if (!confirm("Clear all active attendees and remove all created pods? Quests will stay.")) return;
     setClearing(true);
     try {
-      const result = await clearAll();
-      toast.success(`Cleared ${result.attendeesDeleted} attendee${result.attendeesDeleted === 1 ? "" : "s"} and ${result.podsDeleted} pod${result.podsDeleted === 1 ? "" : "s"}`);
+      await clearAll();
+      toast.success("Reset complete — all attendees and pods cleared");
       await Promise.all([
         qc.invalidateQueries({ queryKey: ["admin-attendees"] }),
         qc.invalidateQueries({ queryKey: ["admin-groups"] }),
