@@ -89,13 +89,14 @@ function SponsorPortal() {
       </header>
 
       <main className="mx-auto max-w-3xl px-6 py-8 space-y-8">
-        <div>
-          <p className="text-lime text-xs uppercase tracking-[0.2em] mb-3">Sponsor portal</p>
-          <h1 className="text-3xl font-semibold tracking-tight">Propose a side quest</h1>
-          <p className="text-sm text-muted-foreground mt-2">
+        <div className="rounded-3xl bg-swoosh-3 p-8 sm:p-10">
+          <p className="wrapped-kicker text-white/90 mb-4">Sponsor portal</p>
+          <h1 className="wrapped-headline-md text-white">Propose a side quest</h1>
+          <p className="text-sm text-white/85 mt-3">
             Submit a side quest for attendees. An organizer reviews and approves it before it goes live.
           </p>
         </div>
+
 
         <Link to="/sponsor-radar" className="block border border-lime/50 bg-card/40 p-4 hover:bg-card/60 transition">
           <div className="flex items-center justify-between gap-3">
