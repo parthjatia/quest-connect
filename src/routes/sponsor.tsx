@@ -110,6 +110,9 @@ function SponsorPortal() {
 
         <ProposeQuestForm handle={handle} onSubmitted={() => qc.invalidateQueries({ queryKey: ["sponsor-quests", handle] })} />
 
+        <PendingVerifications handle={handle} />
+
+
         <section>
           <div className="flex items-baseline justify-between mb-3">
             <h2 className="text-lg font-semibold tracking-tight">Your submissions</h2>
