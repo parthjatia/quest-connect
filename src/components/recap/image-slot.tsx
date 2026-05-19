@@ -46,25 +46,29 @@ export function ImageSlot({
   return (
     <div
       className={cn(
-        "relative w-full overflow-hidden rounded-lg border border-border bg-gradient-to-br",
+        "relative w-full overflow-hidden rounded-xl border border-white/10 bg-gradient-to-br backdrop-blur-sm",
         gradient,
         ratio,
         className,
       )}
     >
+      <div className="absolute inset-0 shimmer opacity-40" />
       <div
-        className="absolute inset-0 opacity-30"
+        className="absolute inset-0 opacity-40"
         style={{
           backgroundImage:
-            "radial-gradient(circle at 20% 30%, rgba(255,255,255,0.15) 0, transparent 40%), radial-gradient(circle at 80% 70%, rgba(255,255,255,0.1) 0, transparent 40%)",
+            "radial-gradient(circle at 20% 30%, rgba(255,255,255,0.18) 0, transparent 45%), radial-gradient(circle at 80% 70%, rgba(255,255,255,0.12) 0, transparent 45%)",
         }}
       />
-      <div className="relative flex h-full w-full flex-col items-center justify-center gap-1 p-4 text-center">
-        <ImageIcon className="h-5 w-5 text-foreground/60" />
-        <div className="text-[10px] font-semibold uppercase tracking-widest text-foreground/70">
-          AI image slot: {slot.name}
+      <div className="absolute inset-0 bg-grid opacity-30" />
+      <div className="relative flex h-full w-full flex-col items-center justify-center gap-1.5 p-4 text-center">
+        <div className="grid h-8 w-8 place-items-center rounded-full border border-white/15 bg-white/[0.06] backdrop-blur-md">
+          <ImageIcon className="h-4 w-4 text-white/80" />
         </div>
-        <div className="text-[10px] text-foreground/50">
+        <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/85">
+          {slot.name}
+        </div>
+        <div className="text-[10px] text-white/55">
           {slot.size} · {slot.ratio} · {slot.styleTag}
         </div>
       </div>
