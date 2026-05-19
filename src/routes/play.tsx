@@ -366,8 +366,25 @@ function PlayPage() {
           onSummary={setSummaryFor}
         />
 
+        {/* Event Wrapped CTA */}
+        <button
+          onClick={() => navigate({ to: "/wrapped" })}
+          className="group relative w-full overflow-hidden rounded-2xl border border-white/10 p-5 text-left transition hover:scale-[1.01] active:scale-[0.99]"
+          style={{ background: "radial-gradient(circle at 0% 100%, #ff2d87 0%, #6b1aff 50%, #0a0a0a 100%)" }}
+        >
+          <div className="relative z-10 flex items-center justify-between gap-4">
+            <div>
+              <div className="text-[10px] uppercase tracking-[0.3em] text-white/80 font-semibold">New</div>
+              <div className="mt-1 text-xl font-bold text-white">Your Event Wrapped</div>
+              <div className="mt-1 text-xs text-white/75">XP, connections, top quest, and the AI-written main insight from your event.</div>
+            </div>
+            <span className="shrink-0 text-2xl text-white">→</span>
+          </div>
+        </button>
+
         <VibeMapSection currentAttendeeId={attendee?.id ?? null} />
       </main>
+
 
 
 

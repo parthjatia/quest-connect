@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as WrappedRouteImport } from './routes/wrapped'
 import { Route as SponsorRadarRouteImport } from './routes/sponsor-radar'
 import { Route as SponsorRouteImport } from './routes/sponsor'
 import { Route as RecapRouteImport } from './routes/recap'
@@ -18,6 +19,11 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 
+const WrappedRoute = WrappedRouteImport.update({
+  id: '/wrapped',
+  path: '/wrapped',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SponsorRadarRoute = SponsorRadarRouteImport.update({
   id: '/sponsor-radar',
   path: '/sponsor-radar',
@@ -68,6 +74,7 @@ export interface FileRoutesByFullPath {
   '/recap': typeof RecapRoute
   '/sponsor': typeof SponsorRoute
   '/sponsor-radar': typeof SponsorRadarRoute
+  '/wrapped': typeof WrappedRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -78,6 +85,7 @@ export interface FileRoutesByTo {
   '/recap': typeof RecapRoute
   '/sponsor': typeof SponsorRoute
   '/sponsor-radar': typeof SponsorRadarRoute
+  '/wrapped': typeof WrappedRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -89,6 +97,7 @@ export interface FileRoutesById {
   '/recap': typeof RecapRoute
   '/sponsor': typeof SponsorRoute
   '/sponsor-radar': typeof SponsorRadarRoute
+  '/wrapped': typeof WrappedRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -101,6 +110,7 @@ export interface FileRouteTypes {
     | '/recap'
     | '/sponsor'
     | '/sponsor-radar'
+    | '/wrapped'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -111,6 +121,7 @@ export interface FileRouteTypes {
     | '/recap'
     | '/sponsor'
     | '/sponsor-radar'
+    | '/wrapped'
   id:
     | '__root__'
     | '/'
@@ -121,6 +132,7 @@ export interface FileRouteTypes {
     | '/recap'
     | '/sponsor'
     | '/sponsor-radar'
+    | '/wrapped'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -132,10 +144,18 @@ export interface RootRouteChildren {
   RecapRoute: typeof RecapRoute
   SponsorRoute: typeof SponsorRoute
   SponsorRadarRoute: typeof SponsorRadarRoute
+  WrappedRoute: typeof WrappedRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/wrapped': {
+      id: '/wrapped'
+      path: '/wrapped'
+      fullPath: '/wrapped'
+      preLoaderRoute: typeof WrappedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/sponsor-radar': {
       id: '/sponsor-radar'
       path: '/sponsor-radar'
@@ -204,6 +224,7 @@ const rootRouteChildren: RootRouteChildren = {
   RecapRoute: RecapRoute,
   SponsorRoute: SponsorRoute,
   SponsorRadarRoute: SponsorRadarRoute,
+  WrappedRoute: WrappedRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
