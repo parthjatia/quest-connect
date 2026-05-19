@@ -8,7 +8,7 @@ import { getLocalAttendee, setLocalAttendee } from "@/lib/local-attendee";
 import { getRegistrationOpen } from "@/lib/event-settings";
 import { TRACK_OPTIONS, GOAL_OPTIONS, type TrackIntent, type EventGoal } from "@/lib/attendee-options";
 import { toast } from "sonner";
-import { Loader2, ArrowLeft, UserPlus, Copy, CheckCircle2 } from "lucide-react";
+import { Loader2, ArrowLeft, UserPlus, Copy, CheckCircle2, Camera } from "lucide-react";
 
 export const Route = createFileRoute("/join")({
   head: () => ({ meta: [{ title: "Join — Quest Connect" }] }),
