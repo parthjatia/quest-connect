@@ -147,7 +147,7 @@ export function dbRowToAttendee(row: DbAttendeeRow, options?: { enrich?: boolean
       ]),
     ],
     currentZone: normalizeEventZone(row.current_zone),
-    discoveryVisibility: normalizeVisibility(row.discovery_visibility),
+    discoveryVisibility: normalizeVisibility(typeof row.discovery_visibility === "boolean" ? (row.discovery_visibility ? "public" : "private") : (row.discovery_visibility as string | null | undefined)),
     sponsorOpen: row.sponsor_open ?? true,
     metAttendeeIds: parseStringArray(row.met_attendee_ids),
     questActivityScore: row.quest_activity_score ?? Math.min(100, row.points ?? 0),
