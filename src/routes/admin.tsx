@@ -147,18 +147,22 @@ function AdminPage() {
 
   const [clearing, setClearing] = useState(false);
   const clearAllAttendees = async () => {
-    if (!confirm("Delete ALL attendees, pods, verifications, completions and submissions? This cannot be undone.")) return;
-    if (!confirm("Really delete EVERYTHING attendee-related? Last chance.")) return;
+    if (!confirm("Delete ALL attendees, pods, quests, submissions and related records? This cannot be undone.")) return;
+    if (!confirm("Really wipe EVERYTHING (attendees, pods, quests, side quests)? Last chance.")) return;
     setClearing(true);
     try {
       await supabase.from("pod_verifications").delete().not("id", "is", null);
+      await supabase.from("attendee_meets").delete().not("id", "is", null);
       await supabase.from("completed_quests").delete().not("id", "is", null);
       await supabase.from("group_quest_submissions").delete().not("id", "is", null);
+      await supabase.from("quest_transcripts").delete().not("id", "is", null);
       await supabase.from("attendees").delete().not("id", "is", null);
       await supabase.from("groups").delete().not("id", "is", null);
-      toast.success("All attendees cleared");
+      await supabase.from("quests").delete().not("id", "is", null);
+      toast.success("Everything cleared");
       qc.invalidateQueries({ queryKey: ["admin-attendees"] });
       qc.invalidateQueries({ queryKey: ["admin-groups"] });
+      qc.invalidateQueries({ queryKey: ["admin-quests"] });
       qc.invalidateQueries({ queryKey: ["admin-pending-submissions"] });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to clear");
