@@ -11,7 +11,8 @@ import { Loader2, Plus, Trash2, Sparkles, ArrowLeft, Wand2, Lock, Unlock, FileTe
 import { getRegistrationOpen, setRegistrationOpen } from "@/lib/event-settings";
 import { runLlmMatchmaker } from "@/lib/matchmaker.functions";
 import { getLocalAdmin, setLocalAdmin } from "@/lib/local-attendee";
-import { trackLabel } from "@/lib/attendee-options";
+import { trackLabel, trackValueFromLabel, goalValueFromLabel } from "@/lib/attendee-options";
+import { MOCK_ATTENDEES } from "@/lib/mock-attendees";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({ meta: [{ title: "Admin — Quest Connect" }] }),
