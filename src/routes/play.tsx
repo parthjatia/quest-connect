@@ -539,11 +539,12 @@ function PodPanel({
 
 /** Main-quest transcripts are uploaded by the organizer (quests.transcript_url), not attendees. */
 function MainQuestTimeline({
-  quests, completedMap, onSummary,
+  quests, completedMap, onSummary, onClaim,
 }: {
   quests: Quest[];
   completedMap: Map<string, CompletedRow>;
   onSummary: (q: Quest) => void;
+  onClaim: (q: Quest) => void;
 }) {
   // Find current = first not completed; reorder: current first, then completed (most recent first)
   const currentIdx = quests.findIndex((q) => !completedMap.has(q.id));
