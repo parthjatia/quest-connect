@@ -235,6 +235,27 @@ function PlayPage() {
                 ))}
               </div>
             )}
+            {(me.data?.hobbies?.length ?? 0) > 0 && (
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {me.data!.hobbies!.map((h: string) => (
+                  <span key={h} className="text-[10px] uppercase tracking-wider border border-lime/40 text-lime px-1.5 py-0.5">{h}</span>
+                ))}
+              </div>
+            )}
+            {(me.data?.linkedin_url || me.data?.github_url) && (
+              <div className="flex items-center gap-3 mt-3">
+                {me.data?.linkedin_url && (
+                  <a href={me.data.linkedin_url} target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-lime inline-flex items-center gap-1 text-xs">
+                    <Linkedin className="h-3.5 w-3.5" /> LinkedIn
+                  </a>
+                )}
+                {me.data?.github_url && (
+                  <a href={me.data.github_url} target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-lime inline-flex items-center gap-1 text-xs">
+                    <Github className="h-3.5 w-3.5" /> GitHub
+                  </a>
+                )}
+              </div>
+            )}
           </div>
           <div className="p-5 sm:w-64 bg-card/40">
             <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Your code — share with your pod</p>
