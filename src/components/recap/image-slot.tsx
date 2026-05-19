@@ -9,9 +9,9 @@ const RATIO_CLASS: Record<string, string> = {
 };
 
 const STYLE_GRADIENTS: Record<string, string> = {
-  storybook: "from-amber-500/20 via-orange-400/10 to-rose-400/20",
-  hero: "from-lime/30 via-cyan-500/15 to-fuchsia-500/20",
-  manga: "from-fuchsia-500/25 via-violet-500/15 to-amber-400/20",
+  storybook: "from-blue-500/25 via-cyan-400/10 to-violet-500/20",
+  hero: "from-primary/30 via-cyan-400/15 to-blue-500/25",
+  manga: "from-violet-500/25 via-fuchsia-500/15 to-cyan-400/20",
 };
 
 export function ImageSlot({
