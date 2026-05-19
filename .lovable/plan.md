@@ -1,35 +1,28 @@
 ## Plan
 
-### Goal
-Make both **Clear all** and **Form pods** reliably work from the admin screen.
+1. **Change the Clear all server action to match the requested scope**
+   - Delete all rows from `attendees` so the admin attendee count becomes `0`.
+   - Delete all created `groups` so no pods remain.
+   - Clear related attendee/pod activity tables first so dependent records do not block the reset:
+     - `pod_verifications`
+     - `attendee_meets`
+     - `completed_quests`
+     - `group_quest_submissions`
+     - `quest_transcripts`
+   - Leave `quests` untouched.
+   - Leave `event_settings` untouched.
 
-### What I found
-- The admin page is already calling server functions for both actions, but the current setup still depends on client-side state and a server-function bundle that can fail before the action completes.
-- The preview has a runtime module-load error for the browser app, which can prevent the admin page from calling either server function cleanly.
-- The server logs did not show successful requests for these actions, so the click likely fails before or at the server-function RPC boundary.
+2. **Make the action more reliable and easier to debug**
+   - Use the backend admin client inside the existing server function.
+   - Log each step and return counts for deleted attendees, deleted pods, and cleared related records.
+   - Use broad delete filters that work reliably with the current table shapes.
 
-### Changes to implement
-1. **Harden the admin server functions**
-   - Keep `clearAllDataFn` server-side with the admin database client.
-   - Add explicit logging and return counts for each table cleared so failures are visible.
-   - Clear dependent tables first, then attendees/groups/quests.
+3. **Update the admin button behavior**
+   - Change the confirmation copy so it no longer says quests will be deleted.
+   - After success, refresh only attendee, pod, and pending-submission queries.
+   - Show a success toast with the actual counts cleared.
 
-2. **Make Form pods fully server-driven**
-   - Keep the matching logic server-side.
-   - Let the server function check eligible attendee count itself instead of relying only on the client’s currently loaded query data.
-   - Return a clear status like `not_enough_attendees`, `created`, or `failed`, so the button can show the exact reason.
-
-3. **Fix the admin button handlers**
-   - `Clear all` will call the server clear function and refresh admin queries only after success.
-   - `Form pods` will call the server matchmaker even if the local attendee query is stale, then refresh attendees and groups.
-   - Toasts will show actionable errors instead of a generic “doesn’t work”.
-
-4. **Resolve the runtime import failure if it is caused by stale dev-server state**
-   - Check the dev-server logs after edits.
-   - Restart the dev server only if needed so the latest server-function/client split is picked up.
-
-5. **Verify**
-   - Confirm the admin route loads.
-   - Confirm server-function logs show calls for both actions.
-   - Confirm `Clear all` leaves 0 attendees, 0 quests, 0 pods.
-   - Confirm adding mock attendees then pressing `Form pods` creates groups and assigns attendees.
+4. **Verify the fix**
+   - Inspect server-function logs if the action still errors.
+   - Confirm the admin UI no longer attempts to clear quests.
+   - Confirm the handler returns success and the attendee/pod counts refresh to zero.
