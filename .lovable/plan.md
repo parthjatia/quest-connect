@@ -1,75 +1,50 @@
-# Quest Connect v4 — Fixes + Login + Live Timeline
+## Goal
 
-## 1. Fix: total points ↔ visible quests
+The transcript is admin-owned (already stored on `quests.transcript_url`). Every main quest on `/play` should expose the rich Personalized Visual Recap flow (6 preference questions + Comic / Zine / Cards layouts) and auto-fetch the admin-uploaded `.md` — attendees never paste a transcript.
 
-Audit where `attendees.points` drifts from `sum(completed_quests.points_awarded)`:
-- `claim_quest`, `claim_quest_anon`, `approve_group_submission` all do `points += X`. If a row is inserted twice (or approve runs twice), the increment double-counts.
-- Action: drop the `attendees.points` denormalized column from UI math. Compute points live from `completed_quests JOIN quests` in both `/play` and `/admin` (and the leaderboard). Keep the column but treat it as a cache, recomputed by a SQL function `recalc_attendee_points(_id)` called from the three RPCs.
-- Add unique constraint `completed_quests(attendee_id, quest_id)` so the same quest can't be double-claimed.
+## Current state
 
-## 2. Group size 3–5 (hard rule)
+- `admin.tsx` already uploads a `.md` per quest to `quests.transcript_url` (storage bucket `quest-transcripts`). Good, keep as-is.
+- `play.tsx` main quest timeline already has a "Visual recap" button per quest, but it opens `QuestVisualSummaryModal` — a lighter 4-question / 7-chapter flow, not the rich 6-pref Comic / Zine / Cards experience.
+- The rich flow lives at the standalone `/recap` route (`src/routes/recap.tsx` + `src/components/recap/*` + `src/lib/recap-generator.ts` + `src/lib/visual-recap.functions.ts`). It asks the user to paste/upload a transcript.
+- Attendee paste UI is the thing to remove from the user journey.
 
-- Update the LLM matchmaker prompt to require pod size ∈ [3,5].
-- Post-LLM validation in `matchmaker.functions.ts`: if any returned pod is <3 or >5, run a deterministic re-balancer (merge smallest pods, split pods >5) before writing `groups`.
-- Total attendees < 3 → return error toast "Need at least 3 signed-up attendees".
-- Remove the **Seed mock attendees** button from `/admin`.
+## Changes
 
-## 3. Main-quest timeline with live event
+### 1. New modal: `MainQuestRecapModal`
+- New file `src/components/recap/main-quest-recap-modal.tsx`.
+- Reuses the existing `RecapShell` / `RecapResult` / `recap-theme` components and `generateRecap` from `src/lib/recap-generator.ts` (which already calls the server fn in `visual-recap.functions.ts`).
+- Props: `{ open, onClose, questTitle, questEmoji, points, transcriptUrl }`.
+- On open: fetches the `.md` from `transcriptUrl` once (same pattern as `QuestVisualSummaryModal`) and stores text in local state. No textarea, no upload.
+- Two steps only:
+  1. **Preferences** — the 6 questions (purpose, flow, tone, world, format, intensity) from the existing `/recap` flow, plus the layout selector (Comic Panels / Magazine-Zine / Collectible Cards). Reuse the question/option arrays from `src/routes/recap.tsx` so wording stays identical.
+  2. **Result** — `RecapResult` rendered in the chosen layout, driven by the existing `generateRecap` output.
+- Loading + error states identical to current `/recap` page.
+- Disabled "Generate" button + clear message when `transcriptUrl` is null ("Waiting for organizer to upload the conversation .md").
 
-**Schema** (migration):
-- `quests.start_at timestamptz` (nullable)
-- `quests.end_at timestamptz` (nullable)
-- `quests.is_live boolean default false` (admin-controlled override; only main quests)
-- Constraint: at most one main quest with `is_live = true` at a time (partial unique index).
+### 2. Wire it into `/play`
+- In `src/routes/play.tsx`, replace the `QuestVisualSummaryModal` usage for `summaryFor.type === "main"` with the new `MainQuestRecapModal`. Pass `transcriptUrl={summaryFor.transcript_url}`.
+- Keep the existing button gating (recap only unlocks after the attendee claims the quest, message when no transcript yet).
+- Keep `QuestSummaryModal` for side quests as-is.
 
-**Admin (`/admin`)**:
-- Main-quest editor gets two datetime inputs (start/end) and a **Go live** button per row. Clicking sets that quest's `is_live=true` and unsets all others (single transaction).
-- Timeline preview shows quests ordered by `start_at`, with the live one highlighted.
+### 3. Standalone `/recap` route
+- Remove the attendee-facing standalone recap page so the only entry point is per-quest:
+  - Delete `src/routes/recap.tsx`.
+  - Let the route tree regenerate.
+  - Keep `src/components/recap/*`, `src/lib/recap-generator.ts`, `src/lib/recap-store.ts`, and `src/lib/visual-recap.functions.ts` — they're reused by the new modal.
 
-**Attendee (`/play`)**:
-- Timeline reads `is_live` to mark the "Now" row. Past = before `end_at`, Upcoming = after `start_at`, Live = `is_live` (admin truth). Side quests untouched (still always available).
+### 4. No DB / backend changes
+- No schema changes — `quests.transcript_url` already exists.
+- No edits to `visual-recap.functions.ts` (it stays as the server fn powering generation).
+- Admin upload UI in `admin.tsx` stays as-is.
 
-## 4. Login redesign
+## Files touched
 
-Replace the current `/auth` flow.
+- New: `src/components/recap/main-quest-recap-modal.tsx`
+- Edited: `src/routes/play.tsx` (swap main-quest modal)
+- Deleted: `src/routes/recap.tsx`
 
-**New `/auth` screen** — two tiles:
-- **I'm an attendee** → input for 4-char hex code → POST to new server fn `loginAttendeeByCode({ code })` → if found, store `{ attendee_id, name }` in `localStorage` (existing `local-attendee.ts`) and redirect to `/play`.
-- **I'm an admin** → password field; correct value `admin` → set `localStorage.eventquest:is_admin = true` and redirect to `/admin`. `/admin` route guard reads that flag.
+## Result
 
-Sign-up form (`/join`) keeps the existing excel-derived fields (name, university, academic background, AI experience, track intent, event goal, country, age) and on success shows the freshly generated `verify_code` prominently with "this is your login code — save it".
-
-Drop Supabase email/password auth flows from the UI (keep tables intact so we don't break anything, but no UI surface).
-
-## 5. Transitive pod verification + chain submission
-
-- Keep `pod_verifications` rows (pairwise insert).
-- Change "is X verified?" to: compute connected components in the pod's verification graph (undirected — every insert by A→B is treated as A↔B). An attendee is **pod-verified** if their component covers the entire pod.
-- Side-quest submission rule: **any attendee whose component has ≥2 members** can submit on behalf of the pod (so two separate chains can both submit; admin still approves one).
-- Implemented as a tiny client-side BFS over `pod_verifications` for the user's pod (cheap, ≤5 nodes). Mirror it in a SQL helper `pod_component(_attendee uuid) returns uuid[]` for the submission RPC's check.
-
----
-
-## Files
-
-**Migration (single):**
-- add `quests.start_at`, `quests.end_at`, `quests.is_live` + partial unique index
-- add unique `completed_quests(attendee_id, quest_id)`
-- add `recalc_attendee_points(uuid)` + call from the three claim/approve RPCs
-- add `pod_component(uuid) returns uuid[]` helper
-- update `approve_group_submission` to use the unique constraint cleanly
-
-**Edited:**
-- `src/routes/auth.tsx` — two-tile login (code / admin password)
-- `src/routes/admin.tsx` — remove seed-attendees button, add timeline editor with start/end + Go-live, use derived points
-- `src/routes/play.tsx` — live-quest highlight from `is_live`, transitive verification BFS, allow any ≥2-chain member to submit
-- `src/lib/matchmaker.functions.ts` — pod-size validator + re-balancer
-- `src/components/main-quest-timeline.tsx` — show "LIVE NOW" pill
-- `src/lib/local-attendee.ts` — add `is_admin` helpers
-
-**New:**
-- `src/lib/auth.functions.ts` — `loginAttendeeByCode` server fn
-
-## Cursor handoff
-- Replace `localStorage` admin flag with a real password-hash check before any production use.
-- Background job to keep `attendees.points` cache in sync if RPCs ever bypass `recalc_attendee_points`.
+- Admin uploads one `.md` per main quest (already works).
+- On `/play`, each main quest card has a "Visual recap" button. Clicking it opens the rich 6-preference + layout-style flow, pre-loaded with that quest's transcript. Attendee never sees a transcript input. Different style choice = visibly different layout (Comic / Zine / Cards), powered by the existing generator.

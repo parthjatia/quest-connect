@@ -9,7 +9,7 @@ import { getLocalAttendee, clearLocalAttendee } from "@/lib/local-attendee";
 import { toast } from "sonner";
 import { Loader2, Camera, LogOut, CheckCircle2, Lock, Upload, Eye, Sparkles, Pencil, Check, X, Clock, Users } from "lucide-react";
 import { QuestSummaryModal } from "@/components/quest-summary-modal";
-import { QuestVisualSummaryModal } from "@/components/quest-visual-summary-modal";
+import { MainQuestRecapModal } from "@/components/recap/main-quest-recap-modal";
 import { VibeMapSection } from "@/components/vibe-map/vibe-map-section";
 
 export const Route = createFileRoute("/play")({
@@ -278,20 +278,16 @@ function PlayPage() {
         />
       )}
 
-      {summaryFor && summaryFor.type === "main" && (() => {
-        const c = completedMap.get(summaryFor.id);
-        return (
-          <QuestVisualSummaryModal
-            open
-            onClose={() => setSummaryFor(null)}
-            questTitle={summaryFor.title}
-            questEmoji={summaryFor.emoji}
-            points={summaryFor.points_awarded}
-            photoUrl={c?.quest_photo_url ?? null}
-            transcriptUrl={summaryFor.transcript_url ?? null}
-          />
-        );
-      })()}
+      {summaryFor && summaryFor.type === "main" && (
+        <MainQuestRecapModal
+          open
+          onClose={() => setSummaryFor(null)}
+          questTitle={summaryFor.title}
+          questEmoji={summaryFor.emoji}
+          points={summaryFor.points_awarded}
+          transcriptUrl={summaryFor.transcript_url ?? null}
+        />
+      )}
 
       {summaryFor && summaryFor.type === "side" && (() => {
         const c = completedMap.get(summaryFor.id);
