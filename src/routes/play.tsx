@@ -39,7 +39,8 @@ function PlayPage() {
   const qc = useQueryClient();
   const [attendee, setAttendee] = useState<{ id: string; name: string } | null>(null);
   const [summaryFor, setSummaryFor] = useState<Quest | null>(null);
-  
+  const [tab, setTab] = useState<"home" | "quests" | "vibe">("home");
+
   const [activeGroupSubmit, setActiveGroupSubmit] = useState<Quest | null>(null);
   const [activeSponsorClaim, setActiveSponsorClaim] = useState<Quest | null>(null);
   const [activeMainClaim, setActiveMainClaim] = useState<Quest | null>(null);
