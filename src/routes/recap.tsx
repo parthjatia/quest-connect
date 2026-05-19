@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
+import type { RecapAiJson, RecapImages } from "@/lib/visual-recap.functions";
 import { Upload, FileText, AlertCircle, Check, Sparkles, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,6 +18,7 @@ import {
   type RecapPrefs,
 } from "@/lib/recap-store";
 import { generatePersonalizedRecap, type RecapData } from "@/lib/recap-generator";
+import { generateVisualRecap } from "@/lib/visual-recap.functions";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/recap")({
@@ -32,6 +34,66 @@ export const Route = createFileRoute("/recap")({
   component: RecapPage,
 });
 
+function mergeAiIntoRecap(base: RecapData, ai: RecapAiJson, images: RecapImages): RecapData {
+  const s = base.sections;
+  const a = ai.sections;
+  const km = a.keyMoments?.items ?? [];
+  const moment = (i: number) => km[i] ?? { label: s.keyMoments.items[i].label, summary: s.keyMoments.items[i].summary };
+
+  return {
+    ...base,
+    title: ai.title || base.title,
+    subtitle: ai.subtitle || base.subtitle,
+    sections: {
+      cover: {
+        headline: a.cover.headline,
+        tagline: a.cover.tagline,
+        imageSlot: { ...s.cover.imageSlot, imageUrl: images.coverHero },
+      },
+      bigPicture: {
+        title: a.bigPicture.title,
+        content: a.bigPicture.content,
+        bullets: s.bigPicture.bullets,
+        imageSlot: { ...s.bigPicture.imageSlot, imageUrl: images.bigPictureScene },
+      },
+      keyMoments: {
+        title: a.keyMoments.title,
+        items: [0, 1, 2].map((i) => ({
+          label: moment(i).label,
+          summary: moment(i).summary,
+          imageSlot: {
+            ...s.keyMoments.items[i].imageSlot,
+            imageUrl:
+              i === 0 ? images.keyMoment_1 : i === 1 ? images.keyMoment_2 : images.keyMoment_3,
+          },
+        })),
+      },
+      decisions: {
+        title: a.decisions.title,
+        items: a.decisions.items.length ? a.decisions.items : ["No explicit decisions were made."],
+        empty: a.decisions.items.length === 0 || (a.decisions.items[0]?.toLowerCase().includes("no explicit") ?? false),
+      },
+      whatMattersToYou: {
+        title: a.whatMattersToYou.title,
+        content: a.whatMattersToYou.content,
+      },
+      actionItems: {
+        title: a.actionItems.title,
+        items: a.actionItems.items.length
+          ? a.actionItems.items
+          : [{ task: "No clear action items were mentioned.", owner: "—", deadline: "—" }],
+        empty: a.actionItems.items.length === 0,
+      },
+      memoryCard: {
+        title: a.memoryCard.title,
+        oneLiner: a.memoryCard.oneLiner,
+        rememberThis: a.memoryCard.rememberThis,
+        imageSlot: { ...s.memoryCard.imageSlot, imageUrl: images.finalMemory },
+      },
+    },
+  };
+}
+
 type Q = { key: keyof RecapPrefs; title: string; options: string[] };
 
 const QUESTIONS: Q[] = [
@@ -45,9 +107,9 @@ const QUESTIONS: Q[] = [
 
 const LOADING_STEPS = [
   "Reading transcript",
-  "Extracting key moments",
-  "Choosing your story format",
   "Building your recap",
+  "Creating visual scenes",
+  "Placing images into your story",
 ];
 
 function RecapPage() {
@@ -103,17 +165,38 @@ function RecapPage() {
     setLoading(true);
     setLoadingStep(0);
 
-    const stepInterval = setInterval(() => {
-      setLoadingStep((s) => Math.min(s + 1, LOADING_STEPS.length - 1));
-    }, 450);
+    // Step 0: Reading transcript
+    await new Promise((r) => setTimeout(r, 400));
+    setLoadingStep(1);
 
-    await new Promise((r) => setTimeout(r, 1800));
-    clearInterval(stepInterval);
+    try {
+      const callRecap = generateVisualRecap;
+      // Step 1: Building recap text (kick off server call now)
+      const serverPromise = callRecap({
+        data: { transcript: text, preferences: prefs, templateId },
+      });
 
-    const data = generatePersonalizedRecap(text, prefs, templateId);
-    setResult(data);
-    setLoading(false);
-    setTimeout(() => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
+      // bump UI step while server works
+      const t1 = setTimeout(() => setLoadingStep(2), 1600);
+      const t2 = setTimeout(() => setLoadingStep(3), 5000);
+
+      const { recap, images } = await serverPromise;
+      clearTimeout(t1);
+      clearTimeout(t2);
+      setLoadingStep(3);
+
+      // Build the deterministic shell, then overlay AI text + images
+      const base = generatePersonalizedRecap(text, prefs, templateId);
+      const merged = mergeAiIntoRecap(base, recap, images);
+
+      setResult(merged);
+      setLoading(false);
+      setTimeout(() => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
+    } catch (e) {
+      setLoading(false);
+      const msg = e instanceof Error ? e.message : "Could not generate recap.";
+      setError(msg);
+    }
   };
 
   return (

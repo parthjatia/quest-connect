@@ -9,6 +9,7 @@ export type ImageSlot = {
   styleTag: string;
   purpose: string;
   prompt: string;
+  imageUrl?: string | null;
 };
 
 export type RecapData = {
