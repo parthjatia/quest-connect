@@ -5,12 +5,12 @@ export const clearAllDataFn = createServerFn({ method: "POST" }).handler(async (
   console.log("[clearAllDataFn] starting");
 
   // Order matters: clear dependent rows first, then attendees, then groups.
-  const steps: Array<{ name: string; run: () => Promise<{ error: unknown }> }> = [
-    { name: "pod_verifications", run: () => supabaseAdmin.from("pod_verifications").delete().not("id", "is", null) },
-    { name: "attendee_meets", run: () => supabaseAdmin.from("attendee_meets").delete().not("id", "is", null) },
-    { name: "completed_quests", run: () => supabaseAdmin.from("completed_quests").delete().not("id", "is", null) },
-    { name: "group_quest_submissions", run: () => supabaseAdmin.from("group_quest_submissions").delete().not("id", "is", null) },
-    { name: "quest_transcripts", run: () => supabaseAdmin.from("quest_transcripts").delete().not("id", "is", null) },
+  const steps: Array<{ name: string; run: () => Promise<{ error: { message?: string } | null }> }> = [
+    { name: "pod_verifications", run: async () => await supabaseAdmin.from("pod_verifications").delete().not("id", "is", null) },
+    { name: "attendee_meets", run: async () => await supabaseAdmin.from("attendee_meets").delete().not("id", "is", null) },
+    { name: "completed_quests", run: async () => await supabaseAdmin.from("completed_quests").delete().not("id", "is", null) },
+    { name: "group_quest_submissions", run: async () => await supabaseAdmin.from("group_quest_submissions").delete().not("id", "is", null) },
+    { name: "quest_transcripts", run: async () => await supabaseAdmin.from("quest_transcripts").delete().not("id", "is", null) },
   ];
 
   for (const step of steps) {
