@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { Loader2, Plus, Trash2, Sparkles, ArrowLeft, Wand2, Lock, Unlock, FileText, Check, X as XIcon, Clock, Radio, LogOut, Upload } from "lucide-react";
 import { getRegistrationOpen, setRegistrationOpen } from "@/lib/event-settings";
 import { runLlmMatchmaker } from "@/lib/matchmaker.functions";
+import { clearAllDataFn } from "@/lib/admin.functions";
 import { getLocalAdmin, setLocalAdmin } from "@/lib/local-attendee";
 import { trackLabel, trackValueFromLabel, goalValueFromLabel } from "@/lib/attendee-options";
 import { MOCK_ATTENDEES } from "@/lib/mock-attendees";
