@@ -49,6 +49,35 @@ function PlayPage() {
   const [activeMainClaim, setActiveMainClaim] = useState<Quest | null>(null);
   const prevPointsRef = useRef<number | null>(null);
   const [xpPulse, setXpPulse] = useState(false);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !attendee) return;
+    if (!file.type.startsWith("image/")) return toast.error("Pick an image file");
+    if (file.size > 5 * 1024 * 1024) return toast.error("Image must be under 5 MB");
+    setAvatarUploading(true);
+    try {
+      const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+      const path = `${attendee.id}-${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage.from("avatars").upload(path, file, {
+        cacheControl: "3600",
+        upsert: false,
+        contentType: file.type,
+      });
+      if (upErr) throw upErr;
+      const { data: pub } = supabase.storage.from("avatars").getPublicUrl(path);
+      const { error: updErr } = await supabase.from("attendees").update({ avatar_url: pub.publicUrl }).eq("id", attendee.id);
+      if (updErr) throw updErr;
+      await qc.invalidateQueries({ queryKey: ["me", attendee.id] });
+      toast.success("Photo updated");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Upload failed");
+    } finally {
+      setAvatarUploading(false);
+    }
+  };
 
   useEffect(() => {
     const a = getLocalAttendee();
@@ -269,8 +298,30 @@ function PlayPage() {
             <section className="relative bg-swoosh-4 hue-drift rounded-3xl border border-border grid sm:grid-cols-[1fr_auto] divide-y sm:divide-y-0 sm:divide-x divide-white/10 overflow-hidden">
               <FloatingDecor variant="coin-rain" />
               <div className="relative z-10 p-5">
-                <p className="wrapped-kicker text-accent">Attendee</p>
-                <h1 className="wrapped-headline-md mt-2"><AnimatedHeadline>{attendee.name}</AnimatedHeadline></h1>
+                <div className="flex items-start gap-4">
+                  <label className="relative h-16 w-16 shrink-0 rounded-full overflow-hidden border-2 border-white/20 bg-background/60 cursor-pointer group">
+                    {me.data?.avatar_url ? (
+                      <img src={me.data.avatar_url} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                    ) : (
+                      <div className="absolute inset-0 grid place-items-center text-xl font-bold text-lime">
+                        {(attendee.name?.[0] ?? "?").toUpperCase()}
+                      </div>
+                    )}
+                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition grid place-items-center">
+                      <Camera className="h-5 w-5 text-white" />
+                    </div>
+                    {avatarUploading && (
+                      <div className="absolute inset-0 bg-background/70 grid place-items-center">
+                        <Loader2 className="h-5 w-5 animate-spin text-lime" />
+                      </div>
+                    )}
+                    <input type="file" accept="image/*" className="sr-only" onChange={handleAvatarChange} />
+                  </label>
+                  <div className="min-w-0 flex-1">
+                    <p className="wrapped-kicker text-accent">Attendee</p>
+                    <h1 className="wrapped-headline-md mt-2"><AnimatedHeadline>{attendee.name}</AnimatedHeadline></h1>
+                  </div>
+                </div>
 
                 {profileBits.length > 0 && (
                   <div className="flex flex-wrap gap-1.5 mt-3">

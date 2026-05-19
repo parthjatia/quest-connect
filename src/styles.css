@@ -60,9 +60,9 @@
      Apple-like polish meets premium event/social product. */
 
   /* Base — saturated navy with cool undertone */
-  --background: oklch(0.14 0.05 250);              /* deep navy */
+  --background: oklch(0.20 0.05 250);              /* lifted navy */
   --foreground: oklch(0.98 0.005 240);             /* crisp white */
-  --card: oklch(0.19 0.045 252);                   /* lighter navy panel */
+  --card: oklch(0.24 0.045 252);                   /* lighter navy panel */
   --card-foreground: oklch(0.98 0.005 240);
   --popover: oklch(0.17 0.045 252);
   --popover-foreground: oklch(0.98 0.005 240);
