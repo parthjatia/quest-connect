@@ -96,13 +96,22 @@ function PlayPage() {
     queryKey: ["meets", attendee?.id],
     enabled: !!attendee,
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data: rows, error } = await supabase
         .from("attendee_meets")
-        .select("met_attendee_id, created_at, attendees:met_attendee_id(full_name, university)")
+        .select("met_attendee_id, created_at")
         .eq("attendee_id", attendee!.id)
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return data ?? [];
+      const ids = (rows ?? []).map((r) => r.met_attendee_id);
+      if (ids.length === 0) return [] as Array<{ met_attendee_id: string; created_at: string; full_name: string | null; university: string | null }>;
+      const { data: people } = await supabase.from("attendees").select("id, full_name, university").in("id", ids);
+      const byId = new Map((people ?? []).map((p) => [p.id, p]));
+      return (rows ?? []).map((r) => ({
+        met_attendee_id: r.met_attendee_id,
+        created_at: r.created_at,
+        full_name: byId.get(r.met_attendee_id)?.full_name ?? null,
+        university: byId.get(r.met_attendee_id)?.university ?? null,
+      }));
     },
   });
 
