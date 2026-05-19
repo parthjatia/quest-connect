@@ -40,6 +40,7 @@ export type Database = {
           academic_background: string | null
           age: number | null
           ai_experience: Database["public"]["Enums"]["ai_experience"] | null
+          avatar_url: string | null
           country: string | null
           created_at: string
           current_zone: string | null
@@ -78,6 +79,7 @@ export type Database = {
           academic_background?: string | null
           age?: number | null
           ai_experience?: Database["public"]["Enums"]["ai_experience"] | null
+          avatar_url?: string | null
           country?: string | null
           created_at?: string
           current_zone?: string | null
@@ -116,6 +118,7 @@ export type Database = {
           academic_background?: string | null
           age?: number | null
           ai_experience?: Database["public"]["Enums"]["ai_experience"] | null
+          avatar_url?: string | null
           country?: string | null
           created_at?: string
           current_zone?: string | null
