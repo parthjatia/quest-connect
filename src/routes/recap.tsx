@@ -126,7 +126,7 @@ function RecapPage() {
   const handleFile = useCallback(async (file: File) => {
     if (!file) return;
     if (!file.name.endsWith(".txt") && file.type && !file.type.startsWith("text/")) {
-      toast({ title: "Unsupported file", description: "Please upload a .txt file.", variant: "destructive" });
+      toast.error("Unsupported file", { description: "Please upload a .txt file." });
       return;
     }
     const text = await file.text();
@@ -214,10 +214,7 @@ function RecapPage() {
       setResult({ recap: merged, images: serverRes.images ?? emptyImages });
     } catch (err) {
       console.error("Visual recap generation failed, using local fallback", err);
-      toast({
-        title: "Using offline recap",
-        description: "AI service is unavailable — generated a transcript-based recap locally.",
-      });
+      toast("Using offline recap", { description: "AI service is unavailable — generated a transcript-based recap locally." });
       setResult({ recap: local, images: emptyImages });
     } finally {
       setLoading(false);
