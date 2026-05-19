@@ -182,8 +182,9 @@ async function openaiImage(apiKey: string, prompt: string, _size: "1024x1024" | 
 export const generateVisualRecap = createServerFn({ method: "POST" })
   .inputValidator((input) => InputSchema.parse(input))
   .handler(async ({ data }) => {
-    const apiKey = process.env.OPENAI_API_KEY;
-    if (!apiKey) throw new Error("OPENAI_API_KEY is not configured");
+    const apiKey = process.env.LOVABLE_API_KEY;
+    if (!apiKey) throw new Error("LOVABLE_API_KEY is not configured");
+
 
     // 1. Text recap
     const recap = await openaiJson(apiKey, data.transcript, data.preferences, data.templateId);
