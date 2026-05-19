@@ -169,9 +169,11 @@ export function calculateAttendeeMatchScore(
 
 function heatLevelFor(avg: number, count: number): HeatLevel {
   if (count === 0) return "cold";
-  if (avg >= 65 && count >= 4) return "very-hot";
-  if (avg >= 50 && count >= 3) return "hot";
-  if (avg >= 30 || count >= 2) return "warm";
+  // Calibrated to a 0-100 score where realistic zone averages sit around 20-45.
+  if (avg >= 32 && count >= 10) return "very-hot";
+  if (avg >= 28 && count >= 6)  return "hot";
+  if (avg >= 22 || count >= 4)  return "warm";
+  if (count >= 1)               return "warm";
   return "cold";
 }
 
