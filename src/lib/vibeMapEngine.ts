@@ -2,6 +2,7 @@
 import {
   Attendee, EventZone, EVENT_ZONES, AttendeeFilter,
 } from "@/data/mockEventData";
+import { allFields, arrHasAny, fieldsHaveAny, hasExact } from "@/lib/attendeeMatching";
 
 export type HeatLevel = "cold" | "warm" | "hot" | "very-hot";
 
@@ -33,29 +34,28 @@ export type SuggestedAction = {
 // Map each AttendeeFilter to a predicate over (otherUser, currentUser).
 type FilterPredicate = (other: Attendee, me: Attendee) => boolean;
 
-const has = (arr: string[], v: string) =>
-  arr.some((x) => x.toLowerCase() === v.toLowerCase());
+const has = (arr: string[], v: string) => hasExact(arr, v);
 
 const FILTER_PREDICATES: Record<AttendeeFilter, FilterPredicate> = {
-  "basketball":               (o) => has(o.interests, "basketball"),
-  "startups":                 (o) => has(o.interests, "startups"),
-  "AI":                       (o) => has(o.interests, "AI") || has(o.skills, "AI engineering"),
-  "internships":              (o) => has(o.goals, "internship"),
-  "design":                   (o) => has(o.interests, "design") || has(o.skills, "design"),
-  "backend":                  (o) => has(o.skills, "backend"),
-  "frontend":                 (o) => has(o.skills, "frontend"),
-  "founder energy":           (o) => has(o.goals, "find cofounder") || has(o.personalityTags, "serious builder"),
-  "beginner-friendly":        (o) => has(o.personalityTags, "beginner-friendly"),
-  "same track":               (o, me) => o.track === me.track,
+  "basketball":               (o) => arrHasAny(o.interests, "basketball"),
+  "startups":                 (o) => arrHasAny(o.interests, "startup", "startups"),
+  "AI":                       (o) => arrHasAny(allFields(o.interests, o.skills), "AI", "AI engineering"),
+  "internships":              (o) => arrHasAny(allFields(o.goals, o.lookingFor), "internship", "career", "hiring"),
+  "design":                   (o) => arrHasAny(allFields(o.interests, o.skills), "design"),
+  "backend":                  (o) => arrHasAny(o.skills, "backend"),
+  "frontend":                 (o) => arrHasAny(o.skills, "frontend"),
+  "founder energy":           (o) => fieldsHaveAny(allFields(o.goals, o.personalityTags, o.lookingFor, o.interests), "founder", "startup", "cofounder", "builder"),
+  "beginner-friendly":        (o) => fieldsHaveAny(allFields(o.personalityTags, o.goals, o.lookingFor), "beginner", "beginner-friendly"),
+  "same track":               (o, me) => o.track.toLowerCase() === me.track.toLowerCase(),
   "people I have not met yet":(o, me) => !me.metAttendeeIds.includes(o.id),
-  "business":                 (o) => has(o.interests, "business") || has(o.skills, "business"),
-  "product":                  (o) => has(o.skills, "product"),
-  "cloud":                    (o) => has(o.interests, "cloud") || has(o.skills, "cloud"),
-  "fintech":                  (o) => has(o.interests, "fintech") || o.track === "Fintech",
-  "sports tech":              (o) => has(o.interests, "sports tech") || o.track === "Sports Tech",
-  "gaming":                   (o) => has(o.interests, "gaming") || o.track === "Gaming",
-  "robotics":                 (o) => has(o.interests, "robotics") || o.track === "Robotics",
-  "consulting":               (o) => has(o.interests, "consulting"),
+  "business":                 (o) => arrHasAny(allFields(o.interests, o.skills), "business"),
+  "product":                  (o) => arrHasAny(o.skills, "product"),
+  "cloud":                    (o) => arrHasAny(allFields(o.interests, o.skills), "cloud"),
+  "fintech":                  (o) => arrHasAny(o.interests, "fintech") || o.track.toLowerCase().includes("fintech"),
+  "sports tech":              (o) => arrHasAny(o.interests, "sports tech") || o.track.toLowerCase().includes("sports"),
+  "gaming":                   (o) => arrHasAny(o.interests, "gaming") || o.track.toLowerCase().includes("gaming"),
+  "robotics":                 (o) => arrHasAny(o.interests, "robotics") || o.track.toLowerCase().includes("robotics"),
+  "consulting":               (o) => arrHasAny(o.interests, "consulting"),
 };
 
 const FILTER_REASON: Record<AttendeeFilter, (o: Attendee) => string> = {

@@ -278,7 +278,7 @@ function PlayPage() {
           onSummary={setSummaryFor}
         />
 
-        <VibeMapSection />
+        <VibeMapSection currentAttendeeId={attendee?.id ?? null} />
       </main>
 
       {activeMainClaim && (

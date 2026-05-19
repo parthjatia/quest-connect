@@ -2,6 +2,7 @@
 import {
   Attendee, EventZone, EVENT_ZONES, SponsorGoal, SponsorTargetFilter,
 } from "@/data/mockEventData";
+import { allFields, arrHasAny, fieldsHaveAny, hasExact } from "@/lib/attendeeMatching";
 import { HeatLevel } from "@/lib/vibeMapEngine";
 
 export type SponsorMatch = {
@@ -47,27 +48,26 @@ export type SponsorQuest = {
   ctaText: string;
 };
 
-const has = (arr: string[], v: string) =>
-  arr.some((x) => x.toLowerCase() === v.toLowerCase());
+const has = (arr: string[], v: string) => hasExact(arr, v);
 
 // ---- target filter predicates ----
 type TargetPredicate = (a: Attendee) => boolean;
 const TARGET_PREDICATES: Record<SponsorTargetFilter, TargetPredicate> = {
-  "AI beginners":              (a) => (has(a.interests, "AI") || a.track === "AI") && has(a.personalityTags, "beginner-friendly"),
-  "technical builders":        (a) => has(a.personalityTags, "technical") || has(a.personalityTags, "serious builder"),
-  "backend devs":              (a) => has(a.skills, "backend"),
-  "frontend devs":             (a) => has(a.skills, "frontend"),
-  "business students":         (a) => has(a.interests, "business") || has(a.skills, "business"),
-  "founders":                  (a) => has(a.goals, "find cofounder") || a.track === "Startup",
-  "designers":                 (a) => has(a.skills, "design"),
-  "fintech":                   (a) => a.track === "Fintech" || has(a.interests, "fintech"),
-  "sports tech":               (a) => a.track === "Sports Tech" || has(a.interests, "sports tech"),
-  "cloud":                     (a) => has(a.skills, "cloud") || has(a.interests, "cloud"),
-  "robotics":                  (a) => a.track === "Robotics" || has(a.interests, "robotics"),
-  "consulting":                (a) => has(a.interests, "consulting"),
-  "product people":            (a) => has(a.skills, "product"),
-  "pitch people":              (a) => has(a.skills, "pitching") || has(a.skills, "public speaking"),
-  "students seeking internships": (a) => has(a.goals, "internship"),
+  "AI beginners":              (a) => (arrHasAny(a.interests, "AI") || a.track.toLowerCase().includes("ai")) && fieldsHaveAny(allFields(a.personalityTags, a.goals), "beginner", "beginner-friendly"),
+  "technical builders":        (a) => arrHasAny(allFields(a.skills, a.personalityTags), "backend", "frontend", "AI engineering", "cloud", "data science", "technical", "serious builder"),
+  "backend devs":              (a) => arrHasAny(a.skills, "backend"),
+  "frontend devs":             (a) => arrHasAny(a.skills, "frontend"),
+  "business students":         (a) => arrHasAny(allFields(a.interests, a.skills, a.goals), "business", "consulting", "strategy"),
+  "founders":                  (a) => fieldsHaveAny(allFields(a.goals, a.interests, a.lookingFor), "founder", "cofounder", "startup") || a.track.toLowerCase().includes("startup"),
+  "designers":                 (a) => arrHasAny(allFields(a.skills, a.interests), "design", "product design"),
+  "fintech":                   (a) => a.track.toLowerCase().includes("fintech") || arrHasAny(a.interests, "fintech"),
+  "sports tech":               (a) => a.track.toLowerCase().includes("sports") || arrHasAny(a.interests, "sports tech"),
+  "cloud":                     (a) => arrHasAny(allFields(a.skills, a.interests), "cloud"),
+  "robotics":                  (a) => a.track.toLowerCase().includes("robotics") || arrHasAny(a.interests, "robotics"),
+  "consulting":                (a) => arrHasAny(a.interests, "consulting"),
+  "product people":            (a) => arrHasAny(allFields(a.skills, a.goals, a.lookingFor), "product", "product feedback"),
+  "pitch people":              (a) => arrHasAny(a.skills, "pitching", "public speaking"),
+  "students seeking internships": (a) => arrHasAny(allFields(a.goals, a.lookingFor), "internship", "career", "hiring"),
   "high quest activity":       (a) => a.questActivityScore >= 75,
   "sponsor-open attendees":    (a) => a.sponsorOpen,
 };
