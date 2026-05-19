@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { supabase } from "@/integrations/supabase/client";
 import { getLocalAttendee, clearLocalAttendee } from "@/lib/local-attendee";
 import { toast } from "sonner";
-import { Loader2, Camera, LogOut, CheckCircle2, Lock, Upload, Eye, Sparkles, Pencil, Check, X, Clock, Users, Linkedin, Github } from "lucide-react";
+import { Loader2, Camera, LogOut, CheckCircle2, Lock, Upload, Eye, Sparkles, Pencil, Check, X, Clock, Users, Linkedin, Github, Home, Compass, Map as MapIcon, Trophy } from "lucide-react";
 import { QuestSummaryModal } from "@/components/quest-summary-modal";
 import { MainQuestRecapModal } from "@/components/recap/main-quest-recap-modal";
 import { VibeMapSection } from "@/components/vibe-map/vibe-map-section";
@@ -39,7 +39,8 @@ function PlayPage() {
   const qc = useQueryClient();
   const [attendee, setAttendee] = useState<{ id: string; name: string } | null>(null);
   const [summaryFor, setSummaryFor] = useState<Quest | null>(null);
-  
+  const [tab, setTab] = useState<"home" | "quests" | "vibe">("home");
+
   const [activeGroupSubmit, setActiveGroupSubmit] = useState<Quest | null>(null);
   const [activeSponsorClaim, setActiveSponsorClaim] = useState<Quest | null>(null);
   const [activeMainClaim, setActiveMainClaim] = useState<Quest | null>(null);
@@ -247,148 +248,157 @@ function PlayPage() {
   const profileBits = [me.data?.university, me.data?.academic_background, me.data?.ai_experience, trackLabel(me.data?.track_intent)].filter(Boolean) as string[];
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-background text-foreground pb-24">
       <header className="border-b border-border">
         <div className="mx-auto max-w-5xl px-6 py-3 flex items-center justify-between text-sm">
           <Link to="/" className="font-semibold tracking-tight">Quest Connect</Link>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" onClick={leave} className="text-muted-foreground hover:text-foreground">
-              <LogOut className="h-4 w-4 mr-1" />Leave
-            </Button>
-          </div>
+          <Button variant="ghost" size="sm" onClick={leave} className="text-muted-foreground hover:text-foreground">
+            <LogOut className="h-4 w-4 mr-1" />Leave
+          </Button>
         </div>
       </header>
 
       <main className="mx-auto max-w-5xl px-6 py-8 space-y-8">
-        {/* Profile + verify code */}
-        <section className="bg-swoosh-4 rounded-3xl border border-border grid sm:grid-cols-[1fr_auto] divide-y sm:divide-y-0 sm:divide-x divide-white/10 overflow-hidden">
-          <div className="p-5">
-            <p className="wrapped-kicker text-accent">Attendee</p>
-            <h1 className="wrapped-headline-md mt-2">{attendee.name}</h1>
+        {tab === "home" && (
+          <>
+            {/* Profile + verify code + XP */}
+            <section className="bg-swoosh-4 rounded-3xl border border-border grid sm:grid-cols-[1fr_auto] divide-y sm:divide-y-0 sm:divide-x divide-white/10 overflow-hidden">
+              <div className="p-5">
+                <p className="wrapped-kicker text-accent">Attendee</p>
+                <h1 className="wrapped-headline-md mt-2">{attendee.name}</h1>
 
-            {profileBits.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 mt-3">
-                {profileBits.map((b) => (
-                  <span key={b} className="text-[10px] uppercase tracking-wider border border-border px-1.5 py-0.5 text-muted-foreground">{b}</span>
-                ))}
-              </div>
-            )}
-            {(me.data?.hobbies?.length ?? 0) > 0 && (
-              <div className="flex flex-wrap gap-1.5 mt-2">
-                {me.data!.hobbies!.map((h: string) => (
-                  <span key={h} className="text-[10px] uppercase tracking-wider border border-lime/40 text-lime px-1.5 py-0.5">{h}</span>
-                ))}
-              </div>
-            )}
-            {(me.data?.linkedin_url || me.data?.github_url) && (
-              <div className="flex items-center gap-3 mt-3">
-                {me.data?.linkedin_url && (
-                  <a href={me.data.linkedin_url} target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-lime inline-flex items-center gap-1 text-xs">
-                    <Linkedin className="h-3.5 w-3.5" /> LinkedIn
-                  </a>
+                {profileBits.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mt-3">
+                    {profileBits.map((b) => (
+                      <span key={b} className="text-[10px] uppercase tracking-wider border border-border px-1.5 py-0.5 text-muted-foreground">{b}</span>
+                    ))}
+                  </div>
                 )}
-                {me.data?.github_url && (
-                  <a href={me.data.github_url} target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-lime inline-flex items-center gap-1 text-xs">
-                    <Github className="h-3.5 w-3.5" /> GitHub
-                  </a>
+                {(me.data?.hobbies?.length ?? 0) > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {me.data!.hobbies!.map((h: string) => (
+                      <span key={h} className="text-[10px] uppercase tracking-wider border border-lime/40 text-lime px-1.5 py-0.5">{h}</span>
+                    ))}
+                  </div>
+                )}
+                {(me.data?.linkedin_url || me.data?.github_url) && (
+                  <div className="flex items-center gap-3 mt-3">
+                    {me.data?.linkedin_url && (
+                      <a href={me.data.linkedin_url} target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-lime inline-flex items-center gap-1 text-xs">
+                        <Linkedin className="h-3.5 w-3.5" /> LinkedIn
+                      </a>
+                    )}
+                    {me.data?.github_url && (
+                      <a href={me.data.github_url} target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-lime inline-flex items-center gap-1 text-xs">
+                        <Github className="h-3.5 w-3.5" /> GitHub
+                      </a>
+                    )}
+                  </div>
                 )}
               </div>
-            )}
-          </div>
-          <div className="p-5 sm:w-72 bg-card/40 flex flex-col gap-4">
-            <div>
-              <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Your code — share with your pod</p>
-              <p className="font-mono text-3xl font-bold tracking-[0.3em] text-lime mt-2">{me.data?.verify_code ?? "----"}</p>
-            </div>
-            <div className="border-t border-border pt-4">
-              <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Total XP</p>
-              <p className={`text-4xl font-bold tracking-tight mt-1 transition-all duration-500 ${xpPulse ? "text-lime scale-110" : "text-foreground"}`}>
-                {me.data?.points ?? 0}
-              </p>
-              <p className="text-[10px] text-muted-foreground mt-1">
-                {Math.max(0, (me.data?.points ?? 0) - (me.data?.pod_bonus_points ?? 0) - (me.data?.meet_bonus_points ?? 0))} quests
-                {" · "}{me.data?.pod_bonus_points ?? 0} pod
-                {" · "}{me.data?.meet_bonus_points ?? 0} meets
-              </p>
-            </div>
-          </div>
+              <div className="p-5 sm:w-72 bg-card/40 flex flex-col gap-4">
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Your code — share with your pod</p>
+                  <p className="font-mono text-3xl font-bold tracking-[0.3em] text-lime mt-2">{me.data?.verify_code ?? "----"}</p>
+                </div>
+                <div className="border-t border-border pt-4">
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Total XP</p>
+                  <p className={`text-4xl font-bold tracking-tight mt-1 transition-all duration-500 ${xpPulse ? "text-lime scale-110" : "text-foreground"}`}>
+                    {me.data?.points ?? 0}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    {Math.max(0, (me.data?.points ?? 0) - (me.data?.pod_bonus_points ?? 0) - (me.data?.meet_bonus_points ?? 0))} quests
+                    {" · "}{me.data?.pod_bonus_points ?? 0} pod
+                    {" · "}{me.data?.meet_bonus_points ?? 0} meets
+                  </p>
+                </div>
+              </div>
+            </section>
 
-        </section>
+            <NetworkPanel
+              attendeeId={attendee.id}
+              podVerifiedCount={new Set((verifications.data ?? []).filter((v) => v.verifier_id === attendee.id).map((v) => v.verified_id)).size}
+              meets={meets.data ?? []}
+              onMeet={() => {
+                qc.invalidateQueries({ queryKey: ["meets"] });
+                qc.invalidateQueries({ queryKey: ["me"] });
+              }}
+            />
 
-        {/* Pod */}
-        {!pod.data ? (
-          <section className="border border-border p-5">
-            <p className="text-sm text-muted-foreground">
-              {me.data?.late ? "You joined after registration closed — no pod assigned." : "Waiting for the organizer to create pods…"}
-            </p>
-          </section>
-        ) : (
-          <PodPanel
-            attendeeId={attendee.id}
-            pod={pod.data}
-            members={members.data ?? []}
-            verifications={verifications.data ?? []}
-            groupState={groupState}
-            onRenamed={() => qc.invalidateQueries({ queryKey: ["pod"] })}
-            onVerified={() => qc.invalidateQueries({ queryKey: ["verifications"] })}
-          />
+            {/* Event Wrapped CTA */}
+            <button
+              onClick={() => navigate({ to: "/wrapped" })}
+              className="group relative w-full overflow-hidden rounded-2xl border border-white/10 p-5 text-left transition hover:scale-[1.01] active:scale-[0.99]"
+              style={{ background: "radial-gradient(circle at 0% 100%, #ff2d87 0%, #6b1aff 50%, #0a0a0a 100%)" }}
+            >
+              <div className="relative z-10 flex items-center justify-between gap-4">
+                <div>
+                  <div className="text-[10px] uppercase tracking-[0.3em] text-white/80 font-semibold">New</div>
+                  <div className="mt-1 text-xl font-bold text-white">Your Event Wrapped</div>
+                  <div className="mt-1 text-xs text-white/75">XP, connections, top quest, and the AI-written main insight from your event.</div>
+                </div>
+                <span className="shrink-0 text-2xl text-white">→</span>
+              </div>
+            </button>
+          </>
         )}
 
-        <NetworkPanel
-          attendeeId={attendee.id}
-          podVerifiedCount={new Set((verifications.data ?? []).filter((v) => v.verifier_id === attendee.id).map((v) => v.verified_id)).size}
-          meets={meets.data ?? []}
-          onMeet={() => {
-            qc.invalidateQueries({ queryKey: ["meets"] });
-            qc.invalidateQueries({ queryKey: ["me"] });
-          }}
-        />
+        {tab === "quests" && (
+          <>
+            {/* Pod */}
+            {!pod.data ? (
+              <section className="border border-border p-5">
+                <p className="text-sm text-muted-foreground">
+                  {me.data?.late ? "You joined after registration closed — no pod assigned." : "Waiting for the organizer to create pods…"}
+                </p>
+              </section>
+            ) : (
+              <PodPanel
+                attendeeId={attendee.id}
+                pod={pod.data}
+                members={members.data ?? []}
+                verifications={verifications.data ?? []}
+                groupState={groupState}
+                onRenamed={() => qc.invalidateQueries({ queryKey: ["pod"] })}
+                onVerified={() => qc.invalidateQueries({ queryKey: ["verifications"] })}
+              />
+            )}
 
+            <PodLeaderboard currentGroupId={me.data?.group_id ?? null} />
 
+            <MainQuestTimeline
+              quests={mainQuests}
+              completedMap={completedMap}
+              onSummary={setSummaryFor}
+              onClaim={(q) => setActiveMainClaim(q)}
+            />
 
-        {/* Main quests timeline */}
-        <MainQuestTimeline
-          quests={mainQuests}
-          completedMap={completedMap}
-          onSummary={setSummaryFor}
-          onClaim={(q) => setActiveMainClaim(q)}
-        />
+            <SideQuestsSection
+              quests={sideQuests}
+              submissionByQuest={submissionByQuest}
+              completedMap={completedMap}
+              locked={!iAmFullyVerified || !pod.data}
+              lockedReason={!pod.data ? "Waiting for pod assignment" : "Verify every pod member's code to unlock"}
+              onSubmit={(q) => setActiveGroupSubmit(q)}
+              onSponsorClaim={(q) => setActiveSponsorClaim(q)}
+              onSummary={setSummaryFor}
+            />
+          </>
+        )}
 
-
-        {/* Side quests (group) */}
-        <SideQuestsSection
-          quests={sideQuests}
-          submissionByQuest={submissionByQuest}
-          completedMap={completedMap}
-          locked={!iAmFullyVerified || !pod.data}
-          lockedReason={!pod.data ? "Waiting for pod assignment" : "Verify every pod member's code to unlock"}
-          onSubmit={(q) => setActiveGroupSubmit(q)}
-          onSponsorClaim={(q) => setActiveSponsorClaim(q)}
-          onSummary={setSummaryFor}
-        />
-
-        {/* Event Wrapped CTA */}
-        <button
-          onClick={() => navigate({ to: "/wrapped" })}
-          className="group relative w-full overflow-hidden rounded-2xl border border-white/10 p-5 text-left transition hover:scale-[1.01] active:scale-[0.99]"
-          style={{ background: "radial-gradient(circle at 0% 100%, #ff2d87 0%, #6b1aff 50%, #0a0a0a 100%)" }}
-        >
-          <div className="relative z-10 flex items-center justify-between gap-4">
-            <div>
-              <div className="text-[10px] uppercase tracking-[0.3em] text-white/80 font-semibold">New</div>
-              <div className="mt-1 text-xl font-bold text-white">Your Event Wrapped</div>
-              <div className="mt-1 text-xs text-white/75">XP, connections, top quest, and the AI-written main insight from your event.</div>
-            </div>
-            <span className="shrink-0 text-2xl text-white">→</span>
-          </div>
-        </button>
-
-        <VibeMapSection currentAttendeeId={attendee?.id ?? null} />
+        {tab === "vibe" && (
+          <VibeMapSection currentAttendeeId={attendee?.id ?? null} />
+        )}
       </main>
 
-
-
-
+      {/* Bottom nav */}
+      <nav className="fixed bottom-0 inset-x-0 z-40 border-t border-border bg-background/95 backdrop-blur-xl">
+        <div className="mx-auto max-w-5xl grid grid-cols-3">
+          <TabButton active={tab === "home"} onClick={() => setTab("home")} icon={<Home className="h-5 w-5" />} label="Home" />
+          <TabButton active={tab === "quests"} onClick={() => setTab("quests")} icon={<Compass className="h-5 w-5" />} label="Quests" />
+          <TabButton active={tab === "vibe"} onClick={() => setTab("vibe")} icon={<MapIcon className="h-5 w-5" />} label="Vibe Map" />
+        </div>
+      </nav>
 
       {activeGroupSubmit && pod.data && (
         <GroupSubmitDialog
@@ -447,6 +457,96 @@ function PlayPage() {
         );
       })()}
     </div>
+  );
+}
+
+function TabButton({ active, onClick, icon, label }: { active: boolean; onClick: () => void; icon: React.ReactNode; label: string }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex flex-col items-center gap-1 py-3 transition ${active ? "text-lime" : "text-muted-foreground hover:text-foreground"}`}
+    >
+      {icon}
+      <span className="text-[10px] uppercase tracking-wider font-semibold">{label}</span>
+    </button>
+  );
+}
+
+function PodLeaderboard({ currentGroupId }: { currentGroupId: string | null }) {
+  const leaderboard = useQuery({
+    queryKey: ["pod-leaderboard"],
+    queryFn: async () => {
+      const { data: atts, error: e1 } = await supabase
+        .from("attendees")
+        .select("group_id, points")
+        .not("group_id", "is", null);
+      if (e1) throw e1;
+      const sums = new Map<string, { xp: number; count: number }>();
+      for (const a of atts ?? []) {
+        if (!a.group_id) continue;
+        const prev = sums.get(a.group_id) ?? { xp: 0, count: 0 };
+        sums.set(a.group_id, { xp: prev.xp + (a.points ?? 0), count: prev.count + 1 });
+      }
+      const ids = Array.from(sums.keys());
+      if (ids.length === 0) return [] as Array<{ id: string; name: string; xp: number; count: number }>;
+      const { data: groups, error: e2 } = await supabase.from("groups").select("id, group_name").in("id", ids);
+      if (e2) throw e2;
+      return (groups ?? [])
+        .map((g) => ({ id: g.id, name: g.group_name as string, xp: sums.get(g.id)?.xp ?? 0, count: sums.get(g.id)?.count ?? 0 }))
+        .sort((a, b) => b.xp - a.xp);
+    },
+    refetchInterval: 15000,
+  });
+
+  const rows = leaderboard.data ?? [];
+  const myRank = currentGroupId ? rows.findIndex((r) => r.id === currentGroupId) : -1;
+
+  const rankStyle = (i: number) => {
+    if (i === 0) return { border: "border-amber-300/70", bg: "bg-gradient-to-r from-amber-400/25 via-yellow-300/10 to-transparent", text: "text-amber-300", medal: "🥇" };
+    if (i === 1) return { border: "border-slate-300/60", bg: "bg-gradient-to-r from-slate-200/20 via-slate-100/5 to-transparent", text: "text-slate-200", medal: "🥈" };
+    if (i === 2) return { border: "border-orange-400/60", bg: "bg-gradient-to-r from-orange-500/20 via-amber-700/10 to-transparent", text: "text-orange-400", medal: "🥉" };
+    return { border: "border-border", bg: "", text: "text-muted-foreground", medal: `#${i + 1}` };
+  };
+
+  return (
+    <section>
+      <div className="flex items-baseline justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <Trophy className="h-4 w-4 text-lime" />
+          <h2 className="text-lg font-semibold tracking-tight">Pod leaderboard</h2>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          {myRank >= 0 ? `Your pod · #${myRank + 1}` : "Total XP per pod"}
+        </p>
+      </div>
+      {leaderboard.isLoading ? (
+        <div className="border border-border p-8 text-center"><Loader2 className="inline h-4 w-4 animate-spin text-lime" /></div>
+      ) : rows.length === 0 ? (
+        <div className="border border-border p-8 text-center text-sm text-muted-foreground">No pods yet.</div>
+      ) : (
+        <ul className="space-y-2">
+          {rows.slice(0, 10).map((r, i) => {
+            const s = rankStyle(i);
+            const isMine = r.id === currentGroupId;
+            return (
+              <li
+                key={r.id}
+                className={`flex items-center justify-between gap-3 border p-3 rounded-lg ${s.border} ${s.bg} ${isMine ? "ring-1 ring-lime" : ""}`}
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <span className={`text-xl font-bold w-9 text-center ${s.text}`}>{s.medal}</span>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate">{r.name}</p>
+                    <p className="text-[10px] text-muted-foreground">{r.count} member{r.count === 1 ? "" : "s"}{isMine ? " · your pod" : ""}</p>
+                  </div>
+                </div>
+                <span className={`text-lg font-bold tabular-nums ${i < 3 ? s.text : "text-foreground"}`}>{r.xp} <span className="text-[10px] uppercase tracking-wider opacity-70">XP</span></span>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </section>
   );
 }
 
