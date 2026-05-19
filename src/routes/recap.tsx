@@ -131,7 +131,7 @@ function RecapPage() {
     }
     const text = await file.text();
     setTranscript(text);
-    toast({ title: "Transcript loaded", description: `${file.name} • ${text.split(/\s+/).length} words` });
+    toast("Transcript loaded", { description: `${file.name} • ${text.split(/\s+/).length} words` });
   }, []);
 
   const onGenerate = async () => {
