@@ -15,7 +15,7 @@ export type LiveAttendeeResult = {
 };
 
 const ATTENDEE_SELECT =
-  "id, user_id, full_name, university, age, country, track, track_intent, event_goal, academic_background, ai_experience, points, interests, goals, skills, personality_tags, current_zone, discovery_visibility, sponsor_open, met_attendee_ids, quest_activity_score, looking_for";
+  "id, user_id, full_name, university, age, country, track, track_intent, event_goal, academic_background, ai_experience, points, interests, goals, skills, personality_tags, current_zone, discovery_visibility, sponsor_open, met_attendee_ids, quest_activity_score, looking_for, hobbies, linkedin_url, github_url";
 
 const ZONES = EVENT_ZONES as readonly string[];
 
