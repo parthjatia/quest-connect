@@ -146,13 +146,14 @@ function JoinPage() {
           </div>
         ) : (
           <>
-            <div>
-              <p className="text-lime text-xs uppercase tracking-[0.2em] mb-3">Sign up</p>
-              <h1 className="text-3xl font-semibold tracking-tight">Join the event</h1>
-              <p className="text-sm text-muted-foreground mt-2">
+            <div className="rounded-3xl bg-swoosh-6 p-8 sm:p-10">
+              <p className="wrapped-kicker text-white/90 mb-4">Sign up</p>
+              <h1 className="wrapped-headline-md text-white">Join the event</h1>
+              <p className="text-sm text-white/85 mt-3">
                 Tell us about yourself so we can match you into the right pod.
               </p>
             </div>
+
 
             {!isOpen && (
               <div className="border border-lime/50 bg-lime/5 p-3 text-xs text-lime">
