@@ -648,15 +648,15 @@ function MainQuestTimeline({
                     {q.transcript_url ? (
                       <Button
                         size="sm"
-                        disabled={!done}
+                        disabled={!isApprovedDone}
                         onClick={() => onSummary(q)}
-                        className={`h-7 text-xs ${done ? "bg-lime hover:opacity-90" : ""}`}
-                        variant={done ? "default" : "outline"}
+                        className={`h-7 text-xs ${isApprovedDone ? "bg-lime hover:opacity-90" : ""}`}
+                        variant={isApprovedDone ? "default" : "outline"}
                       >
                         <Sparkles className="h-3 w-3 mr-1" /> Visual recap
                       </Button>
                     ) : (
-                      done && (
+                      isApprovedDone && (
                         <span className="text-[10px] text-muted-foreground">
                           Waiting for organizer to upload the conversation (.md)
                         </span>
