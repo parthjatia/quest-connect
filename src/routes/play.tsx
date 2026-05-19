@@ -350,7 +350,9 @@ function PlayPage() {
           quests={mainQuests}
           completedMap={completedMap}
           onSummary={setSummaryFor}
+          onClaim={(q) => setActiveMainClaim(q)}
         />
+
 
         {/* Side quests (group) */}
         <SideQuestsSection
