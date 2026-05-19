@@ -2,11 +2,11 @@ import { createServerFn } from "@tanstack/react-start";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import {
   buildClusters,
-  diversifyClusterWithAI,
   heuristicSplit,
   type Attendee,
   type Cluster,
 } from "@/lib/matchmaker.server";
+
 
 export const runLlmMatchmaker = createServerFn({ method: "POST" }).handler(
   async (): Promise<{
