@@ -24,8 +24,12 @@ type Quest = {
   created_at: string;
   start_at: string | null; end_at: string | null; is_live: boolean;
   transcript_url: string | null;
+  created_by_sponsor: string | null;
 };
-type CompletedRow = { id: string; quest_id: string; quest_photo_url: string | null; claimed_at: string };
+type CompletedRow = {
+  id: string; quest_id: string; quest_photo_url: string | null; claimed_at: string;
+  verification_status: string; proof_link: string | null; reviewer_note: string | null;
+};
 type Member = { id: string; full_name: string | null; university: string | null };
 type Verification = { verifier_id: string; verified_id: string };
 type Submission = { id: string; group_id: string; quest_id: string; photo_url: string; status: "pending" | "approved" | "rejected"; reviewer_note: string | null; created_at: string };
