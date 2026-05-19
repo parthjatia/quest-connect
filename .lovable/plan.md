@@ -1,52 +1,59 @@
+## Goal
 
-## 1. Remove Quest Transcripts from admin + label sponsor quests
+Make `track_intent` and `event_goal` discrete enum fields (like `ai_experience`) instead of free-form text. Replace text inputs with button-pick UIs everywhere users select them.
 
-`src/routes/admin.tsx`:
-- Remove the "Quest Transcripts" section/block entirely (and any related transcript upload UI tied to it).
-- In the quest list rows, when `created_by_sponsor` is set, render a small `SPONSOR QUEST · {handle}` badge next to the MAIN/SIDE badge (replaces or supplements the SIDE label visually).
+## Discrete values
 
-## 2. +4 pts per new pod member unlocked
+**Track (`track_intent`)** → new enum `track_intent`:
+- `ai_for_business` — "AI for Business"
+- `creative_marketing` — "Creative / Marketing Tech"
+- `dev_tools_infra` — "Dev Tools / Infrastructure"
+- `fintech_payments` — "Fintech / Payments"
+- `health_sustainability` — "Health & Sustainability"
+- `open_track` — "Open track (no theme)"
 
-New mechanism so verifications award points (today `recalc_attendee_points` only sums completed quests).
+**Event goal (`event_goal`)** → new enum `event_goal`:
+- `working_product` — "A working product"
+- `job_internship` — "Job / internship"
+- `experience` — "Just the experience"
+- `new_connections` — "New connections"
 
-DB migration:
-- Add `pod_bonus_points int NOT NULL DEFAULT 0` to `attendees`.
-- Replace `recalc_attendee_points` so it returns `completed_quest_points + pod_bonus_points + meet_bonus_points` (see §3).
-- New trigger `on_pod_verification_award` AFTER INSERT on `pod_verifications`: for each new row, +4 to `verifier_id`'s `pod_bonus_points` and +4 to `verified_id`'s `pod_bonus_points` (both sides unlock each other), then call recalc on both.
+## Database migration
 
-No client code change required — the existing `verify_pod_member` RPC flow already inserts into `pod_verifications`.
+1. `CREATE TYPE public.track_intent AS ENUM (...)` and `CREATE TYPE public.event_goal AS ENUM (...)`.
+2. Add temp columns `track_intent_new track_intent`, `event_goal_new event_goal` on `attendees`.
+3. Best-effort map existing free-text rows (case-insensitive `LIKE` on keywords: "fintech"→`fintech_payments`, "dev"/"tool"/"infra"→`dev_tools_infra`, "creative"/"market"→`creative_marketing`, "health"/"sustain"→`health_sustainability`, "business"→`ai_for_business`, else `open_track`; goal: "product"→`working_product`, "job"/"intern"→`job_internship`, "connect"/"network"→`new_connections`, else `experience`). Unmapped rows stay NULL.
+4. `ALTER TABLE ... DROP COLUMN track_intent, RENAME track_intent_new TO track_intent` (same for `event_goal`).
+5. `attendees.track_intent` and `attendees.event_goal` remain nullable.
 
-## 3. Meet attendees outside your pod (+2 pts each) + Network dashboard
+(After migration runs, `src/integrations/supabase/types.ts` regenerates automatically.)
 
-DB migration (same migration as §2):
-- Add `meet_bonus_points int NOT NULL DEFAULT 0` to `attendees`.
-- New table `attendee_meets`:
-  - `id uuid pk`, `attendee_id uuid`, `met_attendee_id uuid`, `created_at timestamptz default now()`
-  - unique `(attendee_id, met_attendee_id)`, check `attendee_id <> met_attendee_id`
-  - RLS: anon + authed insert/select (matches existing pattern)
-- New RPC `meet_attendee(_attendee_id uuid, _code text)`:
-  - Look up target attendee by `verify_code` (any attendee, not pod-scoped).
-  - Reject if same id or already in same group (those go through pod verify).
-  - Insert two rows (`a→b` and `b→a`), ON CONFLICT DO NOTHING. For each newly inserted row +2 `meet_bonus_points` to that attendee, then recalc.
-  - Also push ids into existing `met_attendee_ids` array on `attendees` for both sides.
-- Trigger is not needed — the RPC handles awarding atomically.
+## Frontend changes
 
-Frontend (`src/routes/play.tsx`):
-- New "Your network" card with:
-  - Big circular SVG ring graphic showing total unique people met (pod verifications count + attendee_meets count); center number = total met, subtitle "people connected".
-  - Small breakdown: `X pod members · Y new connections`.
-  - Input + button "Exchange code" — calls `meet_attendee` RPC. Toast "+2 pts! Met {name}" on success, or "already connected" / "use pod verify instead" as appropriate.
-- Queries:
-  - `useQuery(["meets", me.id])` selecting from `attendee_meets` where `attendee_id = me.id`, joined to attendees for names.
-  - Reuse existing pod verification count.
+**Shared constants** — new `src/lib/attendee-options.ts` exporting:
+```ts
+export const TRACK_OPTIONS = [{ value: "ai_for_business", label: "AI for Business" }, ...] as const;
+export const GOAL_OPTIONS = [{ value: "working_product", label: "A working product" }, ...] as const;
+export type TrackIntent = typeof TRACK_OPTIONS[number]["value"];
+export type EventGoal = typeof GOAL_OPTIONS[number]["value"];
+export const trackLabel = (v: string | null) => TRACK_OPTIONS.find(o => o.value === v)?.label ?? v ?? "—";
+export const goalLabel = (v: string | null) => GOAL_OPTIONS.find(o => o.value === v)?.label ?? v ?? "—";
+```
 
-## 4. Sponsor Radar link in sponsor portal
+**`src/routes/join.tsx`** — replace the two `<Input>` and `<Textarea>` fields for Track and Goal with the same button-grid pattern used for AI experience (2-col grid on track, 2-col on goal). State holds enum values. Submit sends enum string.
 
-`src/routes/sponsor.tsx`:
-- Add a secondary nav button/link in the header (next to sign out) → `<Link to="/sponsor-radar">Sponsor radar</Link>`.
-- Also add a "Open Sponsor Radar" card/CTA in the main content area for visibility.
+**`src/routes/admin.tsx`** — render `trackLabel(a.track_intent)` in the attendees table column; if there's any admin edit UI for these fields, swap to a `<Select>`.
+
+**`src/routes/play.tsx`** — `profileBits` already just displays the value; pipe through `trackLabel(...)`.
+
+**`src/lib/matchmaker.functions.ts`** — no logic change required (it already groups by raw `event_goal` value and passes to the LLM); the enum values are stable strings so grouping still works. Update the LLM system prompt to note that goal/track are now fixed enum codes (so it doesn't try to invent values).
+
+**`src/lib/ai.functions.ts` / `wrapped.functions.ts`** — when building prompt strings, pass through `trackLabel` / `goalLabel` so the AI sees human-readable text, not the enum code.
+
+**`src/lib/attendeeDataAdapter.ts`** — map enum codes to labels when surfacing `track`/`goals` derived fields.
 
 ## Out of scope
-- No retroactive backfill of points for existing pod_verifications (trigger fires on new inserts only). If the user wants a one-time backfill we can add it after.
-- No leaderboard changes — totals automatically include new bonuses via `recalc_attendee_points`.
-- Quest Transcripts table itself stays in DB (only the admin UI section is removed).
+
+- No backfill UI; the migration's best-effort map is one-shot. Rows with NULL after mapping will appear as "—" until the attendee re-submits (or admin edits).
+- No change to the upload/CSV-import flow (if any) — flagged as a follow-up if it exists and currently writes free text.
+- The `attendees.track` column (separate from `track_intent`) is left alone; this plan only touches `track_intent` and `event_goal`.
