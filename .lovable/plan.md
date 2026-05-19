@@ -1,28 +1,23 @@
 ## Plan
 
-1. **Change the Clear all server action to match the requested scope**
-   - Delete all rows from `attendees` so the admin attendee count becomes `0`.
-   - Delete all created `groups` so no pods remain.
-   - Clear related attendee/pod activity tables first so dependent records do not block the reset:
-     - `pod_verifications`
-     - `attendee_meets`
-     - `completed_quests`
-     - `group_quest_submissions`
-     - `quest_transcripts`
-   - Leave `quests` untouched.
-   - Leave `event_settings` untouched.
+1. **Replace the current reset RPC with a direct SQL reset**
+   - Update `admin_clear_attendees_and_pods()` so it runs one simple, ordered database cleanup:
+     - clear pod verification rows
+     - clear attendee meet rows
+     - clear completed quest/submission/transcript rows tied to attendees/pods
+     - clear every attendee row for this event
+     - clear every group/pod row
+   - Return the actual counts removed so the admin toast can confirm what happened.
 
-2. **Make the action more reliable and easier to debug**
-   - Use the backend admin client inside the existing server function.
-   - Log each step and return counts for deleted attendees, deleted pods, and cleared related records.
-   - Use broad delete filters that work reliably with the current table shapes.
+2. **Make the admin server action call only that SQL function**
+   - Keep `clearAllDataFn` as a thin backend call to the reset function.
+   - Add explicit error logging and return counts for attendees and groups/pods.
 
-3. **Update the admin button behavior**
-   - Change the confirmation copy so it no longer says quests will be deleted.
-   - After success, refresh only attendee, pod, and pending-submission queries.
-   - Show a success toast with the actual counts cleared.
+3. **Keep the UI behavior simple**
+   - The Clear all button continues to call the backend reset.
+   - After success, refresh attendee, group/pod, and pending submission queries.
+   - Quests and event settings remain untouched.
 
-4. **Verify the fix**
-   - Inspect server-function logs if the action still errors.
-   - Confirm the admin UI no longer attempts to clear quests.
-   - Confirm the handler returns success and the attendee/pod counts refresh to zero.
+4. **Verify against the real database**
+   - Before/after check row counts for `attendees`, `groups`, and related pod/quest activity tables.
+   - Confirm the counts become zero for attendees and groups/pods.
