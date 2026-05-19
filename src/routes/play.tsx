@@ -11,6 +11,7 @@ import { Loader2, Camera, LogOut, CheckCircle2, Lock, Upload, Eye, Sparkles, Pen
 import { QuestSummaryModal } from "@/components/quest-summary-modal";
 import { MainQuestRecapModal } from "@/components/recap/main-quest-recap-modal";
 import { VibeMapSection } from "@/components/vibe-map/vibe-map-section";
+import { trackLabel } from "@/lib/attendee-options";
 
 export const Route = createFileRoute("/play")({
   head: () => ({ meta: [{ title: "Play — Quest Connect" }] }),
