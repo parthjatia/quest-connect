@@ -4,13 +4,13 @@ import { ReactNode } from "react";
 
 export function RecapHeader() {
   return (
-    <header className="border-b border-border bg-background/80 backdrop-blur sticky top-0 z-30">
+    <header className="sticky top-0 z-30 border-b border-white/10 bg-background/60 backdrop-blur-xl">
       <div className="mx-auto max-w-5xl px-6 py-4 flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-2 font-semibold tracking-tight">
-          <span className="grid h-7 w-7 place-items-center rounded-md bg-primary text-primary-foreground">
-            <Sparkles className="h-4 w-4" />
+        <Link to="/" className="flex items-center gap-2.5 font-semibold tracking-tight">
+          <span className="relative grid h-8 w-8 place-items-center rounded-xl bg-gradient-hero shadow-glow">
+            <Sparkles className="h-4 w-4 text-primary-foreground" />
           </span>
-          Quest Connect
+          <span className="text-gradient">Quest Connect</span>
         </Link>
         <Link
           to="/play"
@@ -25,9 +25,11 @@ export function RecapHeader() {
 
 export function RecapShell({ children }: { children: ReactNode }) {
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col">
+    <div className="relative min-h-screen bg-background text-foreground flex flex-col overflow-x-hidden">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-[520px] bg-gradient-glow" />
+      <div className="pointer-events-none absolute inset-0 bg-grid opacity-40" />
       <RecapHeader />
-      <main className="flex-1 mx-auto w-full max-w-3xl px-6 py-12">{children}</main>
+      <main className="relative flex-1 mx-auto w-full max-w-3xl px-6 py-12">{children}</main>
     </div>
   );
 }
