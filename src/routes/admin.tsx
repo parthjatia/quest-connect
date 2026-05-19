@@ -894,7 +894,7 @@ function PendingMainQuestQueue() {
 
   const act = async (id: string, approve: boolean, name?: string, pts?: number) => {
     const note = approve ? undefined : (prompt("Reason for rejection (optional)") || undefined);
-    const { error } = await supabase.rpc("review_main_quest", { _completed_id: id, _approve: approve, _note: note ?? null });
+    const { error } = await supabase.rpc("review_main_quest", { _completed_id: id, _approve: approve, _note: note });
     if (error) return toast.error(error.message);
     toast.success(approve ? `+${pts ?? 0} XP awarded to ${name ?? "attendee"}` : "Rejected");
     qc.invalidateQueries({ queryKey: ["admin-pending-main-quests"] });
