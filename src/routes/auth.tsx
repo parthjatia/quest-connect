@@ -37,30 +37,30 @@ function AuthPage() {
       <main className="mx-auto max-w-xl px-6 py-12 space-y-8">
         {mode === "admin" && (
           <>
-            <div>
-              <p className="text-lime text-xs uppercase tracking-[0.2em] mb-3">Organizer</p>
-              <h1 className="text-3xl font-semibold tracking-tight">Run the event</h1>
-              <p className="text-sm text-muted-foreground mt-2">Enter the admin password to open the control panel.</p>
+            <div className="rounded-3xl bg-swoosh-2 p-8 sm:p-10">
+              <p className="wrapped-kicker text-white/90 mb-4">Organizer</p>
+              <h1 className="wrapped-headline-md text-white">Run the event</h1>
+              <p className="text-sm text-white/80 mt-3">Enter the admin password to open the control panel.</p>
             </div>
             <AdminLogin navigate={navigate} />
           </>
         )}
         {mode === "sponsor" && (
           <>
-            <div>
-              <p className="text-lime text-xs uppercase tracking-[0.2em] mb-3">Sponsor</p>
-              <h1 className="text-3xl font-semibold tracking-tight">Sponsor portal</h1>
-              <p className="text-sm text-muted-foreground mt-2">Enter your sponsor handle (e.g. <span className="font-mono">sponsor1</span>) to submit side quests.</p>
+            <div className="rounded-3xl bg-swoosh-3 p-8 sm:p-10">
+              <p className="wrapped-kicker text-white/90 mb-4">Sponsor</p>
+              <h1 className="wrapped-headline-md text-white">Sponsor portal</h1>
+              <p className="text-sm text-white/85 mt-3">Enter your sponsor handle (e.g. <span className="font-mono">sponsor1</span>) to submit side quests.</p>
             </div>
             <SponsorLogin navigate={navigate} />
           </>
         )}
         {mode === "attendee" && (
           <>
-            <div>
-              <p className="text-lime text-xs uppercase tracking-[0.2em] mb-3">Attendee</p>
-              <h1 className="text-3xl font-semibold tracking-tight">Play the event</h1>
-              <p className="text-sm text-muted-foreground mt-2">Sign in with your 4-character code from registration.</p>
+            <div className="rounded-3xl bg-swoosh-5 p-8 sm:p-10">
+              <p className="wrapped-kicker text-white/90 mb-4">Attendee</p>
+              <h1 className="wrapped-headline-md text-white">Play the event</h1>
+              <p className="text-sm text-white/85 mt-3">Sign in with your 4-character code from registration.</p>
             </div>
             <AttendeeLogin navigate={navigate} />
             <p className="text-xs text-muted-foreground text-center">
@@ -72,6 +72,7 @@ function AuthPage() {
             </p>
           </>
         )}
+
         <ModeSwitcher mode={mode} />
       </main>
     </div>
