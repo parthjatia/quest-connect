@@ -1,27 +1,29 @@
-# Simplify floating background decorations
+## Plan: Branding rename, vibe map fixes, attendee profile route
 
-## Goal
-Replace the busy coin/joystick/dice/cassette/cassette/gem sprites currently floating across `/`, `/play`, and `/wrapped` with a minimal monochrome background: just 2–3 large, curvy geometric shapes slowly roaming. No color noise, no functional change.
+### 2. Rename "Quest Connect" → "Quey" (bolder, more visible)
+- Replace the literal string `Quest Connect` in:
+  - `src/components/app-header.tsx`
+  - `src/components/recap/recap-shell.tsx`
+  - Any `head()` titles / meta in `src/routes/index.tsx`, `auth.tsx`, `join.tsx`, `play.tsx`, `admin.tsx`, `sponsor.tsx`, `sponsor-radar.tsx`, `recap.tsx`, `wrapped.tsx` that mention "Quest Connect".
+- Make the header wordmark bolder: change `font-bold text-lg` → `font-extrabold text-xl tracking-tight` in `app-header.tsx`; same `font-extrabold tracking-tight` upgrade on the recap shell wordmark. No color or token changes.
 
-## What changes
+### 3. Vibe Map — fix unreadable chip labels in "Suggested for you"
+- In `src/components/vibe-map/vibe-map-section.tsx`, locate the active filter chips that render dark text on the lime background.
+- Change ONLY the chip label text class (e.g. `text-primary-foreground` / dark token) → `text-white`. Leave the subtitle and everything else alone.
 
-**Single file: `src/components/floating-decor.tsx`** — rewritten internals only. The exported component name, props (`variant`, `density`, `className`), and call sites stay identical, so `/`, `/play`, and `/wrapped` pick up the new look automatically.
+### 4. Vibe Map — "you" dot color on map
+- In `src/components/vibe-map/floorplan.tsx`, the `isYou` marker currently uses `oklch(0.9 0.22 130)` (lime).
+- Change ONLY that fill to a blue matching the legend (`oklch(0.7 0.18 250)`). Keep the legend swatch as it is, keep the `bestZone` ring lime, keep stroke/glow logic untouched.
 
-New implementation:
-- Drop all image imports (`coinCyan`, `coinNavy`, `diceRed`, `diceBlack`, `joystick`, `cassette`, `starBurst`, `diamondGem`) and the sprite-array logic.
-- Render 2–3 inline SVG shapes per variant — soft organic blobs / curved arcs / a single ring — using `currentColor` set to white at low opacity (≈0.04–0.08) so they read as subtle texture on the dark background. No multi-color palette.
-- Keep them roaming with the existing `animate-drift-a/b/c` keyframes (already in the project) — slow, large translate loops. Each shape gets a different drift class, scale, and animation-delay for variety.
-- Variant mapping (functional parity, just visual simplification):
-  - `ambient` (default) → 2 shapes, very low opacity
-  - `dense` → 3 shapes, same low opacity
-  - `coin-rain` → 3 shapes (we drop the literal "coin rain" cascade since it conflicts with the minimal direction); still uses the same drift motion so the `/` hero doesn't break
-- Keep `pointer-events-none absolute inset-0 overflow-hidden` wrapper and `aria-hidden` so layout/accessibility are unchanged.
-- Keep the `density` prop accepted (ignored in new design unless > 3, capped) so any caller passing it still type-checks.
+### 5. Attendee profile route — back-button only
+- Create `src/routes/profile.tsx` as a simple read-only attendee profile page (loads current attendee via `getLocalAttendee()` and renders their fields). No edit controls.
+- Add a "Profile" / back-style link in the Recap header (`recap-shell.tsx`) so users can navigate from `/recap` → `/profile`. The new profile page itself only shows a back link to `/recap` (no edit button).
 
-## Out of scope
-- No changes to `/`, `/play`, `/wrapped`, or any other route file.
-- No removal of the asset PNGs themselves (left in `src/assets/` in case other components use them; a quick grep confirms only `floating-decor.tsx` imports them, but leaving the files avoids touching anything else).
-- No new dependencies, no color tokens added.
+### 6. Landing kicker "Event OS" → "Quey"
+- In `src/routes/index.tsx`, replace the `Event OS` string inside the yellow pill with `Quey`. Keep all existing styling.
 
-## Why this approach
-One-file edit, zero API change, all three screens update at once. Matches the "absolutely no change in functionality" constraint — props, variants, and component name are preserved.
+### Out of scope
+- No design token / color system changes.
+- No functionality changes (auth, matchmaking, recap generation, DB).
+- No floating-decor edits.
+- No edits to sign-up photo flow (item 1 already skipped).
