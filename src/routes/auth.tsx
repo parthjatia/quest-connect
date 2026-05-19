@@ -159,7 +159,7 @@ function AdminLogin({ navigate }: { navigate: ReturnType<typeof useNavigate> }) 
   const [pw, setPw] = useState("");
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (pw !== "admin") return toast.error("Wrong password.");
+    if (pw !== "infoauraboys1!") return toast.error("Wrong password.");
     setLocalAdmin(true);
     toast.success("Admin unlocked");
     navigate({ to: "/admin" });
