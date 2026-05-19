@@ -104,7 +104,7 @@ function DoorCard({
   variant,
 }: {
   to: string;
-  search?: { mode: "admin" };
+  search?: { mode: "admin" | "sponsor" };
   tag: string;
   title: string;
   blurb: string;
