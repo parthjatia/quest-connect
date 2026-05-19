@@ -190,6 +190,26 @@ function JoinPage() {
             )}
 
             <form onSubmit={submit} className="border border-border p-5 space-y-4">
+              <Field label="Profile photo (optional)">
+                <div className="flex items-center gap-4">
+                  <label className="relative h-20 w-20 shrink-0 rounded-full border-2 border-dashed border-border bg-background overflow-hidden grid place-items-center cursor-pointer hover:border-lime transition">
+                    {avatarUrl ? (
+                      <img src={avatarUrl} alt="Your avatar" className="absolute inset-0 h-full w-full object-cover" />
+                    ) : (
+                      <Camera className="h-6 w-6 text-muted-foreground" />
+                    )}
+                    {avatarUploading && (
+                      <div className="absolute inset-0 bg-background/70 grid place-items-center">
+                        <Loader2 className="h-5 w-5 animate-spin text-lime" />
+                      </div>
+                    )}
+                    <input type="file" accept="image/*" className="sr-only" onChange={handleAvatarPick} />
+                  </label>
+                  <div className="text-xs text-muted-foreground">
+                    {avatarUrl ? "Tap the photo to change it." : "Tap the circle to upload. Max 5 MB."}
+                  </div>
+                </div>
+              </Field>
               <Field label="Full name">
                 <Input value={name} onChange={(e) => setName(e.target.value)} maxLength={80}
                   placeholder="Ada Lovelace" className="bg-background border-border" />
