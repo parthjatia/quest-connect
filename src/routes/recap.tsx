@@ -34,6 +34,66 @@ export const Route = createFileRoute("/recap")({
   component: RecapPage,
 });
 
+function mergeAiIntoRecap(base: RecapData, ai: RecapAiJson, images: RecapImages): RecapData {
+  const s = base.sections;
+  const a = ai.sections;
+  const km = a.keyMoments?.items ?? [];
+  const moment = (i: number) => km[i] ?? { label: s.keyMoments.items[i].label, summary: s.keyMoments.items[i].summary };
+
+  return {
+    ...base,
+    title: ai.title || base.title,
+    subtitle: ai.subtitle || base.subtitle,
+    sections: {
+      cover: {
+        headline: a.cover.headline,
+        tagline: a.cover.tagline,
+        imageSlot: { ...s.cover.imageSlot, imageUrl: images.coverHero },
+      },
+      bigPicture: {
+        title: a.bigPicture.title,
+        content: a.bigPicture.content,
+        bullets: s.bigPicture.bullets,
+        imageSlot: { ...s.bigPicture.imageSlot, imageUrl: images.bigPictureScene },
+      },
+      keyMoments: {
+        title: a.keyMoments.title,
+        items: [0, 1, 2].map((i) => ({
+          label: moment(i).label,
+          summary: moment(i).summary,
+          imageSlot: {
+            ...s.keyMoments.items[i].imageSlot,
+            imageUrl:
+              i === 0 ? images.keyMoment_1 : i === 1 ? images.keyMoment_2 : images.keyMoment_3,
+          },
+        })),
+      },
+      decisions: {
+        title: a.decisions.title,
+        items: a.decisions.items.length ? a.decisions.items : ["No explicit decisions were made."],
+        empty: a.decisions.items.length === 0 || (a.decisions.items[0]?.toLowerCase().includes("no explicit") ?? false),
+      },
+      whatMattersToYou: {
+        title: a.whatMattersToYou.title,
+        content: a.whatMattersToYou.content,
+      },
+      actionItems: {
+        title: a.actionItems.title,
+        items: a.actionItems.items.length
+          ? a.actionItems.items
+          : [{ task: "No clear action items were mentioned.", owner: "—", deadline: "—" }],
+        empty: a.actionItems.items.length === 0,
+      },
+      memoryCard: {
+        title: a.memoryCard.title,
+        oneLiner: a.memoryCard.oneLiner,
+        rememberThis: a.memoryCard.rememberThis,
+        imageSlot: { ...s.memoryCard.imageSlot, imageUrl: images.finalMemory },
+      },
+    },
+  };
+}
+
 type Q = { key: keyof RecapPrefs; title: string; options: string[] };
 
 const QUESTIONS: Q[] = [
