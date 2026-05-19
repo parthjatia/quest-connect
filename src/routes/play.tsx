@@ -12,6 +12,9 @@ import { QuestSummaryModal } from "@/components/quest-summary-modal";
 import { MainQuestRecapModal } from "@/components/recap/main-quest-recap-modal";
 import { VibeMapSection } from "@/components/vibe-map/vibe-map-section";
 import { trackLabel } from "@/lib/attendee-options";
+import { FloatingDecor } from "@/components/floating-decor";
+import { AnimatedHeadline } from "@/components/animated-text";
+import coinBlue from "@/assets/coin-blue.png";
 
 export const Route = createFileRoute("/play")({
   head: () => ({ meta: [{ title: "Play — Quest Connect" }] }),
@@ -248,8 +251,9 @@ function PlayPage() {
   const profileBits = [me.data?.university, me.data?.academic_background, me.data?.ai_experience, trackLabel(me.data?.track_intent)].filter(Boolean) as string[];
 
   return (
-    <div className="min-h-screen bg-background text-foreground pb-24">
-      <header className="border-b border-border">
+    <div className="relative min-h-screen bg-background text-foreground pb-24 overflow-hidden">
+      <FloatingDecor variant="ambient" className="fixed inset-0 z-0" />
+      <header className="relative z-10 border-b border-border">
         <div className="mx-auto max-w-5xl px-6 py-3 flex items-center justify-between text-sm">
           <Link to="/" className="font-semibold tracking-tight">Quest Connect</Link>
           <Button variant="ghost" size="sm" onClick={leave} className="text-muted-foreground hover:text-foreground">
@@ -258,26 +262,27 @@ function PlayPage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-5xl px-6 py-8 space-y-8">
+      <main className="relative z-10 mx-auto max-w-5xl px-6 py-8 space-y-8">
         {tab === "home" && (
           <>
             {/* Profile + verify code + XP */}
-            <section className="bg-swoosh-4 rounded-3xl border border-border grid sm:grid-cols-[1fr_auto] divide-y sm:divide-y-0 sm:divide-x divide-white/10 overflow-hidden">
-              <div className="p-5">
+            <section className="relative bg-swoosh-4 hue-drift rounded-3xl border border-border grid sm:grid-cols-[1fr_auto] divide-y sm:divide-y-0 sm:divide-x divide-white/10 overflow-hidden">
+              <FloatingDecor variant="coin-rain" />
+              <div className="relative z-10 p-5">
                 <p className="wrapped-kicker text-accent">Attendee</p>
-                <h1 className="wrapped-headline-md mt-2">{attendee.name}</h1>
+                <h1 className="wrapped-headline-md mt-2"><AnimatedHeadline>{attendee.name}</AnimatedHeadline></h1>
 
                 {profileBits.length > 0 && (
                   <div className="flex flex-wrap gap-1.5 mt-3">
                     {profileBits.map((b) => (
-                      <span key={b} className="text-[10px] uppercase tracking-wider border border-border px-1.5 py-0.5 text-muted-foreground">{b}</span>
+                      <span key={b} className="text-[10px] uppercase tracking-wider border border-border px-1.5 py-0.5 text-muted-foreground bg-background/40 backdrop-blur-sm">{b}</span>
                     ))}
                   </div>
                 )}
                 {(me.data?.hobbies?.length ?? 0) > 0 && (
                   <div className="flex flex-wrap gap-1.5 mt-2">
                     {me.data!.hobbies!.map((h: string) => (
-                      <span key={h} className="text-[10px] uppercase tracking-wider border border-lime/40 text-lime px-1.5 py-0.5">{h}</span>
+                      <span key={h} className="text-[10px] uppercase tracking-wider border border-lime/40 text-lime px-1.5 py-0.5 bg-background/40 backdrop-blur-sm">{h}</span>
                     ))}
                   </div>
                 )}
@@ -296,16 +301,19 @@ function PlayPage() {
                   </div>
                 )}
               </div>
-              <div className="p-5 sm:w-72 bg-card/40 flex flex-col gap-4">
+              <div className="relative z-10 p-5 sm:w-72 bg-card/60 backdrop-blur-sm flex flex-col gap-4">
                 <div>
                   <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Your code — share with your pod</p>
                   <p className="font-mono text-3xl font-bold tracking-[0.3em] text-lime mt-2">{me.data?.verify_code ?? "----"}</p>
                 </div>
                 <div className="border-t border-border pt-4">
                   <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Total XP</p>
-                  <p className={`text-4xl font-bold tracking-tight mt-1 transition-all duration-500 ${xpPulse ? "text-lime scale-110" : "text-foreground"}`}>
-                    {me.data?.points ?? 0}
-                  </p>
+                  <div className="flex items-center gap-3 mt-1">
+                    <p className={`text-4xl font-bold tracking-tight transition-all duration-500 ${xpPulse ? "text-lime scale-110" : "text-foreground"}`}>
+                      {me.data?.points ?? 0}
+                    </p>
+                    <img src={coinBlue} alt="" aria-hidden="true" width={40} height={40} className="animate-spin-slow drop-shadow-[0_4px_12px_rgba(0,180,255,0.5)]" />
+                  </div>
                   <p className="text-[10px] text-muted-foreground mt-1">
                     {Math.max(0, (me.data?.points ?? 0) - (me.data?.pod_bonus_points ?? 0) - (me.data?.meet_bonus_points ?? 0))} quests
                     {" · "}{me.data?.pod_bonus_points ?? 0} pod
@@ -328,14 +336,14 @@ function PlayPage() {
             {/* Event Wrapped CTA */}
             <button
               onClick={() => navigate({ to: "/wrapped" })}
-              className="group relative w-full overflow-hidden rounded-2xl border border-white/10 p-5 text-left transition hover:scale-[1.01] active:scale-[0.99]"
-              style={{ background: "radial-gradient(circle at 0% 100%, #ff2d87 0%, #6b1aff 50%, #0a0a0a 100%)" }}
+              className="group relative w-full overflow-hidden rounded-2xl border border-white/10 p-5 text-left transition hover:scale-[1.01] active:scale-[0.99] bg-swoosh-3 hue-drift"
             >
+              <FloatingDecor variant="dense" />
               <div className="relative z-10 flex items-center justify-between gap-4">
                 <div>
-                  <div className="text-[10px] uppercase tracking-[0.3em] text-white/80 font-semibold">New</div>
-                  <div className="mt-1 text-xl font-bold text-white">Your Event Wrapped</div>
-                  <div className="mt-1 text-xs text-white/75">XP, connections, top quest, and the AI-written main insight from your event.</div>
+                  <div className="text-[10px] uppercase tracking-[0.3em] text-white/85 font-semibold">New</div>
+                  <div className="mt-1 text-xl font-bold text-white"><AnimatedHeadline>Your Event Wrapped</AnimatedHeadline></div>
+                  <div className="mt-1 text-xs text-white/85">XP, connections, top quest, and the AI-written main insight from your event.</div>
                 </div>
                 <span className="shrink-0 text-2xl text-white">→</span>
               </div>

@@ -1,4 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { FloatingDecor } from "@/components/floating-decor";
+import { AnimatedHeadline } from "@/components/animated-text";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -21,11 +23,13 @@ function Landing() {
       </header>
 
       <main className="flex-1 mx-auto max-w-5xl w-full px-6 py-20">
-        <div className="relative overflow-hidden rounded-3xl bg-swoosh-1 px-8 py-16 sm:px-12 sm:py-20">
+        <div className="relative overflow-hidden rounded-3xl bg-swoosh-1 hue-drift px-8 py-16 sm:px-12 sm:py-20">
+          <FloatingDecor variant="dense" />
           <div className="max-w-2xl relative z-10">
             <p className="wrapped-kicker text-white/90 mb-5">Event OS</p>
             <h1 className="wrapped-headline text-white">
-              One event.<br />Three lenses.
+              <AnimatedHeadline>One event.</AnimatedHeadline><br />
+              <AnimatedHeadline>Three lenses.</AnimatedHeadline>
             </h1>
             <p className="text-white/85 mt-6 text-base sm:text-lg">
               Run it. Play it. Sponsor it.
