@@ -67,9 +67,11 @@ export const runLlmMatchmaker = createServerFn({ method: "POST" }).handler(
     }
 
 
-    // 5. Write groups + assignments
+    // 5. Write groups + assignments (use sequential Untitled N names)
+    let podIndex = 0;
     for (const pod of pending) {
-      const name = pod.cluster.label.slice(0, 60);
+      podIndex += 1;
+      const name = `Untitled ${podIndex}`;
       const { data: g, error: gErr } = await supabaseAdmin
         .from("groups")
         .insert({
