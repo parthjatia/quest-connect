@@ -33,14 +33,15 @@ function Landing() {
 
         <div className="grid gap-px bg-border border border-border mt-12 sm:grid-cols-3">
           <DoorCard
-            to="/admin"
+            to="/auth"
+            search={{ mode: "admin" }}
             tag="Organizer"
             title="Run the event"
             blurb="Seed attendees, manage quests, watch the leaderboard, launch sponsor activations."
             cta="Open admin"
           />
           <DoorCard
-            to="/join"
+            to="/auth"
             tag="Attendee"
             title="Play the event"
             blurb="Join quests, find your people, earn points, and discover who to meet next."
@@ -65,9 +66,23 @@ function Landing() {
   );
 }
 
-function DoorCard({ to, tag, title, blurb, cta }: { to: string; tag: string; title: string; blurb: string; cta: string }) {
+function DoorCard({
+  to,
+  search,
+  tag,
+  title,
+  blurb,
+  cta,
+}: {
+  to: string;
+  search?: { mode: "admin" };
+  tag: string;
+  title: string;
+  blurb: string;
+  cta: string;
+}) {
   return (
-    <Link to={to} className="group bg-background p-8 hover:bg-card transition-colors">
+    <Link to={to} search={search} className="group bg-background p-8 hover:bg-card transition-colors">
       <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">{tag}</p>
       <h2 className="text-2xl font-semibold mt-2 tracking-tight">{title}</h2>
       <p className="text-sm text-muted-foreground mt-3 max-w-sm">{blurb}</p>

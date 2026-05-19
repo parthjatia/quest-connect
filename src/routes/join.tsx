@@ -187,6 +187,14 @@ function JoinPage() {
                 Sign up & get my code
               </Button>
             </form>
+
+            <p className="text-xs text-muted-foreground text-center">
+              Already have a code?{" "}
+              <Link to="/auth" className="text-lime hover:underline">
+                Sign in with your code
+              </Link>
+              .
+            </p>
           </>
         )}
       </main>

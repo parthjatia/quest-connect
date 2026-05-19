@@ -38,7 +38,10 @@ function PlayPage() {
 
   useEffect(() => {
     const a = getLocalAttendee();
-    if (!a) { navigate({ to: "/join" }); return; }
+    if (!a) {
+      navigate({ to: "/auth" });
+      return;
+    }
     setAttendee(a);
   }, [navigate]);
 

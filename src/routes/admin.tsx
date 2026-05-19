@@ -43,7 +43,7 @@ function AdminPage() {
 
   // Admin guard
   useEffect(() => {
-    if (!getLocalAdmin()) navigate({ to: "/auth" });
+    if (!getLocalAdmin()) navigate({ to: "/auth", search: { mode: "admin" } });
   }, [navigate]);
 
   const quests = useQuery({
