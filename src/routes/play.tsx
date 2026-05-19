@@ -175,6 +175,35 @@ function PlayPage() {
     return () => { supabase.removeChannel(ch); };
   }, [me.data?.group_id, qc]);
 
+  // Per-attendee realtime: XP + quest completions (covers sponsor approvals & main-quest auto-awards)
+  useEffect(() => {
+    if (!attendee?.id) return;
+    const ch = supabase
+      .channel(`attendee-${attendee.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "completed_quests", filter: `attendee_id=eq.${attendee.id}` },
+        () => { qc.invalidateQueries({ queryKey: ["completed"] }); qc.invalidateQueries({ queryKey: ["me"] }); })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "attendees", filter: `id=eq.${attendee.id}` },
+        () => { qc.invalidateQueries({ queryKey: ["me"] }); })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [attendee?.id, qc]);
+
+  // Celebrate XP gains
+  useEffect(() => {
+    const p = me.data?.points;
+    if (typeof p !== "number") return;
+    if (prevPointsRef.current === null) { prevPointsRef.current = p; return; }
+    if (p > prevPointsRef.current) {
+      const gained = p - prevPointsRef.current;
+      toast.success(`+${gained} XP`, { description: `You're at ${p} XP total` });
+      setXpPulse(true);
+      const t = setTimeout(() => setXpPulse(false), 1200);
+      prevPointsRef.current = p;
+      return () => clearTimeout(t);
+    }
+    prevPointsRef.current = p;
+  }, [me.data?.points]);
+
   if (!attendee || me.isLoading) {
     return <div className="grid place-items-center min-h-screen"><Loader2 className="animate-spin h-6 w-6 text-lime" /></div>;
   }
