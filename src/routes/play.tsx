@@ -1022,3 +1022,67 @@ function NetworkPanel({
     </section>
   );
 }
+
+function MainQuestClaimDialog({
+  quest, attendeeId, onClose, onSubmitted,
+}: { quest: Quest; attendeeId: string; onClose: () => void; onSubmitted: () => void }) {
+  const [file, setFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const submit = async () => {
+    if (!file) return toast.error("Photo required.");
+    if (file.size > 8 * 1024 * 1024) return toast.error("Max 8 MB.");
+    setBusy(true);
+    try {
+      const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+      const path = `attendees/${attendeeId}/${quest.id}-${Date.now()}.${ext}`;
+      const up = await supabase.storage.from("quest-photos").upload(path, file, { contentType: file.type });
+      if (up.error) throw up.error;
+      const { data: pub } = supabase.storage.from("quest-photos").getPublicUrl(path);
+      const { error } = await supabase.rpc("claim_quest_anon", {
+        _attendee_id: attendeeId, _quest_id: quest.id, _photo_url: pub.publicUrl,
+      });
+      if (error) throw error;
+      toast.success(`+${quest.points_awarded} XP awarded!`);
+      onSubmitted();
+      onClose();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Submission failed");
+    } finally { setBusy(false); }
+  };
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{quest.emoji} {quest.title}</DialogTitle>
+          <DialogDescription>
+            Upload a photo as proof. You'll be awarded <span className="text-lime font-semibold">+{quest.points_awarded} XP</span> instantly.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <input ref={inputRef} type="file" accept="image/*" capture="environment" className="hidden"
+            onChange={(e) => { const f = e.target.files?.[0] ?? null; setFile(f); setPreview(f ? URL.createObjectURL(f) : null); }} />
+          {preview ? (
+            <img src={preview} alt="preview" className="w-full max-h-72 object-cover border border-border" />
+          ) : (
+            <button type="button" onClick={() => inputRef.current?.click()}
+              className="w-full h-40 border border-dashed border-border grid place-items-center text-muted-foreground hover:border-lime hover:text-lime transition">
+              <div className="text-center"><Camera className="h-6 w-6 mx-auto mb-2" /><p className="text-sm">Tap to upload proof</p></div>
+            </button>
+          )}
+          {preview && <Button variant="outline" size="sm" onClick={() => inputRef.current?.click()}>Change photo</Button>}
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose} disabled={busy}>Cancel</Button>
+          <Button onClick={submit} disabled={!file || busy} className="bg-lime hover:opacity-90">
+            {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+            Submit proof
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
