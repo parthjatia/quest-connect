@@ -21,14 +21,25 @@ export type Database = {
           ai_experience: Database["public"]["Enums"]["ai_experience"] | null
           country: string | null
           created_at: string
+          current_zone: string
+          discovery_visibility: string
           event_goal: string | null
           full_name: string | null
+          goals: Json
           group_id: string | null
           icebreakers: string | null
           id: string
+          interests: Json
           late: boolean
+          looking_for: Json
+          met_attendee_ids: Json
           onboarded: boolean
+          personality_tags: Json
           points: number
+          quest_activity_score: number
+          skills: Json
+          sponsor_open: boolean
+          track: string | null
           track_intent: string | null
           university: string | null
           updated_at: string
@@ -43,14 +54,25 @@ export type Database = {
           ai_experience?: Database["public"]["Enums"]["ai_experience"] | null
           country?: string | null
           created_at?: string
+          current_zone?: string
+          discovery_visibility?: string
           event_goal?: string | null
           full_name?: string | null
+          goals?: Json
           group_id?: string | null
           icebreakers?: string | null
           id?: string
+          interests?: Json
           late?: boolean
+          looking_for?: Json
+          met_attendee_ids?: Json
           onboarded?: boolean
+          personality_tags?: Json
           points?: number
+          quest_activity_score?: number
+          skills?: Json
+          sponsor_open?: boolean
+          track?: string | null
           track_intent?: string | null
           university?: string | null
           updated_at?: string
@@ -65,14 +87,25 @@ export type Database = {
           ai_experience?: Database["public"]["Enums"]["ai_experience"] | null
           country?: string | null
           created_at?: string
+          current_zone?: string
+          discovery_visibility?: string
           event_goal?: string | null
           full_name?: string | null
+          goals?: Json
           group_id?: string | null
           icebreakers?: string | null
           id?: string
+          interests?: Json
           late?: boolean
+          looking_for?: Json
+          met_attendee_ids?: Json
           onboarded?: boolean
+          personality_tags?: Json
           points?: number
+          quest_activity_score?: number
+          skills?: Json
+          sponsor_open?: boolean
+          track?: string | null
           track_intent?: string | null
           university?: string | null
           updated_at?: string

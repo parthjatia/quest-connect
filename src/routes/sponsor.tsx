@@ -3,8 +3,9 @@ import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Floorplan } from "@/components/vibe-map/floorplan";
 import {
-  MOCK_ATTENDEES, SPONSOR_GOALS, SPONSOR_TARGET_FILTERS, SponsorGoal, SponsorTargetFilter, EventZone,
+  SPONSOR_GOALS, SPONSOR_TARGET_FILTERS, SponsorGoal, SponsorTargetFilter, EventZone,
 } from "@/data/mockEventData";
+import { useLiveAttendees } from "@/hooks/use-live-attendees";
 import {
   aggregateSponsorZones, generateSponsorAction, generateSponsorQuest, SponsorQuest,
 } from "@/lib/sponsorRadarEngine";
@@ -26,10 +27,21 @@ function SponsorPage() {
   const [selectedZone, setSelectedZone] = useState<EventZone | null>(null);
   const [launchedQuests, setLaunchedQuests] = useState<SponsorQuest[]>([]);
 
+  const live = useLiveAttendees();
+  const attendees = live.data?.attendees ?? [];
+
   const zones = useMemo(
-    () => aggregateSponsorZones(MOCK_ATTENDEES, goal, filters),
-    [goal, filters],
+    () => aggregateSponsorZones(attendees, goal, filters),
+    [attendees, goal, filters],
   );
+
+  const statusMessage = live.isLoading
+    ? "Loading live attendee data..."
+    : live.data?.source === "fallback"
+      ? "Could not load cloud attendee data. Showing demo fallback."
+      : live.data?.usedClientEnrichment
+        ? "Live attendee data from cloud. Demo enrichment used for missing profile fields."
+        : "Live attendee data from cloud.";
   const bestZone = zones[0] ?? null;
   const isManualSelection = selectedZone !== null;
   const focused = isManualSelection
@@ -81,8 +93,11 @@ function SponsorPage() {
           <p className="text-sm text-muted-foreground mt-1.5 max-w-2xl">
             Privacy-safe attendee clusters by zone. Sponsor-open people only show by name when they opt in.
           </p>
-          <p className="text-[11px] text-muted-foreground/70 mt-2 max-w-2xl leading-relaxed">
-            Demo data shown. In production this connects to attendee check-ins, quest activity, and sponsor interactions.
+          <p className={cn(
+            "text-[11px] mt-2 max-w-2xl leading-relaxed",
+            live.data?.source === "fallback" ? "text-warning-foreground/90" : "text-muted-foreground/70",
+          )}>
+            {statusMessage}
           </p>
         </div>
 
@@ -146,6 +161,9 @@ function SponsorPage() {
           </div>
         </div>
 
+        {live.isLoading ? (
+          <p className="text-sm text-muted-foreground py-8 text-center">Loading live attendee data...</p>
+        ) : (
         <div className="grid gap-4 lg:grid-cols-[1.5fr_1fr]">
           <div className="space-y-2">
             <Floorplan
@@ -212,7 +230,7 @@ function SponsorPage() {
                   </p>
                   {focused.visibleMatches.length === 0 ? (
                     <p className="text-xs text-muted-foreground">
-                      No sponsor-open attendees in this segment yet, but anonymous heat is still shown above.
+                      No sponsor-open attendees match this segment yet. Anonymous heat may still be shown.
                     </p>
                   ) : (
                     <ul className="space-y-2">
@@ -251,6 +269,7 @@ function SponsorPage() {
             )}
           </div>
         </div>
+        )}
 
         {launchedQuests.length > 0 && (
           <div>
