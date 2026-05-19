@@ -125,11 +125,11 @@ Return JSON matching this schema exactly:
   }
 }`;
 
-  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+  const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      model: "gpt-4o-mini",
+      model: "google/gemini-2.5-flash",
       response_format: { type: "json_object" },
       temperature: 0.7,
       messages: [
@@ -140,40 +140,44 @@ Return JSON matching this schema exactly:
   });
   if (!res.ok) {
     const txt = await res.text();
-    throw new Error(`OpenAI text error ${res.status}: ${txt.slice(0, 300)}`);
+    throw new Error(`AI gateway text error ${res.status}: ${txt.slice(0, 300)}`);
   }
   const json = await res.json();
   const content: string = json?.choices?.[0]?.message?.content ?? "{}";
-  const parsed = JSON.parse(content);
+  const cleaned = content.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "");
+  const parsed = JSON.parse(cleaned);
   parsed.templateId = templateId;
   return parsed as RecapAiJson;
 }
 
-async function openaiImage(apiKey: string, prompt: string, size: "1024x1024" | "1536x1024" | "1024x1536"): Promise<string | null> {
+async function openaiImage(apiKey: string, prompt: string, _size: "1024x1024" | "1536x1024" | "1024x1536"): Promise<string | null> {
   try {
-    const res = await fetch("https://api.openai.com/v1/images/generations", {
+    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "gpt-image-1",
-        prompt,
-        size,
-        n: 1,
+        model: "google/gemini-2.5-flash-image",
+        messages: [{ role: "user", content: prompt }],
+        modalities: ["image", "text"],
       }),
     });
     if (!res.ok) {
-      console.error("OpenAI image error", res.status, (await res.text()).slice(0, 200));
+      console.error("AI gateway image error", res.status, (await res.text()).slice(0, 200));
       return null;
     }
     const json = await res.json();
-    const b64: string | undefined = json?.data?.[0]?.b64_json;
-    if (!b64) return null;
-    return `data:image/png;base64,${b64}`;
+    const msg = json?.choices?.[0]?.message;
+    const url: string | undefined =
+      msg?.images?.[0]?.image_url?.url ??
+      msg?.images?.[0]?.url ??
+      undefined;
+    return url ?? null;
   } catch (e) {
-    console.error("OpenAI image exception", e);
+    console.error("AI gateway image exception", e);
     return null;
   }
 }
+
 
 export const generateVisualRecap = createServerFn({ method: "POST" })
   .inputValidator((input) => InputSchema.parse(input))
