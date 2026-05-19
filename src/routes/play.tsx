@@ -419,11 +419,10 @@ function PodPanel({
 
 /** Main-quest transcripts are uploaded by the organizer (quests.transcript_url), not attendees. */
 function MainQuestTimeline({
-  quests, completedMap, onClaim, onSummary,
+  quests, completedMap, onSummary,
 }: {
   quests: Quest[];
   completedMap: Map<string, CompletedRow>;
-  onClaim: (q: Quest) => void;
   onSummary: (q: Quest) => void;
 }) {
   // Find current = first not completed; reorder: current first, then completed (most recent first)
