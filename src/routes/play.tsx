@@ -34,7 +34,7 @@ function PlayPage() {
   const qc = useQueryClient();
   const [attendee, setAttendee] = useState<{ id: string; name: string } | null>(null);
   const [summaryFor, setSummaryFor] = useState<Quest | null>(null);
-  const [activeMainClaim, setActiveMainClaim] = useState<Quest | null>(null);
+  
   const [activeGroupSubmit, setActiveGroupSubmit] = useState<Quest | null>(null);
 
   useEffect(() => {
@@ -242,7 +242,6 @@ function PlayPage() {
         <MainQuestTimeline
           quests={mainQuests}
           completedMap={completedMap}
-          onClaim={(q) => setActiveMainClaim(q)}
           onSummary={setSummaryFor}
         />
 
@@ -259,14 +258,8 @@ function PlayPage() {
         <VibeMapSection currentAttendeeId={attendee?.id ?? null} />
       </main>
 
-      {activeMainClaim && (
-        <ClaimDialog
-          quest={activeMainClaim}
-          attendeeId={attendee.id}
-          onClose={() => setActiveMainClaim(null)}
-          onClaimed={() => { qc.invalidateQueries({ queryKey: ["completed"] }); qc.invalidateQueries({ queryKey: ["me"] }); }}
-        />
-      )}
+
+
 
       {activeGroupSubmit && pod.data && (
         <GroupSubmitDialog
@@ -426,11 +419,10 @@ function PodPanel({
 
 /** Main-quest transcripts are uploaded by the organizer (quests.transcript_url), not attendees. */
 function MainQuestTimeline({
-  quests, completedMap, onClaim, onSummary,
+  quests, completedMap, onSummary,
 }: {
   quests: Quest[];
   completedMap: Map<string, CompletedRow>;
-  onClaim: (q: Quest) => void;
   onSummary: (q: Quest) => void;
 }) {
   // Find current = first not completed; reorder: current first, then completed (most recent first)
@@ -481,16 +473,8 @@ function MainQuestTimeline({
                   )}
 
                   <div className="mt-3 flex flex-wrap items-center gap-2">
-                    {!done && kind === "current" && (
-                      <Button size="sm" onClick={() => onClaim(q)} className="bg-lime hover:opacity-90 h-7 text-xs">
-                        <Camera className="h-3 w-3 mr-1" /> Claim
-                      </Button>
-                    )}
                     {!done && kind === "upcoming" && (
                       <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Locked — finish current first</span>
-                    )}
-                    {!done && q.transcript_url && kind === "current" && (
-                      <span className="text-[10px] text-muted-foreground">Visual recap unlocks after you claim</span>
                     )}
                     {q.transcript_url ? (
                       <Button
@@ -599,70 +583,6 @@ function SideQuestsSection({
   );
 }
 
-function ClaimDialog({
-  quest, attendeeId, onClose, onClaimed,
-}: { quest: Quest; attendeeId: string; onClose: () => void; onClaimed: () => void }) {
-  const [file, setFile] = useState<File | null>(null);
-  const [preview, setPreview] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  const handleFile = (f: File | null) => { setFile(f); setPreview(f ? URL.createObjectURL(f) : null); };
-
-  const submit = async () => {
-    if (!file) return toast.error("Photo required.");
-    if (file.size > 8 * 1024 * 1024) return toast.error("Max 8 MB.");
-    setSubmitting(true);
-    try {
-      const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
-      const path = `${attendeeId}/${quest.id}-${Date.now()}.${ext}`;
-      const up = await supabase.storage.from("quest-photos").upload(path, file, { contentType: file.type });
-      if (up.error) throw up.error;
-      const { data: pub } = supabase.storage.from("quest-photos").getPublicUrl(path);
-      const { error: cErr } = await supabase.rpc("claim_quest_anon", {
-        _attendee_id: attendeeId, _quest_id: quest.id, _photo_url: pub.publicUrl,
-      });
-      if (cErr) throw cErr;
-      toast.success(`+${quest.points_awarded} pts`);
-      onClaimed();
-      onClose();
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : "Failed to claim";
-      toast.error(msg.includes("duplicate") ? "Already claimed" : msg);
-    } finally { setSubmitting(false); }
-  };
-
-  return (
-    <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{quest.emoji} {quest.title}</DialogTitle>
-          <DialogDescription>{quest.description}</DialogDescription>
-        </DialogHeader>
-        <div className="space-y-3">
-          <input ref={inputRef} type="file" accept="image/*" capture="environment" className="hidden"
-            onChange={(e) => handleFile(e.target.files?.[0] ?? null)} />
-          {preview ? (
-            <img src={preview} alt="preview" className="w-full max-h-72 object-cover border border-border" />
-          ) : (
-            <button type="button" onClick={() => inputRef.current?.click()}
-              className="w-full h-40 border border-dashed border-border grid place-items-center text-muted-foreground hover:border-lime hover:text-lime transition">
-              <div className="text-center"><Camera className="h-6 w-6 mx-auto mb-2" /><p className="text-sm">Tap to upload proof photo</p></div>
-            </button>
-          )}
-          {preview && <Button variant="outline" size="sm" onClick={() => inputRef.current?.click()}>Change photo</Button>}
-        </div>
-        <DialogFooter>
-          <Button variant="ghost" onClick={onClose} disabled={submitting}>Cancel</Button>
-          <Button onClick={submit} disabled={!file || submitting} className="bg-lime hover:opacity-90">
-            {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-            Claim +{quest.points_awarded}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
 
 function GroupSubmitDialog({
   quest, groupId, attendeeId, onClose, onSubmitted,

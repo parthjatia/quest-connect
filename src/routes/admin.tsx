@@ -137,7 +137,7 @@ function AdminPage() {
 
   const signOut = () => { setLocalAdmin(false); navigate({ to: "/" }); };
 
-  const totalPoints = (attendees.data ?? []).reduce((s, a) => s + a.points, 0);
+  const totalPoints = (quests.data ?? []).reduce((s, q) => s + (q.points_awarded ?? 0), 0);
   const podCount = groups.data?.length ?? 0;
 
   return (
