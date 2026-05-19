@@ -165,6 +165,40 @@ function AdminPage() {
     } finally { setClearing(false); }
   };
 
+  const [seeding, setSeeding] = useState(false);
+  const seedMockAttendees = async () => {
+    const existing = attendees.data?.length ?? 0;
+    if (existing > 0 && !confirm(`There are already ${existing} attendees. Add 100 more mock attendees?`)) return;
+    setSeeding(true);
+    try {
+      const aiMap: Record<string, "beginner" | "intermediate" | "power_user"> = {
+        beginner: "beginner",
+        intermediate: "intermediate",
+        advanced: "power_user",
+        "power user": "power_user",
+        power_user: "power_user",
+      };
+      const rows = MOCK_ATTENDEES.slice(0, 100).map((m) => ({
+        user_id: null,
+        full_name: m.name,
+        university: m.university,
+        academic_background: m.background,
+        ai_experience: aiMap[m.ai_level.trim().toLowerCase()] ?? "beginner",
+        track_intent: trackValueFromLabel(m.track),
+        event_goal: goalValueFromLabel(m.goal),
+        track: m.track,
+        late: false,
+        points: 0,
+      }));
+      const { error } = await supabase.from("attendees").insert(rows);
+      if (error) throw error;
+      toast.success(`Seeded ${rows.length} mock attendees`);
+      qc.invalidateQueries({ queryKey: ["admin-attendees"] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to seed");
+    } finally { setSeeding(false); }
+  };
+
   const totalPoints = (quests.data ?? []).reduce((s, q) => s + (q.points_awarded ?? 0), 0);
   const podCount = groups.data?.length ?? 0;
 
