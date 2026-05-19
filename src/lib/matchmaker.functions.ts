@@ -15,7 +15,8 @@ export const runLlmMatchmaker = createServerFn({ method: "POST" }).handler(
     clusters: number;
     error?: string;
   }> => {
-    const apiKey = process.env.LOVABLE_API_KEY;
+    const t0 = Date.now();
+
 
     // 1. Clear existing pods
     const { error: clrAttendeesErr } = await supabaseAdmin
