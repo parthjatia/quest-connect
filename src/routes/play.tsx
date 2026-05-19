@@ -9,7 +9,7 @@ import { getLocalAttendee, clearLocalAttendee } from "@/lib/local-attendee";
 import { toast } from "sonner";
 import { Loader2, Camera, LogOut, CheckCircle2, Lock, Upload, Eye, Sparkles, Pencil, Check, X, Clock, Users } from "lucide-react";
 import { QuestSummaryModal } from "@/components/quest-summary-modal";
-import { QuestVisualSummaryModal } from "@/components/quest-visual-summary-modal";
+import { MainQuestRecapModal } from "@/components/recap/main-quest-recap-modal";
 import { VibeMapSection } from "@/components/vibe-map/vibe-map-section";
 
 export const Route = createFileRoute("/play")({
