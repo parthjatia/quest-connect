@@ -263,8 +263,12 @@ function AdminPage() {
         {/* Sponsor quest proposals */}
         <SponsorProposals quests={quests.data ?? []} />
 
+        {/* Pending main-quest photo proofs */}
+        <PendingMainQuestQueue />
+
         {/* Pending side-quest submissions */}
         <PendingSubmissionsQueue />
+
 
 
         {/* Pods — compact list */}
