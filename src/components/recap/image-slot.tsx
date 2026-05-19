@@ -23,6 +23,26 @@ export function ImageSlot({
 }) {
   const ratio = RATIO_CLASS[slot.ratio] ?? "aspect-video";
   const gradient = STYLE_GRADIENTS[slot.styleTag] ?? STYLE_GRADIENTS.storybook;
+
+  if (slot.imageUrl) {
+    return (
+      <div
+        className={cn(
+          "relative w-full overflow-hidden rounded-lg border border-border bg-card",
+          ratio,
+          className,
+        )}
+      >
+        <img
+          src={slot.imageUrl}
+          alt={slot.purpose}
+          className="absolute inset-0 h-full w-full object-cover"
+          loading="lazy"
+        />
+      </div>
+    );
+  }
+
   return (
     <div
       className={cn(
