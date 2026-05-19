@@ -779,3 +779,51 @@ function PendingSubmissionsQueue() {
     </section>
   );
 }
+
+function SponsorProposals({ quests }: { quests: Quest[] }) {
+  const qc = useQueryClient();
+  const pending = quests.filter((q) => q.approval_status === "pending" && q.created_by_sponsor);
+
+  const decide = async (id: string, approve: boolean) => {
+    const status = approve ? "approved" : "rejected";
+    const { error } = await supabase.from("quests").update({ approval_status: status }).eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success(approve ? "Approved — quest is live for attendees" : "Rejected");
+    qc.invalidateQueries({ queryKey: ["admin-quests"] });
+  };
+
+  if (pending.length === 0) return null;
+
+  return (
+    <section>
+      <div className="flex items-baseline justify-between mb-3">
+        <h2 className="text-lg font-semibold tracking-tight">Sponsor quest proposals</h2>
+        <p className="text-xs text-muted-foreground">{pending.length} awaiting review</p>
+      </div>
+      <div className="grid gap-px bg-border border border-border sm:grid-cols-2 lg:grid-cols-3">
+        {pending.map((q) => (
+          <div key={q.id} className="bg-background p-4 space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-sm font-semibold truncate">{q.emoji} {q.title}</p>
+              <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 border border-yellow-500/50 text-yellow-400">
+                pending
+              </span>
+            </div>
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+              by {q.created_by_sponsor} · +{q.points_awarded} pts
+            </p>
+            <p className="text-xs text-muted-foreground line-clamp-4">{q.description}</p>
+            <div className="flex gap-2 pt-1">
+              <Button size="sm" onClick={() => decide(q.id, true)} className="flex-1 h-7 text-xs bg-lime hover:opacity-90">
+                <Check className="h-3 w-3 mr-1" /> Approve
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => decide(q.id, false)} className="flex-1 h-7 text-xs border-destructive text-destructive hover:bg-destructive/10">
+                <XIcon className="h-3 w-3 mr-1" /> Reject
+              </Button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
