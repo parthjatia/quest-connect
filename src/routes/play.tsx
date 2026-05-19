@@ -92,6 +92,29 @@ function PlayPage() {
     },
   });
 
+  const meets = useQuery({
+    queryKey: ["meets", attendee?.id],
+    enabled: !!attendee,
+    queryFn: async () => {
+      const { data: rows, error } = await supabase
+        .from("attendee_meets")
+        .select("met_attendee_id, created_at")
+        .eq("attendee_id", attendee!.id)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      const ids = (rows ?? []).map((r) => r.met_attendee_id);
+      if (ids.length === 0) return [] as Array<{ met_attendee_id: string; created_at: string; full_name: string | null; university: string | null }>;
+      const { data: people } = await supabase.from("attendees").select("id, full_name, university").in("id", ids);
+      const byId = new Map((people ?? []).map((p) => [p.id, p]));
+      return (rows ?? []).map((r) => ({
+        met_attendee_id: r.met_attendee_id,
+        created_at: r.created_at,
+        full_name: byId.get(r.met_attendee_id)?.full_name ?? null,
+        university: byId.get(r.met_attendee_id)?.university ?? null,
+      }));
+    },
+  });
+
   const quests = useQuery({
     queryKey: ["quests"],
     queryFn: async () => {
@@ -237,6 +260,18 @@ function PlayPage() {
             onVerified={() => qc.invalidateQueries({ queryKey: ["verifications"] })}
           />
         )}
+
+        <NetworkPanel
+          attendeeId={attendee.id}
+          podVerifiedCount={new Set((verifications.data ?? []).filter((v) => v.verifier_id === attendee.id).map((v) => v.verified_id)).size}
+          meets={meets.data ?? []}
+          onMeet={() => {
+            qc.invalidateQueries({ queryKey: ["meets"] });
+            qc.invalidateQueries({ queryKey: ["me"] });
+          }}
+        />
+
+
 
         {/* Main quests timeline */}
         <MainQuestTimeline
@@ -643,5 +678,121 @@ function GroupSubmitDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+type MeetEntry = { met_attendee_id: string; created_at: string; full_name: string | null; university: string | null };
+
+function NetworkPanel({
+  attendeeId, podVerifiedCount, meets, onMeet,
+}: {
+  attendeeId: string;
+  podVerifiedCount: number;
+  meets: MeetEntry[];
+  onMeet: () => void;
+}) {
+  const [code, setCode] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const externalCount = meets.length;
+  const total = podVerifiedCount + externalCount;
+  // Ring progress: scale by 20 as a soft goal so circle fills meaningfully
+  const goal = Math.max(20, total + 5);
+  const pct = Math.min(1, total / goal);
+  const r = 56;
+  const c = 2 * Math.PI * r;
+  const dash = c * pct;
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = code.trim();
+    if (trimmed.length < 4) return toast.error("Enter a 4-char code.");
+    setBusy(true);
+    try {
+      const { data, error } = await supabase.rpc("meet_attendee", { _attendee_id: attendeeId, _code: trimmed });
+      if (error) throw error;
+      const res = data as { met_name: string | null; new_connection: boolean } | null;
+      if (res?.new_connection) toast.success(`+2 pts! Met ${res.met_name ?? "attendee"}`);
+      else toast.info(`Already connected with ${res?.met_name ?? "this attendee"}`);
+      setCode("");
+      onMeet();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed";
+      toast.error(
+        msg.includes("pod member") ? "They're in your pod — use pod verify instead." :
+        msg.includes("own code") ? "That's your own code." :
+        msg.includes("no attendee") ? "No attendee with that code." : msg
+      );
+    } finally { setBusy(false); }
+  };
+
+  return (
+    <section className="border border-border bg-card/30">
+      <div className="grid sm:grid-cols-[180px_1fr] divide-y sm:divide-y-0 sm:divide-x divide-border">
+        <div className="p-5 grid place-items-center">
+          <div className="relative h-36 w-36">
+            <svg viewBox="0 0 140 140" className="h-full w-full -rotate-90">
+              <circle cx="70" cy="70" r={r} fill="none" stroke="hsl(var(--border))" strokeWidth="8" />
+              <circle
+                cx="70" cy="70" r={r} fill="none"
+                stroke="oklch(0.86 0.18 130)" strokeWidth="8" strokeLinecap="round"
+                strokeDasharray={`${dash} ${c}`}
+                style={{ transition: "stroke-dasharray 600ms ease" }}
+              />
+            </svg>
+            <div className="absolute inset-0 grid place-items-center text-center">
+              <div>
+                <p className="text-3xl font-bold leading-none">{total}</p>
+                <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mt-1">connected</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="p-5 space-y-4">
+          <div className="flex items-center gap-2">
+            <Users className="h-4 w-4 text-lime" />
+            <h2 className="text-lg font-semibold tracking-tight">Your network</h2>
+          </div>
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <div className="border border-border p-3">
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Pod members</p>
+              <p className="text-xl font-semibold text-lime mt-1">{podVerifiedCount}</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">+4 pts each</p>
+            </div>
+            <div className="border border-border p-3">
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">New connections</p>
+              <p className="text-xl font-semibold text-lime mt-1">{externalCount}</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">+2 pts each</p>
+            </div>
+          </div>
+
+          <form onSubmit={submit} className="flex gap-2">
+            <Input
+              value={code}
+              onChange={(e) => setCode(e.target.value.toUpperCase())}
+              placeholder="Enter their 4-char code"
+              maxLength={4}
+              className="bg-background border-border font-mono tracking-[0.3em] uppercase"
+            />
+            <Button type="submit" disabled={busy} className="bg-lime hover:opacity-90 shrink-0">
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Exchange"}
+            </Button>
+          </form>
+
+          {meets.length > 0 && (
+            <div>
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Recent</p>
+              <ul className="flex flex-wrap gap-1.5">
+                {meets.slice(0, 12).map((m) => (
+                  <li key={m.met_attendee_id} className="text-[11px] border border-border px-2 py-1 text-muted-foreground">
+                    {m.full_name ?? "Attendee"}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
   );
 }
