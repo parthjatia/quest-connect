@@ -21,17 +21,26 @@ type Props = {
 
 const INSET = 0.88;
 
-// Single-hue lime ramp — only opacity varies with intensity.
+// Heat ramp: quiet (muted) → warm (yellow) → hot (orange) → very-hot (red) → top match (lime ring handled separately)
 function heatFill(h: HeatLevel, intensity: number) {
-  if (h === "cold") return "oklch(0.22 0.015 250 / 0.55)";
-  const a = 0.18 + intensity * 0.45;
-  return `oklch(0.88 0.20 130 / ${a})`;
+  const a = 0.25 + intensity * 0.5;
+  switch (h) {
+    case "very-hot": return `oklch(0.7 0.24 25 / ${a})`;
+    case "hot":      return `oklch(0.78 0.2 55 / ${a})`;
+    case "warm":     return `oklch(0.86 0.17 90 / ${a * 0.85})`;
+    case "cold":     return "oklch(0.22 0.015 250 / 0.55)";
+  }
 }
 
 function heatGlow(h: HeatLevel, intensity: number) {
   if (h === "cold") return "transparent";
-  const a = 0.10 + intensity * 0.28;
-  return `oklch(0.88 0.22 130 / ${a})`;
+  const a = 0.12 + intensity * 0.28;
+  switch (h) {
+    case "very-hot": return `oklch(0.72 0.26 25 / ${a})`;
+    case "hot":      return `oklch(0.8 0.22 55 / ${a})`;
+    case "warm":     return `oklch(0.88 0.18 90 / ${a})`;
+    default:         return "transparent";
+  }
 }
 
 function bubbleRect(layout: { x: number; y: number; w: number; h: number }) {
@@ -200,9 +209,9 @@ export function Floorplan({ zones, selectedZone, bestZone, onSelectZone, youZone
 
       <div className="mt-4 flex flex-wrap items-center gap-3 text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
         <LegendDot className="bg-[oklch(0.22_0.015_250)]" label="quiet" />
-        <LegendDot className="bg-[oklch(0.88_0.20_130/0.35)]" label="some" />
-        <LegendDot className="bg-[oklch(0.88_0.20_130/0.6)]" label="strong" />
-        <LegendDot className="bg-[oklch(0.88_0.20_130)]" label="top match" />
+        <LegendDot className="bg-[oklch(0.86_0.17_90)]" label="warm" />
+        <LegendDot className="bg-[oklch(0.78_0.2_55)]" label="hot" />
+        <LegendDot className="bg-[oklch(0.7_0.24_25)]" label="very hot" />
         {bestZone && (
           <span className="flex items-center gap-1.5">
             <span className="inline-block h-2.5 w-2.5 rounded-full border-2 border-lime/60" />
