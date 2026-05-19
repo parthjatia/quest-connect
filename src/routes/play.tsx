@@ -578,81 +578,198 @@ function MainQuestTimeline({
 }
 
 function SideQuestsSection({
-  quests, submissionByQuest, locked, lockedReason, onSubmit, onSummary,
+  quests, submissionByQuest, completedMap, locked, lockedReason, onSubmit, onSponsorClaim, onSummary,
 }: {
   quests: Quest[];
   submissionByQuest: Map<string, Submission>;
+  completedMap: Map<string, CompletedRow>;
   locked: boolean;
   lockedReason: string;
   onSubmit: (q: Quest) => void;
+  onSponsorClaim: (q: Quest) => void;
   onSummary: (q: Quest) => void;
 }) {
+  const podQuests = quests.filter((q) => !q.created_by_sponsor);
+  const sponsorQuests = quests.filter((q) => !!q.created_by_sponsor);
+
   return (
-    <section>
-      <div className="flex items-baseline justify-between mb-3">
-        <h2 className="text-lg font-semibold tracking-tight">Side quests</h2>
-        <p className={`text-xs ${locked ? "text-lime" : "text-muted-foreground"}`}>
-          {locked ? lockedReason : "Group challenges · admin approves"}
-        </p>
-      </div>
-      {quests.length === 0 ? (
-        <div className="border border-border p-8 text-center text-sm text-muted-foreground">No side quests yet.</div>
-      ) : (
-        <div className={`relative grid gap-px bg-border border border-border sm:grid-cols-2 lg:grid-cols-3 ${locked ? "opacity-40 pointer-events-none" : ""}`}>
-          {quests.map((q) => {
-            const sub = submissionByQuest.get(q.id);
-            return (
-              <div key={q.id} className="bg-background p-4 flex flex-col gap-2">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className="text-lg" aria-hidden>{q.emoji ?? "⭐"}</span>
-                    <h3 className="font-medium text-sm truncate">{q.title}</h3>
+    <section className="space-y-6">
+      <div>
+        <div className="flex items-baseline justify-between mb-3">
+          <h2 className="text-lg font-semibold tracking-tight">Side quests</h2>
+          <p className={`text-xs ${locked ? "text-lime" : "text-muted-foreground"}`}>
+            {locked ? lockedReason : "Group challenges · admin approves"}
+          </p>
+        </div>
+        {podQuests.length === 0 ? (
+          <div className="border border-border p-8 text-center text-sm text-muted-foreground">No side quests yet.</div>
+        ) : (
+          <div className={`relative grid gap-px bg-border border border-border sm:grid-cols-2 lg:grid-cols-3 ${locked ? "opacity-40 pointer-events-none" : ""}`}>
+            {podQuests.map((q) => {
+              const sub = submissionByQuest.get(q.id);
+              return (
+                <div key={q.id} className="bg-background p-4 flex flex-col gap-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="text-lg" aria-hidden>{q.emoji ?? "⭐"}</span>
+                      <h3 className="font-medium text-sm truncate">{q.title}</h3>
+                    </div>
+                    <span className="text-xs font-semibold text-lime shrink-0">+{q.points_awarded}</span>
                   </div>
-                  <span className="text-xs font-semibold text-lime shrink-0">+{q.points_awarded}</span>
+                  <p className="text-xs text-muted-foreground line-clamp-2">{q.description}</p>
+                  {sub?.photo_url && <img src={sub.photo_url} alt="" className="h-20 w-full object-cover border border-border" />}
+                  <div className="mt-auto pt-2">
+                    {!sub && (
+                      <Button size="sm" onClick={() => onSubmit(q)} className="w-full bg-lime hover:opacity-90 h-7 text-xs">
+                        <Upload className="h-3 w-3 mr-1" /> Submit for pod
+                      </Button>
+                    )}
+                    {sub?.status === "pending" && (
+                      <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider text-yellow-400 border border-yellow-500/50 px-1.5 py-0.5">
+                        <Clock className="h-3 w-3" /> Awaiting admin
+                      </span>
+                    )}
+                    {sub?.status === "approved" && (
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider text-lime">
+                          <CheckCircle2 className="h-3 w-3" /> Approved
+                        </span>
+                        <Button variant="outline" size="sm" onClick={() => onSummary(q)} className="h-6 text-xs border-border hover:border-lime hover:text-lime">
+                          <Eye className="h-3 w-3 mr-1" /> Summary
+                        </Button>
+                      </div>
+                    )}
+                    {sub?.status === "rejected" && (
+                      <div className="space-y-1">
+                        <span className="text-[10px] uppercase tracking-wider text-destructive">Rejected{sub.reviewer_note ? ` — ${sub.reviewer_note}` : ""}</span>
+                        <Button size="sm" onClick={() => onSubmit(q)} className="w-full bg-lime hover:opacity-90 h-6 text-xs">Resubmit</Button>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <p className="text-xs text-muted-foreground line-clamp-2">{q.description}</p>
-                {sub?.photo_url && <img src={sub.photo_url} alt="" className="h-20 w-full object-cover border border-border" />}
-                <div className="mt-auto pt-2">
-                  {!sub && (
-                    <Button size="sm" onClick={() => onSubmit(q)} className="w-full bg-lime hover:opacity-90 h-7 text-xs">
-                      <Upload className="h-3 w-3 mr-1" /> Submit for pod
-                    </Button>
+              );
+            })}
+            {locked && (
+              <div className="absolute inset-0 grid place-items-center">
+                <div className="bg-background border border-lime px-4 py-2 text-xs text-lime inline-flex items-center gap-2 pointer-events-auto">
+                  <Lock className="h-3 w-3" /> Locked
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div>
+        <div className="flex items-baseline justify-between mb-3">
+          <h2 className="text-lg font-semibold tracking-tight">Sponsor challenges</h2>
+          <p className="text-xs text-muted-foreground">Submit a proof link · sponsor reviews</p>
+        </div>
+        {sponsorQuests.length === 0 ? (
+          <div className="border border-border p-8 text-center text-sm text-muted-foreground">No sponsor challenges yet.</div>
+        ) : (
+          <div className="grid gap-px bg-border border border-border sm:grid-cols-2 lg:grid-cols-3">
+            {sponsorQuests.map((q) => {
+              const c = completedMap.get(q.id);
+              const status = c?.verification_status;
+              return (
+                <div key={q.id} className="bg-background p-4 flex flex-col gap-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="text-lg" aria-hidden>{q.emoji ?? "⭐"}</span>
+                      <h3 className="font-medium text-sm truncate">{q.title}</h3>
+                    </div>
+                    <span className="text-xs font-semibold text-lime shrink-0">+{q.points_awarded}</span>
+                  </div>
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">by {q.created_by_sponsor}</p>
+                  <p className="text-xs text-muted-foreground line-clamp-2">{q.description}</p>
+                  {c?.proof_link && (
+                    <a href={c.proof_link} target="_blank" rel="noopener noreferrer" className="text-[11px] text-lime underline truncate">{c.proof_link}</a>
                   )}
-                  {sub?.status === "pending" && (
-                    <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider text-yellow-400 border border-yellow-500/50 px-1.5 py-0.5">
-                      <Clock className="h-3 w-3" /> Awaiting admin
-                    </span>
-                  )}
-                  {sub?.status === "approved" && (
-                    <div className="flex items-center justify-between gap-2">
+                  <div className="mt-auto pt-2">
+                    {(!c || status === "rejected") && (
+                      <>
+                        {status === "rejected" && (
+                          <p className="text-[10px] uppercase tracking-wider text-destructive mb-1">
+                            Rejected{c?.reviewer_note ? ` — ${c.reviewer_note}` : ""}
+                          </p>
+                        )}
+                        <Button size="sm" onClick={() => onSponsorClaim(q)} className="w-full bg-lime hover:opacity-90 h-7 text-xs">
+                          <Upload className="h-3 w-3 mr-1" /> {status === "rejected" ? "Resubmit link" : "Submit link"}
+                        </Button>
+                      </>
+                    )}
+                    {status === "pending" && (
+                      <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider text-yellow-400 border border-yellow-500/50 px-1.5 py-0.5">
+                        <Clock className="h-3 w-3" /> Pending sponsor review
+                      </span>
+                    )}
+                    {status === "approved" && (
                       <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider text-lime">
                         <CheckCircle2 className="h-3 w-3" /> Approved
                       </span>
-                      <Button variant="outline" size="sm" onClick={() => onSummary(q)} className="h-6 text-xs border-border hover:border-lime hover:text-lime">
-                        <Eye className="h-3 w-3 mr-1" /> Summary
-                      </Button>
-                    </div>
-                  )}
-                  {sub?.status === "rejected" && (
-                    <div className="space-y-1">
-                      <span className="text-[10px] uppercase tracking-wider text-destructive">Rejected{sub.reviewer_note ? ` — ${sub.reviewer_note}` : ""}</span>
-                      <Button size="sm" onClick={() => onSubmit(q)} className="w-full bg-lime hover:opacity-90 h-6 text-xs">Resubmit</Button>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-          {locked && (
-            <div className="absolute inset-0 grid place-items-center">
-              <div className="bg-background border border-lime px-4 py-2 text-xs text-lime inline-flex items-center gap-2 pointer-events-auto">
-                <Lock className="h-3 w-3" /> Locked
-              </div>
-            </div>
-          )}
-        </div>
-      )}
+              );
+            })}
+          </div>
+        )}
+      </div>
     </section>
+  );
+}
+
+function SponsorLinkClaimDialog({
+  quest, attendeeId, onClose, onSubmitted,
+}: { quest: Quest; attendeeId: string; onClose: () => void; onSubmitted: () => void }) {
+  const [link, setLink] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const submit = async () => {
+    const v = link.trim();
+    if (!v) return toast.error("Paste a proof link.");
+    try {
+      new URL(v);
+    } catch {
+      return toast.error("Must be a valid URL (https://…)");
+    }
+    setBusy(true);
+    try {
+      const { error } = await supabase.rpc("claim_sponsor_quest", {
+        _attendee_id: attendeeId, _quest_id: quest.id, _proof_link: v,
+      });
+      if (error) throw error;
+      toast.success("Submitted — sponsor will review");
+      onSubmitted();
+      onClose();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed");
+    } finally { setBusy(false); }
+  };
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{quest.emoji} {quest.title}</DialogTitle>
+          <DialogDescription>
+            Submit a link the sponsor can open to verify (e.g. a tweet, repo, demo, doc). Points awarded after the sponsor approves.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-2">
+          <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Proof link</label>
+          <Input value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://…" className="bg-background border-border" />
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose} disabled={busy}>Cancel</Button>
+          <Button onClick={submit} disabled={!link.trim() || busy} className="bg-lime hover:opacity-90">
+            {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+            Submit to sponsor
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
