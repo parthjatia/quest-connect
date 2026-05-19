@@ -391,6 +391,18 @@ function PlayPage() {
         />
       )}
 
+      {activeMainClaim && (
+        <MainQuestClaimDialog
+          quest={activeMainClaim}
+          attendeeId={attendee.id}
+          onClose={() => setActiveMainClaim(null)}
+          onSubmitted={() => {
+            qc.invalidateQueries({ queryKey: ["completed"] });
+            qc.invalidateQueries({ queryKey: ["me"] });
+          }}
+        />
+      )}
+
       {summaryFor && summaryFor.type === "main" && (
         <MainQuestRecapModal
           open
