@@ -2,8 +2,8 @@ import { createServerFn } from "@tanstack/react-start";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { trackLabel, goalLabel } from "@/lib/attendee-options";
 
-const OPENAI_ENDPOINT = "https://api.openai.com/v1/chat/completions";
-const OPENAI_MODEL = "gpt-5.2";
+const AI_GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
+const AI_MODEL = "google/gemini-2.5-pro";
 
 type Attendee = {
   id: string;
@@ -143,8 +143,8 @@ function buildClusters(attendees: Attendee[]): Cluster[] {
   return clusters;
 }
 
-/** Stage 1: OpenAI diversity pass within a cluster. Returns pods (arrays of attendee ids). */
-async function diversifyClusterWithOpenAI(
+/** Stage 1: Lovable AI (Gemini) diversity pass within a cluster. Returns pods (arrays of attendee ids). */
+async function diversifyClusterWithAI(
   cluster: Cluster,
   apiKey: string,
 ): Promise<{ pods: string[][]; rationales: Map<string, string> }> {
@@ -158,37 +158,46 @@ async function diversifyClusterWithOpenAI(
     goal: goalLabel(a.event_goal),
   }));
 
-  const res = await fetch(OPENAI_ENDPOINT, {
+  const res = await fetch(AI_GATEWAY, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: OPENAI_MODEL,
+      model: AI_MODEL,
       messages: [
         {
           role: "system",
           content:
-            'You are a hackathon matchmaker. The attendees in this cluster already share track and/or goal alignment. Split them into pods of 3-5 members. MAXIMIZE diversity across `uni` (university), `bg` (academic background), `ai` (ai experience level), and `hobbies` — try to make every pod as different internally as possible on those four axes. Every attendee id MUST appear in exactly one pod. Respond ONLY with strict JSON: {"pods":[{"member_ids":["..."],"rationale":"one short sentence about the mix"}]}',
+            'You are a hackathon matchmaker. The attendees in this cluster already share track and/or goal alignment. Split them into pods of 3-5 members. MAXIMIZE diversity across `uni` (university), `bg` (academic background), `ai` (ai experience level), and `hobbies` — try to make every pod as different internally as possible on those four axes. Every attendee id MUST appear in exactly one pod. Respond ONLY with strict JSON, no markdown fences: {"pods":[{"member_ids":["..."],"rationale":"one short sentence about the mix"}]}',
         },
         {
           role: "user",
           content: `Cluster: ${cluster.label}\nMembers:\n${JSON.stringify(compact)}`,
         },
       ],
-      response_format: { type: "json_object" },
     }),
   });
 
-  if (res.status === 429) throw new Error("OpenAI rate limited (429)");
-  if (res.status === 402) throw new Error("OpenAI quota exhausted (402)");
-  if (res.status === 401) throw new Error("OpenAI auth failed (401) — check OPENAI_API_KEY");
-  if (!res.ok) throw new Error(`OpenAI ${res.status}: ${(await res.text()).slice(0, 200)}`);
+  if (res.status === 429) throw new Error("AI rate limited (429)");
+  if (res.status === 402) throw new Error("AI credits exhausted (402) — add credits in workspace settings");
+  if (res.status === 401) throw new Error("AI auth failed (401) — check LOVABLE_API_KEY");
+  if (!res.ok) throw new Error(`AI ${res.status}: ${(await res.text()).slice(0, 200)}`);
 
   const j = await res.json();
   const raw: string = j?.choices?.[0]?.message?.content ?? "{}";
-  const parsed = JSON.parse(raw);
+  // Strip markdown fences if present
+  const cleaned = raw.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
+  const jsonStart = cleaned.search(/[{[]/);
+  const jsonEnd = cleaned.lastIndexOf("}");
+  const sliced = jsonStart >= 0 && jsonEnd > jsonStart ? cleaned.slice(jsonStart, jsonEnd + 1) : cleaned;
+  let parsed: { pods?: Array<{ member_ids?: unknown; rationale?: unknown }> } = {};
+  try {
+    parsed = JSON.parse(sliced);
+  } catch (e) {
+    throw new Error(`AI returned invalid JSON: ${(e instanceof Error ? e.message : String(e)).slice(0, 120)}`);
+  }
 
   const validIds = new Set(cluster.members.map((a) => a.id));
   const seen = new Set<string>();
@@ -196,10 +205,11 @@ async function diversifyClusterWithOpenAI(
   const rationales = new Map<string, string>();
 
   for (const p of parsed.pods ?? []) {
-    const clean = (p.member_ids ?? []).filter(
-      (id: unknown) => typeof id === "string" && validIds.has(id) && !seen.has(id),
+    const ids = Array.isArray(p.member_ids) ? p.member_ids : [];
+    const clean = ids.filter(
+      (id: unknown): id is string => typeof id === "string" && validIds.has(id) && !seen.has(id),
     );
-    clean.forEach((id: string) => seen.add(id));
+    clean.forEach((id) => seen.add(id));
     if (clean.length > 0) {
       pods.push(clean);
       if (typeof p.rationale === "string" && p.rationale.trim()) {
@@ -219,11 +229,11 @@ async function diversifyClusterWithOpenAI(
 export const runLlmMatchmaker = createServerFn({ method: "POST" }).handler(
   async (): Promise<{
     pods_created: number;
-    method: "openai" | "mixed" | "heuristic";
+    method: "ai" | "mixed" | "heuristic";
     clusters: number;
     error?: string;
   }> => {
-    const apiKey = process.env.OPENAI_API_KEY;
+    const apiKey = process.env.LOVABLE_API_KEY;
 
     // 1. Clear existing pods
     await supabaseAdmin.from("attendees").update({ group_id: null }).not("id", "is", null);
@@ -248,9 +258,9 @@ export const runLlmMatchmaker = createServerFn({ method: "POST" }).handler(
     }
 
     // 4. Per-cluster diversity pass
-    let method: "openai" | "mixed" | "heuristic" = apiKey ? "openai" : "heuristic";
+    let method: "ai" | "mixed" | "heuristic" = apiKey ? "ai" : "heuristic";
     let lastError: string | undefined;
-    let anyOpenAI = false;
+    let anyAI = false;
     let anyHeuristic = false;
 
     type PendingPod = { ids: string[]; cluster: Cluster; rationale?: string };
@@ -261,13 +271,13 @@ export const runLlmMatchmaker = createServerFn({ method: "POST" }).handler(
       let rationales: Map<string, string> = new Map();
       if (apiKey) {
         try {
-          const r = await diversifyClusterWithOpenAI(cluster, apiKey);
+          const r = await diversifyClusterWithAI(cluster, apiKey);
           podsForCluster = r.pods;
           rationales = r.rationales;
-          anyOpenAI = true;
+          anyAI = true;
         } catch (e) {
           lastError = e instanceof Error ? e.message : String(e);
-          console.error(`OpenAI diversify failed for cluster "${cluster.label}":`, lastError);
+          console.error(`AI diversify failed for cluster "${cluster.label}":`, lastError);
           podsForCluster = heuristicSplit(cluster.members.map((a) => a.id));
           anyHeuristic = true;
         }
@@ -280,9 +290,9 @@ export const runLlmMatchmaker = createServerFn({ method: "POST" }).handler(
       }
     }
 
-    if (anyOpenAI && anyHeuristic) method = "mixed";
-    else if (anyHeuristic && !anyOpenAI) method = "heuristic";
-    else if (anyOpenAI) method = "openai";
+    if (anyAI && anyHeuristic) method = "mixed";
+    else if (anyHeuristic && !anyAI) method = "heuristic";
+    else if (anyAI) method = "ai";
 
     if (pending.length === 0) {
       return { pods_created: 0, method, clusters: clusters.length, error: lastError ?? "No pods formed" };
@@ -307,7 +317,7 @@ export const runLlmMatchmaker = createServerFn({ method: "POST" }).handler(
       if (aErr) throw new Error(aErr.message);
     }
 
-    if (!apiKey) lastError = "OPENAI_API_KEY missing";
+    if (!apiKey) lastError = "LOVABLE_API_KEY missing";
 
     return {
       pods_created: pending.length,
