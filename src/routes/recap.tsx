@@ -1,14 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  Sparkles, Upload, FileText, Wand2, Loader2, CheckCircle2, RefreshCw,
+  Sparkles, FileText, Wand2, Loader2, CheckCircle2, RefreshCw,
   ImageIcon, Quote, Layers, BookOpen, Zap, Star, Compass, Target,
-  MessageCircle, Palette, Gauge, X,
+  MessageCircle, Palette, Gauge, Check,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
 import { AppHeader } from "@/components/app-header";
+import { supabase } from "@/integrations/supabase/client";
 import {
   deriveTemplateId,
   type RecapPrefs,
