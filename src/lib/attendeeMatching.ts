@@ -21,9 +21,22 @@ export function arrHasAny(arr: string[], ...tokens: string[]): boolean {
   });
 }
 
-/** Match tokens across multiple string fields flattened. */
-export function fieldsHaveAny(fields: string[], ...tokens: string[]): boolean {
-  return arrHasAny(fields, ...tokens);
+/** Match tokens across multiple string fields flattened. Accepts arrays or strings interleaved with tokens. */
+export function fieldsHaveAny(...args: Array<string | string[]>): boolean {
+  const flat: string[] = [];
+  const tokens: string[] = [];
+  // Heuristic: arrays are fields, trailing strings are tokens.
+  let seenString = false;
+  for (const a of args) {
+    if (Array.isArray(a)) {
+      if (seenString) tokens.push(...a);
+      else flat.push(...a);
+    } else {
+      seenString = true;
+      tokens.push(a);
+    }
+  }
+  return arrHasAny(flat, ...tokens);
 }
 
 export function allFields(...groups: string[][]): string[] {
