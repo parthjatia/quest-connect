@@ -135,7 +135,7 @@ function PlayPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("completed_quests")
-        .select("id, quest_id, quest_photo_url, claimed_at")
+        .select("id, quest_id, quest_photo_url, claimed_at, verification_status, proof_link, reviewer_note")
         .eq("attendee_id", attendee!.id);
       if (error) throw error;
       return (data ?? []) as CompletedRow[];
