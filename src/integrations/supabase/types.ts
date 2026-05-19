@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      attendee_meets: {
+        Row: {
+          attendee_id: string
+          created_at: string
+          id: string
+          met_attendee_id: string
+        }
+        Insert: {
+          attendee_id: string
+          created_at?: string
+          id?: string
+          met_attendee_id: string
+        }
+        Update: {
+          attendee_id?: string
+          created_at?: string
+          id?: string
+          met_attendee_id?: string
+        }
+        Relationships: []
+      }
       attendees: {
         Row: {
           academic_background: string | null
@@ -32,9 +53,11 @@ export type Database = {
           interests: string[] | null
           late: boolean
           looking_for: string | null
+          meet_bonus_points: number
           met_attendee_ids: string[] | null
           onboarded: boolean
           personality_tags: string[] | null
+          pod_bonus_points: number
           points: number
           quest_activity_score: number
           skills: string[] | null
@@ -65,9 +88,11 @@ export type Database = {
           interests?: string[] | null
           late?: boolean
           looking_for?: string | null
+          meet_bonus_points?: number
           met_attendee_ids?: string[] | null
           onboarded?: boolean
           personality_tags?: string[] | null
+          pod_bonus_points?: number
           points?: number
           quest_activity_score?: number
           skills?: string[] | null
@@ -98,9 +123,11 @@ export type Database = {
           interests?: string[] | null
           late?: boolean
           looking_for?: string | null
+          meet_bonus_points?: number
           met_attendee_ids?: string[] | null
           onboarded?: boolean
           personality_tags?: string[] | null
+          pod_bonus_points?: number
           points?: number
           quest_activity_score?: number
           skills?: string[] | null
@@ -385,6 +412,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      meet_attendee: {
+        Args: { _attendee_id: string; _code: string }
+        Returns: Json
       }
       pod_component: { Args: { _attendee_id: string }; Returns: string[] }
       recalc_attendee_points: {

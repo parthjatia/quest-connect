@@ -1,45 +1,52 @@
-## 1. Pods in a compact window (admin)
-File: `src/routes/admin.tsx`
 
-Wrap the existing "Pods" section in the same compact scrollable container the Attendees table uses (`border border-border max-h-[480px] overflow-auto`). Each pod becomes a single-row entry with: pod name, member count badge, and a comma-separated list of member names + their 4-char verify codes — instead of the current full-grid cards. This matches the attendee table's visual density.
+## 1. Remove Quest Transcripts from admin + label sponsor quests
 
-## 2. Remove /onboarding
-- Delete `src/routes/onboarding.tsx`.
-- In `src/routes/dashboard.tsx` (line 41), remove the `useEffect` that navigates to `/onboarding` when `me.data.onboarded` is false.
-- The router tree (`routeTree.gen.ts`) will auto-regenerate.
+`src/routes/admin.tsx`:
+- Remove the "Quest Transcripts" section/block entirely (and any related transcript upload UI tied to it).
+- In the quest list rows, when `created_by_sponsor` is set, render a small `SPONSOR QUEST · {handle}` badge next to the MAIN/SIDE badge (replaces or supplements the SIDE label visually).
 
-## 3. Sponsor login + custom side quests with admin approval
+## 2. +4 pts per new pod member unlocked
 
-### DB migration (one migration call)
-Add to existing `quests` table:
-- `created_by_sponsor text NULL` — sponsor handle that submitted it
-- `approval_status text NOT NULL DEFAULT 'approved'` (values: `pending`, `approved`, `rejected`) — existing quests default to approved
-- RLS: allow anon/auth `INSERT` only when `type='side'` AND `approval_status='pending'` AND `created_by_sponsor IS NOT NULL`
+New mechanism so verifications award points (today `recalc_attendee_points` only sums completed quests).
 
-### Sponsor sign-in (`src/routes/auth.tsx`)
-Add a third auth mode: `mode=sponsor`. Sponsor enters a handle (e.g. `sponsor1`) — no password, just stored in localStorage via a new helper `setLocalSponsor(handle)` in `src/lib/local-attendee.ts`. Add a switcher link "Are you a sponsor?".
+DB migration:
+- Add `pod_bonus_points int NOT NULL DEFAULT 0` to `attendees`.
+- Replace `recalc_attendee_points` so it returns `completed_quest_points + pod_bonus_points + meet_bonus_points` (see §3).
+- New trigger `on_pod_verification_award` AFTER INSERT on `pod_verifications`: for each new row, +4 to `verifier_id`'s `pod_bonus_points` and +4 to `verified_id`'s `pod_bonus_points` (both sides unlock each other), then call recalc on both.
 
-### Sponsor dashboard (`src/routes/sponsor.tsx`)
-Replace the current Sponsor Radar page content with a simple sponsor portal:
-- Header showing sponsor handle + sign out
-- Card "Propose a side quest" — form with title, description, emoji, points (5/10/15), submit button
-- Card "My submitted quests" — lists this sponsor's quests with status badge (pending/approved/rejected)
-- Guard: redirect to `/auth?mode=sponsor` if no local sponsor handle
-- The existing Sponsor Radar feature is moved to `/sponsor-radar` (separate route file) so we don't lose it.
+No client code change required — the existing `verify_pod_member` RPC flow already inserts into `pod_verifications`.
 
-### Admin approval (`src/routes/admin.tsx`)
-New section "Sponsor quest proposals" listing quests where `approval_status='pending'`. Each card: sponsor handle, title, description, points, Approve / Reject buttons that update `approval_status`.
+## 3. Meet attendees outside your pod (+2 pts each) + Network dashboard
 
-### Attendee visibility
-Update `src/routes/play.tsx` (and any other place quests are read for attendees) to filter `approval_status='approved'` so pending sponsor quests don't appear until approved.
+DB migration (same migration as §2):
+- Add `meet_bonus_points int NOT NULL DEFAULT 0` to `attendees`.
+- New table `attendee_meets`:
+  - `id uuid pk`, `attendee_id uuid`, `met_attendee_id uuid`, `created_at timestamptz default now()`
+  - unique `(attendee_id, met_attendee_id)`, check `attendee_id <> met_attendee_id`
+  - RLS: anon + authed insert/select (matches existing pattern)
+- New RPC `meet_attendee(_attendee_id uuid, _code text)`:
+  - Look up target attendee by `verify_code` (any attendee, not pod-scoped).
+  - Reject if same id or already in same group (those go through pod verify).
+  - Insert two rows (`a→b` and `b→a`), ON CONFLICT DO NOTHING. For each newly inserted row +2 `meet_bonus_points` to that attendee, then recalc.
+  - Also push ids into existing `met_attendee_ids` array on `attendees` for both sides.
+- Trigger is not needed — the RPC handles awarding atomically.
 
-## 4. Clear all attendees (admin)
-New "Danger zone" button in admin header area:
-- Confirms with `confirm("Delete ALL attendees, pods, verifications, completions and submissions? This cannot be undone.")`
-- Runs deletes in order: `pod_verifications`, `completed_quests`, `group_quest_submissions`, `attendees`, then `groups` (cascade-safe order). Uses supabase client (RLS already allows anon/authed manage on these).
-- Toast on success; invalidates `admin-attendees`, `admin-groups`, `admin-pending-submissions`.
+Frontend (`src/routes/play.tsx`):
+- New "Your network" card with:
+  - Big circular SVG ring graphic showing total unique people met (pod verifications count + attendee_meets count); center number = total met, subtitle "people connected".
+  - Small breakdown: `X pod members · Y new connections`.
+  - Input + button "Exchange code" — calls `meet_attendee` RPC. Toast "+2 pts! Met {name}" on success, or "already connected" / "use pod verify instead" as appropriate.
+- Queries:
+  - `useQuery(["meets", me.id])` selecting from `attendee_meets` where `attendee_id = me.id`, joined to attendees for names.
+  - Reuse existing pod verification count.
+
+## 4. Sponsor Radar link in sponsor portal
+
+`src/routes/sponsor.tsx`:
+- Add a secondary nav button/link in the header (next to sign out) → `<Link to="/sponsor-radar">Sponsor radar</Link>`.
+- Also add a "Open Sponsor Radar" card/CTA in the main content area for visibility.
 
 ## Out of scope
-- No password protection for sponsors (mirrors current attendee 4-char-code simplicity).
-- No email notifications for approvals.
-- Sponsor Radar moves to `/sponsor-radar`; not deleted.
+- No retroactive backfill of points for existing pod_verifications (trigger fires on new inserts only). If the user wants a one-time backfill we can add it after.
+- No leaderboard changes — totals automatically include new bonuses via `recalc_attendee_points`.
+- Quest Transcripts table itself stays in DB (only the admin UI section is removed).
