@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as WrappedRouteImport } from './routes/wrapped'
 import { Route as SponsorRadarRouteImport } from './routes/sponsor-radar'
+import { Route as SponsorRouteImport } from './routes/sponsor'
 import { Route as RecapRouteImport } from './routes/recap'
 import { Route as PlayRouteImport } from './routes/play'
 import { Route as JoinRouteImport } from './routes/join'
@@ -27,6 +28,11 @@ const WrappedRoute = WrappedRouteImport.update({
 const SponsorRadarRoute = SponsorRadarRouteImport.update({
   id: '/sponsor-radar',
   path: '/sponsor-radar',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SponsorRoute = SponsorRouteImport.update({
+  id: '/sponsor',
+  path: '/sponsor',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RecapRoute = RecapRouteImport.update({
@@ -73,6 +79,7 @@ export interface FileRoutesByFullPath {
   '/join': typeof JoinRoute
   '/play': typeof PlayRoute
   '/recap': typeof RecapRoute
+  '/sponsor': typeof SponsorRoute
   '/sponsor-radar': typeof SponsorRadarRoute
   '/wrapped': typeof WrappedRoute
 }
@@ -84,6 +91,7 @@ export interface FileRoutesByTo {
   '/join': typeof JoinRoute
   '/play': typeof PlayRoute
   '/recap': typeof RecapRoute
+  '/sponsor': typeof SponsorRoute
   '/sponsor-radar': typeof SponsorRadarRoute
   '/wrapped': typeof WrappedRoute
 }
@@ -96,6 +104,7 @@ export interface FileRoutesById {
   '/join': typeof JoinRoute
   '/play': typeof PlayRoute
   '/recap': typeof RecapRoute
+  '/sponsor': typeof SponsorRoute
   '/sponsor-radar': typeof SponsorRadarRoute
   '/wrapped': typeof WrappedRoute
 }
@@ -109,6 +118,7 @@ export interface FileRouteTypes {
     | '/join'
     | '/play'
     | '/recap'
+    | '/sponsor'
     | '/sponsor-radar'
     | '/wrapped'
   fileRoutesByTo: FileRoutesByTo
@@ -120,6 +130,7 @@ export interface FileRouteTypes {
     | '/join'
     | '/play'
     | '/recap'
+    | '/sponsor'
     | '/sponsor-radar'
     | '/wrapped'
   id:
@@ -131,6 +142,7 @@ export interface FileRouteTypes {
     | '/join'
     | '/play'
     | '/recap'
+    | '/sponsor'
     | '/sponsor-radar'
     | '/wrapped'
   fileRoutesById: FileRoutesById
@@ -143,6 +155,7 @@ export interface RootRouteChildren {
   JoinRoute: typeof JoinRoute
   PlayRoute: typeof PlayRoute
   RecapRoute: typeof RecapRoute
+  SponsorRoute: typeof SponsorRoute
   SponsorRadarRoute: typeof SponsorRadarRoute
   WrappedRoute: typeof WrappedRoute
 }
@@ -161,6 +174,13 @@ declare module '@tanstack/react-router' {
       path: '/sponsor-radar'
       fullPath: '/sponsor-radar'
       preLoaderRoute: typeof SponsorRadarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sponsor': {
+      id: '/sponsor'
+      path: '/sponsor'
+      fullPath: '/sponsor'
+      preLoaderRoute: typeof SponsorRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/recap': {
@@ -223,6 +243,7 @@ const rootRouteChildren: RootRouteChildren = {
   JoinRoute: JoinRoute,
   PlayRoute: PlayRoute,
   RecapRoute: RecapRoute,
+  SponsorRoute: SponsorRoute,
   SponsorRadarRoute: SponsorRadarRoute,
   WrappedRoute: WrappedRoute,
 }
