@@ -219,7 +219,14 @@ function AdminPage() {
       </header>
 
       <main className="mx-auto max-w-6xl px-6 py-8 space-y-8">
+        <section className="rounded-3xl bg-swoosh-6 px-8 py-10 sm:px-10 sm:py-12">
+          <p className="wrapped-kicker text-white/90 mb-3">Control room</p>
+          <h1 className="wrapped-headline-md text-white">Run the event</h1>
+          <p className="text-sm text-white/80 mt-3">Attendees, quests, pods, and sponsor activations — all in one place.</p>
+        </section>
+
         {/* Stats strip */}
+
         <section className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-border border border-border">
           <Stat label="Attendees" value={attendees.data?.length ?? 0} />
           <Stat label="Total points" value={totalPoints} />

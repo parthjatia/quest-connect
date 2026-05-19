@@ -21,15 +21,19 @@ function Landing() {
       </header>
 
       <main className="flex-1 mx-auto max-w-5xl w-full px-6 py-20">
-        <div className="max-w-2xl">
-          <p className="text-lime text-xs uppercase tracking-[0.2em] mb-4">Event OS</p>
-          <h1 className="text-4xl sm:text-5xl font-semibold tracking-tight leading-[1.05]">
-            One event.<br />Three lenses.
-          </h1>
-          <p className="text-muted-foreground mt-4 text-base">
-            Run it. Play it. Sponsor it.
-          </p>
+        <div className="relative overflow-hidden rounded-3xl bg-swoosh-1 px-8 py-16 sm:px-12 sm:py-20">
+          <div className="max-w-2xl relative z-10">
+            <p className="wrapped-kicker text-white/90 mb-5">Event OS</p>
+            <h1 className="wrapped-headline text-white">
+              One event.<br />Three lenses.
+            </h1>
+            <p className="text-white/85 mt-6 text-base sm:text-lg">
+              Run it. Play it. Sponsor it.
+            </p>
+          </div>
         </div>
+
+
 
         <div className="grid gap-6 mt-12 sm:grid-cols-3">
           <DoorCard

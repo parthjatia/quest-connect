@@ -1,66 +1,47 @@
-## Event Wrapped — Spotify-style slideshow
+## Goal
+Apply the Wrapped visual language across the entire app, in a navy-blue base with cyan-blue accents. Gradient swooshes used as accents only (hero sections, key CTAs, badges, progress bars). Typography: big extrabold display headlines + uppercase tracked kickers on every page; body text stays as-is.
 
-### Entry point
-- In `src/routes/play.tsx`, directly under the Side Quests section, add a full-width gradient button: **"View your Event Wrapped →"**. Disabled with hint "Submit at least one quest first" if the attendee has zero approved quests and zero connections; otherwise enabled.
-- Clicking navigates to a new route `/wrapped`.
+## Visual system (locked, used everywhere)
 
-### New route: `src/routes/wrapped.tsx`
-A full-screen, one-slide-at-a-time deck. Each slide fills the viewport with a bold gradient background and large display typography, mirroring the reference image (Spotify Wrapped 2024 cards: dark base, vibrant gradient swooshes, big bold headline, small kicker label, supporting line beneath).
+**Base colors** — update `src/styles.css` `:root`:
+- `--background`: deep navy `oklch(0.14 0.05 250)` (was near-black, now distinctly navy)
+- `--card` / `--popover` / `--sidebar`: slightly lighter navy panels
+- `--primary`: electric blue (kept)
+- `--accent`: cyan `oklch(0.82 0.13 215)` (slightly brighter, used for kicker text and accents)
+- `--gradient-mesh`: subtle navy → cyan-blue radial wash (replaces current mesh, no purple/magenta)
 
-Behavior:
-- Click anywhere on the current slide → advance to next.
-- On the final slide, clicking returns to `/play` (dashboard).
-- Top-right close button (×) on every slide returns to `/play` immediately.
-- Top progress bar (segmented, one segment per slide, like Spotify/Instagram stories) fills as you advance. No auto-advance — purely tap-driven, as requested.
-- Keyboard: ArrowRight/Space = next, Escape = back to dashboard.
-- Subtle entrance animation per slide (fade + scale + gradient sweep) using CSS transitions only — no new deps.
+**Wrapped-style "swoosh" gradients** — promoted from `wrapped.tsx` constants into shared utility classes in `src/styles.css`, all retuned to navy + cyan family (no magenta/lime/coral):
+- `.bg-swoosh-1` radial bottom-left: cyan → indigo → navy
+- `.bg-swoosh-2` radial top-right: sky → teal → navy
+- `.bg-swoosh-3` conic warm-cool blue
+- `.bg-swoosh-4` radial bottom-right: cyan → violet-blue → navy
+- `.bg-swoosh-5` ellipse: ice-blue → electric → navy
+- `.bg-swoosh-6` radial top: cyan → emerald-teal → navy
+Used sparingly — one per hero band, one per featured card.
 
-### Slide sequence (real-time data, no mocks)
-All data comes from the existing tables for the signed-in attendee. Fetched in one server function `getEventWrapped` (`src/lib/wrapped.functions.ts`) using `requireSupabaseAuth`, returning a single DTO consumed by `useSuspenseQuery`.
+**Typography utilities** (new in `src/styles.css`):
+- `.wrapped-kicker` — `text-[11px] uppercase tracking-[0.3em] font-semibold opacity-90`
+- `.wrapped-headline` — `font-extrabold leading-[0.95] tracking-tight` with `clamp()` font-size matching wrapped.tsx
+- `.wrapped-headline-md` — smaller variant for cards/sections
 
-1. **Intro** — "You showed up." + attendee name + "Let's look at your event."
-2. **Total XP** — giant number = `attendees.points`, kicker "Your XP", subline "Out of N attendees you ranked #K" (computed from a `points desc` ordering).
-3. **XP breakdown** — three stacked rows: Quests XP (`points − pod_bonus − meet_bonus`), Pod bonus, Meet bonus. Each with its number.
-4. **Connections made** — count of distinct attendees in `verifications` where `verifier_id = me OR verified_id = me`, kicker "People you met", subline lists up to 3 names ("…and X more" if more).
-5. **Top quest** — the approved `completed_quests` row with the highest `quests.points_awarded`; shows quest emoji + title + "+N XP". If none approved yet, skip this slide.
-6. **Main insight** — AI-generated one-paragraph insight (≤ 40 words) about the attendee's event, generated server-side via Lovable AI Gateway (`google/gemini-2.5-flash`) using their name, track, goal, XP totals, connection count, and approved quest titles. Cached on `attendees.wrapped_insight` so repeat visits are instant.
-7. **Outro** — "That's your event, {name}." + "Tap to return to your dashboard." Tap → `navigate({ to: "/play" })`.
+## Page-by-page application (presentation layer only — no logic changes)
 
-### Data layer
-- New server function `getEventWrapped` returns:
-  ```
-  { name, points, questXp, podBonus, meetBonus, rank, totalAttendees,
-    connectionCount, topConnections: string[],
-    topQuest: { title, emoji, points } | null,
-    insight: string }
-  ```
-- Insight generation: if `attendees.wrapped_insight` is null, call AI Gateway, persist, return. Otherwise return cached. (Adds one nullable text column via migration.)
-- Realtime freshness: the `/wrapped` route uses `useSuspenseQuery` with `staleTime: 0` and refetches on focus, so newly-approved XP and connections appear immediately. No SSR loader (route opens client-side from a button click).
+For each page below: swap the hero/header block to use `wrapped-kicker` + `wrapped-headline`, apply a single `.bg-swoosh-*` to the hero band, keep the rest of the layout intact. No content, data fetching, or routing changes.
 
-### Migration
-- `ALTER TABLE public.attendees ADD COLUMN wrapped_insight text;` — single nullable column. No RLS changes needed (existing attendee policies cover it).
+1. `src/routes/index.tsx` — landing hero gets kicker + huge headline + swoosh-1 background
+2. `src/routes/play.tsx` — dashboard top header gets kicker ("Your event") + headline (attendee name); the Event Wrapped CTA button retoned to swoosh-4
+3. `src/routes/auth.tsx` — sign-in card gets swoosh-2 background, kicker + headline
+4. `src/routes/join.tsx` — kicker + headline + swoosh-5
+5. `src/routes/admin.tsx` — admin header kicker + headline, swoosh-6 on top band
+6. `src/routes/sponsor.tsx` + `src/routes/sponsor-radar.tsx` — kicker + headline, swoosh-3
+7. `src/routes/recap.tsx` — kicker + headline, swoosh-2
+8. `src/routes/wrapped.tsx` — switch its inline GRADIENTS array to the new `.bg-swoosh-*` set so it stays in family
 
-### Visual design (matches reference)
-- Dark `#0a0a0a` base, full-bleed slide.
-- Each slide uses one of 6 distinct gradient "swooshes" (conic + radial CSS gradients in semantic tokens added to `src/styles.css`): magenta→indigo, lime→teal, coral→amber, violet→cyan, rose→orange, sky→emerald. Pre-defined, no per-slide randomness.
-- Typography: existing display font, very large (clamp 3rem → 7rem), tight tracking, bold weight; small uppercase kicker label above the number/headline.
-- Brand chip "Event Wrapped" top-left, close × top-right, story-style segmented progress bar across top.
-- Mobile-first; works at the user's 986px viewport and on phones.
+## Files touched
+- `src/styles.css` — new navy base tokens, swoosh utilities, typography utilities
+- `src/routes/index.tsx`, `play.tsx`, `auth.tsx`, `join.tsx`, `admin.tsx`, `sponsor.tsx`, `sponsor-radar.tsx`, `recap.tsx`, `wrapped.tsx` — header/hero swap only
 
-### Out of scope
-- No share-image export, no social posting, no admin view.
-- No changes to XP rules, quest approval flow, or side-quest logic.
-- No changes to existing recap (`/recap`) route — Wrapped is a separate, simpler experience.
-
-### Files touched
-- `supabase/migrations/<ts>_wrapped_insight.sql` (new)
-- `src/lib/wrapped.functions.ts` (new)
-- `src/routes/wrapped.tsx` (new)
-- `src/routes/play.tsx` (add the entry button under side quests)
-- `src/styles.css` (6 gradient tokens)
-
-### QA checklist before declaring done
-- Button appears under Side Quests, navigates to `/wrapped`.
-- All slides render with correct live numbers (verified against `supabase--read_query`).
-- Tap advances; final tap returns to `/play`; × always returns to `/play`.
-- No console errors; build passes; works on 986px viewport.
+## Out of scope
+- No body-typography changes, no layout restructuring, no component-library swaps
+- No data, auth, RLS, or server-function changes
+- No new pages/routes

@@ -261,10 +261,11 @@ function PlayPage() {
 
       <main className="mx-auto max-w-5xl px-6 py-8 space-y-8">
         {/* Profile + verify code */}
-        <section className="border border-border grid sm:grid-cols-[1fr_auto] divide-y sm:divide-y-0 sm:divide-x divide-border">
+        <section className="bg-swoosh-4 rounded-3xl border border-border grid sm:grid-cols-[1fr_auto] divide-y sm:divide-y-0 sm:divide-x divide-white/10 overflow-hidden">
           <div className="p-5">
-            <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Attendee</p>
-            <h1 className="text-2xl font-semibold tracking-tight mt-1">{attendee.name}</h1>
+            <p className="wrapped-kicker text-accent">Attendee</p>
+            <h1 className="wrapped-headline-md mt-2">{attendee.name}</h1>
+
             {profileBits.length > 0 && (
               <div className="flex flex-wrap gap-1.5 mt-3">
                 {profileBits.map((b) => (
