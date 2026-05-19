@@ -38,7 +38,34 @@ function JoinPage() {
   const [hobbies, setHobbies] = useState<string[]>([]);
   const [hobbyDraft, setHobbyDraft] = useState("");
   const [busy, setBusy] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
   const [welcome, setWelcome] = useState<{ id: string; name: string; code: string } | null>(null);
+
+  const handleAvatarPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) return toast.error("Pick an image file");
+    if (file.size > 5 * 1024 * 1024) return toast.error("Image must be under 5 MB");
+    setAvatarUploading(true);
+    try {
+      const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+      const path = `${crypto.randomUUID()}.${ext}`;
+      const { error } = await supabase.storage.from("avatars").upload(path, file, {
+        cacheControl: "3600",
+        upsert: false,
+        contentType: file.type,
+      });
+      if (error) throw error;
+      const { data } = supabase.storage.from("avatars").getPublicUrl(path);
+      setAvatarUrl(data.publicUrl);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Upload failed");
+    } finally {
+      setAvatarUploading(false);
+    }
+  };
 
   const addHobby = (raw: string) => {
     const v = raw.trim().replace(/,$/, "").trim();
