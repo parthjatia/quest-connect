@@ -128,7 +128,7 @@ function AdminPage() {
       const result = await matchmakerFn();
       const clusters = (result as { clusters?: number }).clusters;
       const clusterTxt = clusters ? ` across ${clusters} cluster${clusters === 1 ? "" : "s"}` : "";
-      if (result.method === "openai" || result.method === "ai") {
+      if (result.method === "openai") {
         toast.success(`OpenAI formed ${result.pods_created} pods${clusterTxt}`);
       } else if (result.method === "mixed") {
         toast.warning(`Formed ${result.pods_created} pods${clusterTxt} (some clusters fell back to heuristic)${result.error ? ` — ${result.error}` : ""}`);
