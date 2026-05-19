@@ -232,34 +232,3 @@ function LegendDot({ className, label }: { className: string; label: string }) {
   );
 }
 
-const BUBBLE_COLOR: Record<HeatLevel, string> = {
-  "very-hot": "oklch(0.72 0.24 25)",
-  "hot": "oklch(0.8 0.2 55)",
-  "warm": "oklch(0.88 0.18 90)",
-  "cold": "oklch(0.55 0.06 250)",
-};
-
-function HeatBubbles({ heat, cx, cy }: { heat: HeatLevel; cx: number; cy: number }) {
-  const count = heat === "very-hot" ? 3 : heat === "hot" ? 2 : 1;
-  const color = BUBBLE_COLOR[heat];
-  const r = heat === "cold" ? 0.55 : 0.78;
-  const spacing = 1.8;
-  const startX = cx - ((count - 1) * spacing) / 2;
-  const glow = heat !== "cold" ? "url(#vibe-glow)" : undefined;
-  return (
-    <g className="pointer-events-none">
-      {Array.from({ length: count }).map((_, i) => (
-        <circle
-          key={i}
-          cx={startX + i * spacing}
-          cy={cy}
-          r={r}
-          fill={color}
-          stroke="oklch(1 0 0 / 0.6)"
-          strokeWidth="0.15"
-          filter={glow}
-        />
-      ))}
-    </g>
-  );
-}
