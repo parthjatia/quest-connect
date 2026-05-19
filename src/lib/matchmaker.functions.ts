@@ -229,11 +229,11 @@ async function diversifyClusterWithAI(
 export const runLlmMatchmaker = createServerFn({ method: "POST" }).handler(
   async (): Promise<{
     pods_created: number;
-    method: "openai" | "mixed" | "heuristic";
+    method: "ai" | "mixed" | "heuristic";
     clusters: number;
     error?: string;
   }> => {
-    const apiKey = process.env.OPENAI_API_KEY;
+    const apiKey = process.env.LOVABLE_API_KEY;
 
     // 1. Clear existing pods
     await supabaseAdmin.from("attendees").update({ group_id: null }).not("id", "is", null);
@@ -258,9 +258,9 @@ export const runLlmMatchmaker = createServerFn({ method: "POST" }).handler(
     }
 
     // 4. Per-cluster diversity pass
-    let method: "openai" | "mixed" | "heuristic" = apiKey ? "openai" : "heuristic";
+    let method: "ai" | "mixed" | "heuristic" = apiKey ? "ai" : "heuristic";
     let lastError: string | undefined;
-    let anyOpenAI = false;
+    let anyAI = false;
     let anyHeuristic = false;
 
     type PendingPod = { ids: string[]; cluster: Cluster; rationale?: string };
@@ -271,13 +271,13 @@ export const runLlmMatchmaker = createServerFn({ method: "POST" }).handler(
       let rationales: Map<string, string> = new Map();
       if (apiKey) {
         try {
-          const r = await diversifyClusterWithOpenAI(cluster, apiKey);
+          const r = await diversifyClusterWithAI(cluster, apiKey);
           podsForCluster = r.pods;
           rationales = r.rationales;
-          anyOpenAI = true;
+          anyAI = true;
         } catch (e) {
           lastError = e instanceof Error ? e.message : String(e);
-          console.error(`OpenAI diversify failed for cluster "${cluster.label}":`, lastError);
+          console.error(`AI diversify failed for cluster "${cluster.label}":`, lastError);
           podsForCluster = heuristicSplit(cluster.members.map((a) => a.id));
           anyHeuristic = true;
         }
@@ -290,9 +290,9 @@ export const runLlmMatchmaker = createServerFn({ method: "POST" }).handler(
       }
     }
 
-    if (anyOpenAI && anyHeuristic) method = "mixed";
-    else if (anyHeuristic && !anyOpenAI) method = "heuristic";
-    else if (anyOpenAI) method = "openai";
+    if (anyAI && anyHeuristic) method = "mixed";
+    else if (anyHeuristic && !anyAI) method = "heuristic";
+    else if (anyAI) method = "ai";
 
     if (pending.length === 0) {
       return { pods_created: 0, method, clusters: clusters.length, error: lastError ?? "No pods formed" };
@@ -317,7 +317,7 @@ export const runLlmMatchmaker = createServerFn({ method: "POST" }).handler(
       if (aErr) throw new Error(aErr.message);
     }
 
-    if (!apiKey) lastError = "OPENAI_API_KEY missing";
+    if (!apiKey) lastError = "LOVABLE_API_KEY missing";
 
     return {
       pods_created: pending.length,
