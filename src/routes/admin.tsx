@@ -218,34 +218,51 @@ function AdminPage() {
           </div>
         </section>
 
+        {/* Sponsor quest proposals */}
+        <SponsorProposals quests={quests.data ?? []} />
+
         {/* Pending side-quest submissions */}
         <PendingSubmissionsQueue />
 
         {/* Transcripts panel */}
         <TranscriptsPanel />
 
-        {/* Pods */}
+        {/* Pods — compact list */}
         {podCount > 0 && (
           <section>
-            <h2 className="text-lg font-semibold tracking-tight mb-3">Pods</h2>
-            <div className="grid gap-px bg-border border border-border sm:grid-cols-2 lg:grid-cols-3">
-              {(groups.data ?? []).map((g) => {
-                const members = (attendees.data ?? []).filter((a) => a.group_id === g.id);
-                return (
-                  <div key={g.id} className="bg-background p-4">
-                    <p className="text-sm font-semibold">{g.group_name}</p>
-                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-0.5">{members.length} members</p>
-                    <ul className="mt-3 space-y-1">
-                      {members.map((m) => (
-                        <li key={m.id} className="text-xs flex items-center justify-between gap-2">
-                          <span className="truncate">{m.full_name || "Unnamed"}</span>
-                          <span className="text-muted-foreground shrink-0 font-mono">{m.verify_code ?? "—"}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                );
-              })}
+            <div className="flex items-baseline justify-between mb-3">
+              <h2 className="text-lg font-semibold tracking-tight">Pods</h2>
+              <p className="text-xs text-muted-foreground">{podCount} pods · live</p>
+            </div>
+            <div className="border border-border max-h-[360px] overflow-auto">
+              <table className="w-full text-sm">
+                <thead className="text-[10px] uppercase tracking-wider text-muted-foreground bg-card sticky top-0">
+                  <tr>
+                    <th className="text-left p-2">Pod</th>
+                    <th className="text-left p-2 w-16">Size</th>
+                    <th className="text-left p-2">Members (code)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(groups.data ?? []).map((g) => {
+                    const members = (attendees.data ?? []).filter((a) => a.group_id === g.id);
+                    return (
+                      <tr key={g.id} className="border-t border-border align-top">
+                        <td className="p-2 font-medium">{g.group_name}</td>
+                        <td className="p-2 text-lime font-semibold">{members.length}</td>
+                        <td className="p-2 text-muted-foreground text-xs">
+                          {members.map((m) => (
+                            <span key={m.id} className="inline-block mr-2">
+                              {m.full_name || "Unnamed"}{" "}
+                              <span className="font-mono text-foreground/70">({m.verify_code ?? "—"})</span>
+                            </span>
+                          ))}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           </section>
         )}
@@ -254,7 +271,19 @@ function AdminPage() {
         <section>
           <div className="flex items-baseline justify-between mb-3">
             <h2 className="text-lg font-semibold tracking-tight">Attendees</h2>
-            <p className="text-xs text-muted-foreground">Sorted by points · live</p>
+            <div className="flex items-center gap-3">
+              <p className="text-xs text-muted-foreground">Sorted by points · live</p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={clearAllAttendees}
+                disabled={clearing}
+                className="h-7 text-xs border-destructive text-destructive hover:bg-destructive/10"
+              >
+                {clearing ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Trash2 className="h-3 w-3 mr-1" />}
+                Clear all
+              </Button>
+            </div>
           </div>
           {attendees.isLoading ? (
             <div className="border border-border p-10 grid place-items-center"><Loader2 className="h-5 w-5 animate-spin text-lime" /></div>
