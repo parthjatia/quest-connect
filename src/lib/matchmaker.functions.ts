@@ -85,8 +85,8 @@ export const runLlmMatchmaker = createServerFn({ method: "POST" }).handler(
       if (aErr) throw new Error(`assign attendees: ${aErr.message}`);
     }
 
-    if (!apiKey) lastError = "LOVABLE_API_KEY missing";
     console.log(`[matchmaker] created ${pending.length} pods (method=${method})`);
+
 
     return {
       pods_created: pending.length,
