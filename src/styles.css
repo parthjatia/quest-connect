@@ -463,7 +463,14 @@
     0%   { opacity: 0; transform: translateY(14px) scale(0.92); }
     60%  { opacity: 1; transform: translateY(-2px) scale(1.04); }
     100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@layer utilities {
+  .play-light-text {
+    --foreground: oklch(0.985 0.004 240);
+    --muted-foreground: oklch(0.88 0.02 240);
   }
+}
   @keyframes text-shimmer {
     0%   { background-position: -200% 0; }
     100% { background-position: 200% 0; }

@@ -1,57 +1,21 @@
-# Onboarding revamp + gold coins
+## Goal
+Soften (brighten) the text on the `/play` screen so it reads lighter against the dark background, without changing any wording or affecting other screens.
 
-## 1. Gold coins (sitewide)
+## Approach
+Scope the change to `/play` only. Wrap the page root in a small class that overrides the two text tokens that drive almost every label on the screen:
 
-- Delete `src/assets/coin-blue.png` (the originally uploaded reference).
-- Regenerate `src/assets/coin-cyan.png` and `src/assets/coin-navy.png` as
-  two gold variants (bright gold, deep amber-gold) using the same retro
-  3D coin look. Filenames stay the same so no import paths break.
-- Edit `src/components/floating-decor.tsx`: drop the `coin-blue` import
-  and remove it from the sprite pool. Other props (dice, joystick,
-  cassette, star, diamond) stay untouched.
+- `--muted-foreground` → bump from `oklch(0.72 0.025 240)` to roughly `oklch(0.88 0.02 240)` (used by all the small caption/meta text, tab labels, etc.)
+- `--foreground` → bump from `oklch(0.98 0.005 240)` to a slightly softer pure light `oklch(0.985 0.004 240)` so headings stay crisp but not harsh
 
-## 2. Onboarding `/` revamp (v1 "Arcade portal elite")
+Implementation: add a `.play-light-text` utility in `src/styles.css` that redefines those two CSS variables, then apply it to the root `<div>` of `PlayPage` in `src/routes/play.tsx` (line 254, alongside the existing `bg-background text-foreground` classes).
 
-Rewrite `src/routes/index.tsx` to match the approved direction:
+Because every text element on `/play` already uses `text-foreground` or `text-muted-foreground` semantic tokens, this single override lightens them all consistently — no per-element edits, no risk of touching other routes.
 
-- Dark `bg-background` canvas, removes the existing top header bar
-  (cleaner portal feel — "Quest Connect / demo" chrome goes away on
-  this page only).
-- Header block:
-  - Gold "EVENT OS" pill (rounded, gold border + 10% gold fill).
-  - 4xl extrabold headline "One event." / "Three lenses." with the
-    second line as a cyan→blue gradient.
-  - Subhead "Run it. Play it. Sponsor it."
-- Three vertically stacked portal buttons (mobile-first, single column;
-  on `sm+` they relax into the same stacked layout but max-width 480):
-  - **Organizer** — cyan accent, cyan icon tile, blurred cyan/blue glow
-    halo on hover, links to `/auth?mode=admin`.
-  - **Attendee** — gold accent, gold icon tile, blurred gold/orange
-    halo on hover, links to `/auth`.
-  - **Sponsor** — slate accent, neutral icon tile, subtle halo, links
-    to `/sponsor`.
-  - Each card: `bg-slate-900/60` glass, `border-white/10`,
-    `backdrop-blur-xl`, rounded-2xl, kicker label + bold title + blurb
-    + arrow CTA, `active:scale-[0.98]`.
-- Floating gold coin sprites + a faint cyan dice motif behind the
-  cards (use the existing `FloatingDecor variant="ambient"` so it
-  picks up the now-all-gold coin pool).
-- Animated headlines via existing `AnimatedHeadline`.
-- Footer: small "No accounts. No passwords. Walk in." line.
-
-All colors use Tailwind tokens already available; no `styles.css`
-changes required (the cyan/gold accents are arbitrary utility classes
-matching the rest of the app's tokens). `<Link>` from
-`@tanstack/react-router` is preserved for all three CTAs.
-
-## Files
-
-- delete: `src/assets/coin-blue.png`
-- regen: `src/assets/coin-cyan.png`, `src/assets/coin-navy.png` (gold)
-- edit: `src/components/floating-decor.tsx` (drop blue coin)
-- edit: `src/routes/index.tsx` (full rewrite to v1 layout)
+## Files to change
+- `src/styles.css` — add the scoped `.play-light-text` token override
+- `src/routes/play.tsx` — add `play-light-text` to the page root container
 
 ## Out of scope
-
-No data, RLS, auth, server, or business-logic changes. Other pages
-keep their current layout — only `/` is restyled.
+- No copy changes
+- No layout, spacing, or component changes
+- No changes to other routes (onboarding, auth, sponsor, admin, recap, wrapped)
