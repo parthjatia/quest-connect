@@ -311,9 +311,11 @@ function PlayPage() {
         <SideQuestsSection
           quests={sideQuests}
           submissionByQuest={submissionByQuest}
+          completedMap={completedMap}
           locked={!iAmFullyVerified || !pod.data}
           lockedReason={!pod.data ? "Waiting for pod assignment" : "Verify every pod member's code to unlock"}
           onSubmit={(q) => setActiveGroupSubmit(q)}
+          onSponsorClaim={(q) => setActiveSponsorClaim(q)}
           onSummary={setSummaryFor}
         />
 
