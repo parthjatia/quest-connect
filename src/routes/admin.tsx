@@ -257,6 +257,7 @@ function AdminPage() {
               {matching ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Wand2 className="h-4 w-4 mr-2" />}
               {matching ? "Matching…" : "Form pods"}
             </Button>
+            <p className="text-[11px] text-muted-foreground">Pods appear below only after matchmaking is run.</p>
           </div>
         </section>
 
