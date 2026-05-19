@@ -1,23 +1,24 @@
-I’ll make **Clear all** restore the event to a clean starting state where all live counters are zero.
+Plan to fix all admin delete controls:
 
-Plan:
-1. Replace the current Clear all backend with one direct reset operation that clears:
-   - all attendees
-   - all pods/groups
-   - pod verifications
-   - attendee meet records
-   - completed quests
-   - group quest submissions
-   - quest transcripts
-2. Make the admin button report the final state, not just attempted delete counts:
-   - attendees = 0
-   - pods = 0
-   - related activity tables = 0
-3. Add a verification read after the reset so the backend fails loudly if anything remains instead of showing success.
-4. Keep quests and event settings untouched, so only attendees/pods/activity are reset.
-5. Fix matchmaker separately right after this reset is reliable: it should create pods from the current attendee list and fall back if the LLM fails.
+1. Make every delete control an unmistakable real button
+   - Clear all stays a full button next to Seed 100 mock.
+   - Main quest and side quest trash icons become proper icon buttons with a larger click target, `type="button"`, `aria-label`, and `title`.
+   - Add visible hover/focus states so they no longer feel like decorative symbols.
 
-Technical details:
-- The reset should happen in a single database function/RPC or tightly ordered server action so foreign-key/order issues cannot leave partial data.
-- The admin UI should invalidate attendee, pod, and pending-submission queries after success so the page immediately shows zero.
-- I’ll verify with database row counts after implementing.
+2. Wire all delete buttons to the existing server functions
+   - Clear all will call `clearAllDataFn` from the admin page.
+   - Main quest and side quest delete buttons will call `deleteQuestFn` with that quest id.
+   - While a delete is running, disable the clicked control and show a spinner so repeat clicks do not interfere.
+
+3. Make the backend delete path reliable
+   - Keep deletes in `src/lib/admin.functions.ts` using the privileged backend client so they are not blocked by row-level rules.
+   - For quest deletion, delete dependent quest rows first, then delete the quest, then verify the quest no longer exists.
+   - For clear all, run the reset function and verify attendees, pods, and activity tables are zero.
+
+4. Refresh the admin UI after deletes
+   - Invalidate quests, attendees, pods, pending submissions, and related admin queries after successful deletion.
+   - This ensures the rows disappear immediately instead of requiring a manual refresh.
+
+5. Verify in preview
+   - Open `/admin`, seed mock attendees, use Clear all, confirm counters return to zero.
+   - Create/delete both a main quest and a side quest, confirm the clicked rows disappear and no errors appear in console/network.

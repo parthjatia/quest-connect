@@ -406,6 +406,7 @@ function QuestManager({ quests, loading }: { quests: Quest[]; loading: boolean }
   const [startAt, setStartAt] = useState("");
   const [endAt, setEndAt] = useState("");
   const [busy, setBusy] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const reset = () => {
     setTitle(""); setDescription(""); setEmoji("⭐"); setPoints(10); setType("main");
@@ -430,17 +431,22 @@ function QuestManager({ quests, loading }: { quests: Quest[]; loading: boolean }
   };
 
   const del = async (id: string) => {
-    if (!confirm("Delete this quest?")) return;
+    if (deletingId) return;
+    if (!confirm("Delete this quest? This also removes related submissions and completions.")) return;
+    setDeletingId(id);
     try {
       await deleteQuest({ data: { id } });
-      toast.success("Deleted");
+      toast.success("Quest deleted");
       await Promise.all([
         qc.invalidateQueries({ queryKey: ["admin-quests"] }),
         qc.invalidateQueries({ queryKey: ["admin-pending-submissions"] }),
         qc.invalidateQueries({ queryKey: ["admin-attendees"] }),
       ]);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to delete");
+      console.error("[admin] delete quest failed", e);
+      toast.error(e instanceof Error ? e.message : "Failed to delete quest");
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -588,9 +594,17 @@ function QuestManager({ quests, loading }: { quests: Quest[]; loading: boolean }
                         <Radio className="h-3 w-3 mr-1" /> Go live
                       </Button>
                     )}
-                    <Button variant="ghost" size="sm" onClick={() => del(q.id)} className="h-7 px-2 ml-auto">
-                      <Trash2 className="h-3 w-3 text-destructive" />
-                    </Button>
+                    <button
+                      type="button"
+                      onClick={() => del(q.id)}
+                      disabled={deletingId === q.id}
+                      aria-label={`Delete quest ${q.title}`}
+                      title="Delete quest"
+                      className="ml-auto inline-flex items-center gap-1.5 h-8 px-2.5 rounded-md border border-destructive/40 text-destructive text-xs font-medium hover:bg-destructive/10 hover:border-destructive disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                    >
+                      {deletingId === q.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                      <span>Delete</span>
+                    </button>
                   </div>
                 </div>
               </li>
@@ -624,9 +638,17 @@ function QuestManager({ quests, loading }: { quests: Quest[]; loading: boolean }
                 <p className="text-xs text-muted-foreground line-clamp-2">{q.description}</p>
                 <div className="mt-auto flex items-center justify-between pt-2">
                   <span className="text-xs font-semibold text-lime">+{q.points_awarded} pts</span>
-                  <Button variant="ghost" size="sm" onClick={() => del(q.id)} className="h-7 px-2">
-                    <Trash2 className="h-3 w-3 text-destructive" />
-                  </Button>
+                  <button
+                    type="button"
+                    onClick={() => del(q.id)}
+                    disabled={deletingId === q.id}
+                    aria-label={`Delete quest ${q.title}`}
+                    title="Delete quest"
+                    className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-md border border-destructive/40 text-destructive text-xs font-medium hover:bg-destructive/10 hover:border-destructive disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                  >
+                    {deletingId === q.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                    <span>Delete</span>
+                  </button>
                 </div>
               </div>
             ))}
