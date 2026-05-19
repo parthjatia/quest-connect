@@ -364,69 +364,77 @@ function Hero() {
 
 // ---------------- Transcript ----------------
 
+type QuestPick = { id: string; title: string; emoji: string | null; transcript_url: string };
+
 function TranscriptCard(props: {
+  quests: QuestPick[];
+  questsLoading: boolean;
+  selectedQuestId: string | null;
+  loadingTranscript: boolean;
   transcript: string;
-  setTranscript: (v: string) => void;
   wordCount: number;
-  onFile: (f: File) => void;
+  onPick: (q: QuestPick) => void;
 }) {
-  const { transcript, setTranscript, wordCount, onFile } = props;
-  const [dragging, setDragging] = useState(false);
-  const inputRef = useRef<HTMLInputElement | null>(null);
+  const { quests, questsLoading, selectedQuestId, loadingTranscript, transcript, wordCount, onPick } = props;
 
   return (
     <section className="space-y-4">
       <SectionHeader
         kicker="Step 1"
-        title="Bring your transcript"
-        description="Paste it in, or drop a .txt file. We never store it server-side."
+        title="Choose a quest transcript"
+        description="Pick one of the main quests the organizer has uploaded. We'll turn it into your recap."
       />
-      <div
-        className={`recap-glass rounded-2xl p-5 transition ${dragging ? "recap-glow" : ""}`}
-        onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
-        onDragLeave={() => setDragging(false)}
-        onDrop={(e) => {
-          e.preventDefault(); setDragging(false);
-          const f = e.dataTransfer.files?.[0];
-          if (f) onFile(f);
-        }}
-      >
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div className="flex items-center gap-2 text-sm text-silver/80">
-            <FileText className="h-4 w-4 text-cyan-soft" />
-            Transcript • <span className="font-mono text-cyan-soft">{wordCount.toLocaleString()}</span> words
+      <div className="recap-glass rounded-2xl p-5">
+        {questsLoading ? (
+          <div className="flex items-center gap-2 text-sm text-silver/80 py-4">
+            <Loader2 className="h-4 w-4 animate-spin" /> Loading available quests…
           </div>
-          <div className="flex items-center gap-2">
-            <input
-              ref={inputRef}
-              type="file"
-              accept=".txt,text/plain"
-              className="hidden"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) onFile(f);
-              }}
-            />
-            <Button variant="outline" size="sm" className="rounded-xl" onClick={() => inputRef.current?.click()}>
-              <Upload className="mr-2 h-4 w-4" /> Upload .txt
-            </Button>
-            {transcript && (
-              <Button variant="ghost" size="sm" className="rounded-xl" onClick={() => setTranscript("")}>
-                <X className="mr-1 h-4 w-4" /> Clear
-              </Button>
-            )}
+        ) : quests.length === 0 ? (
+          <div className="text-sm text-silver/70 py-4">
+            No transcripts have been uploaded yet by the organizer. Check back after a main quest wraps up.
           </div>
-        </div>
-        <Textarea
-          value={transcript}
-          onChange={(e) => setTranscript(e.target.value)}
-          placeholder="Paste meeting notes, an event transcript, talk summary, or interview here…"
-          className="mt-4 min-h-[220px] resize-y rounded-xl border-white/10 bg-background/40 text-foreground placeholder:text-muted-foreground/70 focus-visible:ring-primary/40"
-        />
+        ) : (
+          <div className="grid gap-2 sm:grid-cols-2">
+            {quests.map((q) => {
+              const active = q.id === selectedQuestId;
+              return (
+                <button
+                  key={q.id}
+                  type="button"
+                  onClick={() => onPick(q)}
+                  disabled={loadingTranscript}
+                  className={`flex items-center justify-between gap-3 rounded-xl border px-4 py-3 text-left transition ${
+                    active
+                      ? "border-cyan-soft bg-cyan-soft/10"
+                      : "border-white/10 hover:border-cyan-soft/50 hover:bg-white/5"
+                  } ${loadingTranscript && !active ? "opacity-50" : ""}`}
+                >
+                  <span className="flex items-center gap-3 min-w-0">
+                    <span className="text-xl shrink-0">{q.emoji ?? "⭐"}</span>
+                    <span className="text-sm font-medium truncate">{q.title}</span>
+                  </span>
+                  {active && loadingTranscript ? (
+                    <Loader2 className="h-4 w-4 animate-spin text-cyan-soft shrink-0" />
+                  ) : active ? (
+                    <Check className="h-4 w-4 text-cyan-soft shrink-0" />
+                  ) : null}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {transcript && (
+          <div className="mt-4 flex items-center gap-2 text-xs text-silver/70">
+            <FileText className="h-3.5 w-3.5 text-cyan-soft" />
+            Loaded • <span className="font-mono text-cyan-soft">{wordCount.toLocaleString()}</span> words ready
+          </div>
+        )}
       </div>
     </section>
   );
 }
+
 
 // ---------------- Preference ----------------
 
