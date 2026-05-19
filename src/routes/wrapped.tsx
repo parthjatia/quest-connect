@@ -3,7 +3,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { getLocalAttendee } from "@/lib/local-attendee";
-import { generateWrappedInsight } from "@/lib/wrapped.functions";
 import { X, Loader2 } from "lucide-react";
 import { FloatingDecor } from "@/components/floating-decor";
 import { AnimatedHeadline } from "@/components/animated-text";
