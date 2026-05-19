@@ -24,7 +24,7 @@ function AuthPage() {
   const mode: AuthMode = rawMode ?? "attendee";
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-[radial-gradient(ellipse_at_top,_#0a3a4a_0%,_#06202c_45%,_#04121b_100%)] text-foreground">
       <header className="border-b border-border">
         <div className="mx-auto max-w-5xl px-6 py-4 flex items-center justify-between text-sm">
           <Link to="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground">
