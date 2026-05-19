@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { Loader2, Plus, Trash2, Sparkles, ArrowLeft, Wand2, Lock, Unlock, FileText, Check, X as XIcon, Clock, Radio, LogOut, Upload } from "lucide-react";
 import { getRegistrationOpen, setRegistrationOpen } from "@/lib/event-settings";
 import { runLlmMatchmaker } from "@/lib/matchmaker.functions";
+import { clearAllDataFn } from "@/lib/admin.functions";
 import { getLocalAdmin, setLocalAdmin } from "@/lib/local-attendee";
 import { trackLabel, trackValueFromLabel, goalValueFromLabel } from "@/lib/attendee-options";
 import { MOCK_ATTENDEES } from "@/lib/mock-attendees";
@@ -146,19 +147,13 @@ function AdminPage() {
   const signOut = () => { setLocalAdmin(false); navigate({ to: "/" }); };
 
   const [clearing, setClearing] = useState(false);
+  const clearAll = useServerFn(clearAllDataFn);
   const clearAllAttendees = async () => {
     if (!confirm("Delete ALL attendees, pods, quests, submissions and related records? This cannot be undone.")) return;
     if (!confirm("Really wipe EVERYTHING (attendees, pods, quests, side quests)? Last chance.")) return;
     setClearing(true);
     try {
-      await supabase.from("pod_verifications").delete().not("id", "is", null);
-      await supabase.from("attendee_meets").delete().not("id", "is", null);
-      await supabase.from("completed_quests").delete().not("id", "is", null);
-      await supabase.from("group_quest_submissions").delete().not("id", "is", null);
-      await supabase.from("quest_transcripts").delete().not("id", "is", null);
-      await supabase.from("attendees").delete().not("id", "is", null);
-      await supabase.from("groups").delete().not("id", "is", null);
-      await supabase.from("quests").delete().not("id", "is", null);
+      await clearAll();
       toast.success("Everything cleared");
       qc.invalidateQueries({ queryKey: ["admin-attendees"] });
       qc.invalidateQueries({ queryKey: ["admin-groups"] });
