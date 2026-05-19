@@ -258,14 +258,8 @@ function PlayPage() {
         <VibeMapSection currentAttendeeId={attendee?.id ?? null} />
       </main>
 
-      {activeMainClaim && (
-        <ClaimDialog
-          quest={activeMainClaim}
-          attendeeId={attendee.id}
-          onClose={() => setActiveMainClaim(null)}
-          onClaimed={() => { qc.invalidateQueries({ queryKey: ["completed"] }); qc.invalidateQueries({ queryKey: ["me"] }); }}
-        />
-      )}
+
+
 
       {activeGroupSubmit && pod.data && (
         <GroupSubmitDialog
