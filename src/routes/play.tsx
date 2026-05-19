@@ -41,6 +41,7 @@ function PlayPage() {
   const [summaryFor, setSummaryFor] = useState<Quest | null>(null);
   
   const [activeGroupSubmit, setActiveGroupSubmit] = useState<Quest | null>(null);
+  const [activeSponsorClaim, setActiveSponsorClaim] = useState<Quest | null>(null);
 
   useEffect(() => {
     const a = getLocalAttendee();
