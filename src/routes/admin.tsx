@@ -308,7 +308,7 @@ function AdminPage() {
                       <td className="p-2 text-muted-foreground">{i + 1}</td>
                       <td className="p-2 font-medium">{a.full_name || "Unnamed"}</td>
                       <td className="p-2 text-muted-foreground hidden md:table-cell truncate max-w-[200px]">{a.university ?? "—"}</td>
-                      <td className="p-2 text-muted-foreground hidden lg:table-cell truncate max-w-[180px]">{a.track_intent ?? "—"}</td>
+                      <td className="p-2 text-muted-foreground hidden lg:table-cell truncate max-w-[180px]">{trackLabel(a.track_intent)}</td>
                       <td className="p-2 text-muted-foreground hidden sm:table-cell">{a.ai_experience ?? "—"}</td>
                       <td className="p-2 text-right text-lime font-semibold">{a.points}</td>
                     </tr>

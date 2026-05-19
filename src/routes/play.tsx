@@ -206,7 +206,7 @@ function PlayPage() {
 
   const leave = () => { clearLocalAttendee(); navigate({ to: "/" }); };
 
-  const profileBits = [me.data?.university, me.data?.academic_background, me.data?.ai_experience, me.data?.track_intent].filter(Boolean) as string[];
+  const profileBits = [me.data?.university, me.data?.academic_background, me.data?.ai_experience, trackLabel(me.data?.track_intent)].filter(Boolean) as string[];
 
   return (
     <div className="min-h-screen bg-background text-foreground">
