@@ -87,19 +87,20 @@ function SponsorPage() {
       </header>
 
       <main className="mx-auto max-w-6xl px-6 py-8 space-y-6">
-        <div>
-          <p className="text-[10px] uppercase tracking-[0.2em] text-lime">Sponsor Radar</p>
-          <h1 className="text-3xl font-semibold tracking-tight mt-1">Where is your audience right now?</h1>
-          <p className="text-sm text-muted-foreground mt-1.5 max-w-2xl">
+        <div className="rounded-3xl bg-swoosh-3 p-8 sm:p-10">
+          <p className="wrapped-kicker text-white/90 mb-3">Sponsor Radar</p>
+          <h1 className="wrapped-headline-md text-white">Where is your audience right now?</h1>
+          <p className="text-sm text-white/85 mt-3 max-w-2xl">
             Privacy-safe attendee clusters by zone. Sponsor-open people only show by name when they opt in.
           </p>
           <p className={cn(
-            "text-[11px] mt-2 max-w-2xl leading-relaxed",
-            live.data?.source === "fallback" ? "text-warning-foreground/90" : "text-muted-foreground/70",
+            "text-[11px] mt-3 max-w-2xl leading-relaxed",
+            live.data?.source === "fallback" ? "text-warning-foreground/90" : "text-white/70",
           )}>
             {statusMessage}
           </p>
         </div>
+
 
         <div className="grid gap-px bg-border border border-border sm:grid-cols-5">
           <Stat label="High-fit attendees" value={String(totalHighFit)} />
