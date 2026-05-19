@@ -11,7 +11,7 @@ import {
 } from "@/lib/sponsorRadarEngine";
 import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/sponsor")({
+export const Route = createFileRoute("/sponsor-radar")({
   head: () => ({
     meta: [
       { title: "Sponsor Radar — Quest Connect" },
