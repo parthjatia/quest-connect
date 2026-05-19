@@ -226,3 +226,141 @@ function ProposeQuestForm({ handle, onSubmitted }: { handle: string; onSubmitted
     </form>
   );
 }
+
+type PendingRow = {
+  id: string;
+  proof_link: string | null;
+  claimed_at: string;
+  quest: { id: string; title: string; emoji: string | null; points_awarded: number } | null;
+  attendee: { id: string; full_name: string | null; university: string | null } | null;
+};
+
+function PendingVerifications({ handle }: { handle: string }) {
+  const qc = useQueryClient();
+  const reviewFn = useServerFn(reviewSponsorCompletionFn);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [rejectingId, setRejectingId] = useState<string | null>(null);
+  const [note, setNote] = useState("");
+
+  const pending = useQuery({
+    queryKey: ["sponsor-pending", handle],
+    queryFn: async () => {
+      // 1) all quests owned by this sponsor
+      const { data: qs, error: qErr } = await supabase
+        .from("quests")
+        .select("id, title, emoji, points_awarded")
+        .eq("created_by_sponsor", handle);
+      if (qErr) throw qErr;
+      const qIds = (qs ?? []).map((q) => q.id);
+      if (qIds.length === 0) return [] as PendingRow[];
+
+      // 2) pending completions for those quests
+      const { data: cqs, error: cErr } = await supabase
+        .from("completed_quests")
+        .select("id, quest_id, attendee_id, proof_link, claimed_at, verification_status")
+        .in("quest_id", qIds)
+        .eq("verification_status", "pending")
+        .order("claimed_at", { ascending: true });
+      if (cErr) throw cErr;
+      const rows = cqs ?? [];
+      if (rows.length === 0) return [] as PendingRow[];
+
+      // 3) attendees
+      const aIds = Array.from(new Set(rows.map((r) => r.attendee_id)));
+      const { data: as } = await supabase
+        .from("attendees")
+        .select("id, full_name, university")
+        .in("id", aIds);
+      const qById = new Map((qs ?? []).map((q) => [q.id, q]));
+      const aById = new Map((as ?? []).map((a) => [a.id, a]));
+      return rows.map((r) => ({
+        id: r.id,
+        proof_link: r.proof_link,
+        claimed_at: r.claimed_at,
+        quest: qById.get(r.quest_id) ?? null,
+        attendee: aById.get(r.attendee_id) ?? null,
+      })) as PendingRow[];
+    },
+  });
+
+  const decide = async (id: string, approve: boolean, noteText?: string) => {
+    setBusy(id);
+    try {
+      await reviewFn({ data: { completed_id: id, sponsor_handle: handle, approve, note: noteText } });
+      toast.success(approve ? "Approved — points awarded" : "Rejected");
+      setRejectingId(null);
+      setNote("");
+      qc.invalidateQueries({ queryKey: ["sponsor-pending", handle] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed");
+    } finally { setBusy(null); }
+  };
+
+  return (
+    <section>
+      <div className="flex items-baseline justify-between mb-3">
+        <h2 className="text-lg font-semibold tracking-tight">Pending verifications</h2>
+        <p className="text-xs text-muted-foreground">{pending.data?.length ?? 0} waiting</p>
+      </div>
+      {pending.isLoading ? (
+        <div className="border border-border p-10 grid place-items-center"><Loader2 className="h-5 w-5 animate-spin text-lime" /></div>
+      ) : (pending.data ?? []).length === 0 ? (
+        <div className="border border-border p-8 text-center text-sm text-muted-foreground">No submissions waiting for review.</div>
+      ) : (
+        <ul className="grid gap-px bg-border border border-border">
+          {(pending.data ?? []).map((row) => (
+            <li key={row.id} className="bg-background p-4 space-y-2">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold truncate">
+                    {row.quest?.emoji} {row.quest?.title}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {row.attendee?.full_name ?? "Unknown attendee"}
+                    {row.attendee?.university ? ` · ${row.attendee.university}` : ""}
+                    {" · "}+{row.quest?.points_awarded ?? 0} pts
+                  </p>
+                </div>
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground shrink-0">
+                  {new Date(row.claimed_at).toLocaleString()}
+                </p>
+              </div>
+              {row.proof_link && (
+                <a href={row.proof_link} target="_blank" rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-xs text-lime underline break-all">
+                  <ExternalLink className="h-3 w-3" /> {row.proof_link}
+                </a>
+              )}
+              {rejectingId === row.id ? (
+                <div className="space-y-2">
+                  <Textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2}
+                    placeholder="Reason (optional, shown to attendee)" className="bg-background border-border text-xs" />
+                  <div className="flex gap-2 justify-end">
+                    <Button size="sm" variant="ghost" onClick={() => { setRejectingId(null); setNote(""); }}>Cancel</Button>
+                    <Button size="sm" variant="destructive" disabled={busy === row.id}
+                      onClick={() => decide(row.id, false, note.trim() || undefined)}>
+                      {busy === row.id ? <Loader2 className="h-3 w-3 animate-spin" /> : "Confirm reject"}
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex gap-2 justify-end pt-1">
+                  <Button size="sm" variant="outline" disabled={busy === row.id}
+                    onClick={() => { setRejectingId(row.id); setNote(""); }}
+                    className="border-destructive/50 text-destructive hover:bg-destructive/10">
+                    <XIcon className="h-3 w-3 mr-1" /> Reject
+                  </Button>
+                  <Button size="sm" disabled={busy === row.id}
+                    onClick={() => decide(row.id, true)}
+                    className="bg-lime hover:opacity-90">
+                    {busy === row.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <><Check className="h-3 w-3 mr-1" /> Approve</>}
+                  </Button>
+                </div>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
