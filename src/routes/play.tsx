@@ -14,7 +14,7 @@ import { VibeMapSection } from "@/components/vibe-map/vibe-map-section";
 import { trackLabel } from "@/lib/attendee-options";
 import { FloatingDecor } from "@/components/floating-decor";
 import { AnimatedHeadline } from "@/components/animated-text";
-import coinBlue from "@/assets/coin-blue.png";
+import coinBlue from "@/assets/coin-cyan.png";
 
 export const Route = createFileRoute("/play")({
   head: () => ({ meta: [{ title: "Play — Quest Connect" }] }),
