@@ -41,3 +41,33 @@ export const clearAllDataFn = createServerFn({ method: "POST" }).handler(async (
   console.log("[clearAllDataFn] done — all counters at 0");
   return { ok: true as const, remaining };
 });
+
+export const deleteQuestFn = createServerFn({ method: "POST" })
+  .inputValidator((data: { id: string }) => {
+    if (!data?.id) throw new Error("Quest id is required");
+    return data;
+  })
+  .handler(async ({ data }) => {
+    console.log("[deleteQuestFn] deleting quest", data.id);
+
+    const relatedTables = ["completed_quests", "group_quest_submissions", "quest_transcripts"] as const;
+    const deleted: Record<string, number> = {};
+
+    for (const table of relatedTables) {
+      const { count, error } = await supabaseAdmin
+        .from(table)
+        .delete({ count: "exact" })
+        .eq("quest_id", data.id);
+      if (error) throw new Error(`Failed to clear ${table}: ${error.message}`);
+      deleted[table] = count ?? 0;
+    }
+
+    const { count, error } = await supabaseAdmin
+      .from("quests")
+      .delete({ count: "exact" })
+      .eq("id", data.id);
+    if (error) throw new Error(`Failed to delete quest: ${error.message}`);
+    if ((count ?? 0) === 0) throw new Error("Quest was not found or already deleted");
+
+    return { ok: true as const, deleted: { ...deleted, quests: count ?? 0 } };
+  });

@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { Loader2, Plus, Trash2, Sparkles, ArrowLeft, Wand2, Lock, Unlock, FileText, Check, X as XIcon, Clock, Radio, LogOut, Upload } from "lucide-react";
 import { getRegistrationOpen, setRegistrationOpen } from "@/lib/event-settings";
 import { runLlmMatchmaker } from "@/lib/matchmaker.functions";
-import { clearAllDataFn } from "@/lib/admin.functions";
+import { clearAllDataFn, deleteQuestFn } from "@/lib/admin.functions";
 import { getLocalAdmin, setLocalAdmin } from "@/lib/local-attendee";
 import { trackLabel, trackValueFromLabel, goalValueFromLabel } from "@/lib/attendee-options";
 import { MOCK_ATTENDEES } from "@/lib/mock-attendees";
@@ -396,6 +396,7 @@ function toLocalInputValue(iso: string | null) {
 
 function QuestManager({ quests, loading }: { quests: Quest[]; loading: boolean }) {
   const qc = useQueryClient();
+  const deleteQuest = useServerFn(deleteQuestFn);
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -430,10 +431,17 @@ function QuestManager({ quests, loading }: { quests: Quest[]; loading: boolean }
 
   const del = async (id: string) => {
     if (!confirm("Delete this quest?")) return;
-    const { error } = await supabase.from("quests").delete().eq("id", id);
-    if (error) return toast.error(error.message);
-    toast.success("Deleted");
-    qc.invalidateQueries({ queryKey: ["admin-quests"] });
+    try {
+      await deleteQuest({ data: { id } });
+      toast.success("Deleted");
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ["admin-quests"] }),
+        qc.invalidateQueries({ queryKey: ["admin-pending-submissions"] }),
+        qc.invalidateQueries({ queryKey: ["admin-attendees"] }),
+      ]);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to delete");
+    }
   };
 
   const goLive = async (id: string) => {
