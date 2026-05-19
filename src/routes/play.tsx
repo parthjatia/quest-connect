@@ -25,7 +25,6 @@ type Quest = {
   transcript_url: string | null;
 };
 type CompletedRow = { id: string; quest_id: string; quest_photo_url: string | null; claimed_at: string };
-type TranscriptRow = { id: string; quest_id: string; transcript_url: string; uploaded_at: string };
 type Member = { id: string; full_name: string | null; university: string | null };
 type Verification = { verifier_id: string; verified_id: string };
 type Submission = { id: string; group_id: string; quest_id: string; photo_url: string; status: "pending" | "approved" | "rejected"; reviewer_note: string | null; created_at: string };
@@ -115,19 +114,6 @@ function PlayPage() {
     },
   });
 
-  const transcripts = useQuery({
-    queryKey: ["transcripts", attendee?.id],
-    enabled: !!attendee,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("quest_transcripts")
-        .select("id, quest_id, transcript_url, uploaded_at")
-        .eq("attendee_id", attendee!.id);
-      if (error) throw error;
-      return (data ?? []) as TranscriptRow[];
-    },
-  });
-
   const submissions = useQuery({
     queryKey: ["submissions", me.data?.group_id],
     enabled: !!me.data?.group_id,
@@ -162,7 +148,6 @@ function PlayPage() {
   }
 
   const completedMap = new Map((completed.data ?? []).map((c) => [c.quest_id, c]));
-  const transcriptMap = new Map((transcripts.data ?? []).map((t) => [t.quest_id, t]));
   const submissionByQuest = new Map((submissions.data ?? []).map((s) => [s.quest_id, s]));
 
   const allQuests = (quests.data ?? []).filter((q) => !q.is_pod_gate); // gate replaced by code verification
@@ -310,7 +295,6 @@ function PlayPage() {
 
       {summaryFor && summaryFor.type === "side" && (() => {
         const c = completedMap.get(summaryFor.id);
-        const t = transcriptMap.get(summaryFor.id);
         return (
           <QuestSummaryModal
             open
@@ -319,7 +303,6 @@ function PlayPage() {
             questEmoji={summaryFor.emoji}
             points={summaryFor.points_awarded}
             photoUrl={c?.quest_photo_url ?? null}
-            transcriptUrl={t?.transcript_url ?? null}
             claimedAt={c?.claimed_at ?? null}
           />
         );
@@ -445,6 +428,7 @@ function PodPanel({
   );
 }
 
+/** Main-quest transcripts are uploaded by the organizer (quests.transcript_url), not attendees. */
 function MainQuestTimeline({
   quests, completedMap, onClaim, onSummary,
 }: {
