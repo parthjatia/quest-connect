@@ -22,6 +22,8 @@ type Quest = {
   points_awarded: number; emoji: string | null;
   start_at: string | null; end_at: string | null; is_live: boolean;
   transcript_url: string | null;
+  approval_status?: "pending" | "approved" | "rejected";
+  created_by_sponsor?: string | null;
 };
 type Attendee = {
   id: string;
