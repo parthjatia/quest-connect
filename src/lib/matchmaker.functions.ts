@@ -143,8 +143,8 @@ function buildClusters(attendees: Attendee[]): Cluster[] {
   return clusters;
 }
 
-/** Stage 1: OpenAI diversity pass within a cluster. Returns pods (arrays of attendee ids). */
-async function diversifyClusterWithOpenAI(
+/** Stage 1: Lovable AI (Gemini) diversity pass within a cluster. Returns pods (arrays of attendee ids). */
+async function diversifyClusterWithAI(
   cluster: Cluster,
   apiKey: string,
 ): Promise<{ pods: string[][]; rationales: Map<string, string> }> {
@@ -158,37 +158,46 @@ async function diversifyClusterWithOpenAI(
     goal: goalLabel(a.event_goal),
   }));
 
-  const res = await fetch(OPENAI_ENDPOINT, {
+  const res = await fetch(AI_GATEWAY, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: OPENAI_MODEL,
+      model: AI_MODEL,
       messages: [
         {
           role: "system",
           content:
-            'You are a hackathon matchmaker. The attendees in this cluster already share track and/or goal alignment. Split them into pods of 3-5 members. MAXIMIZE diversity across `uni` (university), `bg` (academic background), `ai` (ai experience level), and `hobbies` — try to make every pod as different internally as possible on those four axes. Every attendee id MUST appear in exactly one pod. Respond ONLY with strict JSON: {"pods":[{"member_ids":["..."],"rationale":"one short sentence about the mix"}]}',
+            'You are a hackathon matchmaker. The attendees in this cluster already share track and/or goal alignment. Split them into pods of 3-5 members. MAXIMIZE diversity across `uni` (university), `bg` (academic background), `ai` (ai experience level), and `hobbies` — try to make every pod as different internally as possible on those four axes. Every attendee id MUST appear in exactly one pod. Respond ONLY with strict JSON, no markdown fences: {"pods":[{"member_ids":["..."],"rationale":"one short sentence about the mix"}]}',
         },
         {
           role: "user",
           content: `Cluster: ${cluster.label}\nMembers:\n${JSON.stringify(compact)}`,
         },
       ],
-      response_format: { type: "json_object" },
     }),
   });
 
-  if (res.status === 429) throw new Error("OpenAI rate limited (429)");
-  if (res.status === 402) throw new Error("OpenAI quota exhausted (402)");
-  if (res.status === 401) throw new Error("OpenAI auth failed (401) — check OPENAI_API_KEY");
-  if (!res.ok) throw new Error(`OpenAI ${res.status}: ${(await res.text()).slice(0, 200)}`);
+  if (res.status === 429) throw new Error("AI rate limited (429)");
+  if (res.status === 402) throw new Error("AI credits exhausted (402) — add credits in workspace settings");
+  if (res.status === 401) throw new Error("AI auth failed (401) — check LOVABLE_API_KEY");
+  if (!res.ok) throw new Error(`AI ${res.status}: ${(await res.text()).slice(0, 200)}`);
 
   const j = await res.json();
   const raw: string = j?.choices?.[0]?.message?.content ?? "{}";
-  const parsed = JSON.parse(raw);
+  // Strip markdown fences if present
+  const cleaned = raw.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
+  const jsonStart = cleaned.search(/[{[]/);
+  const jsonEnd = cleaned.lastIndexOf("}");
+  const sliced = jsonStart >= 0 && jsonEnd > jsonStart ? cleaned.slice(jsonStart, jsonEnd + 1) : cleaned;
+  let parsed: { pods?: Array<{ member_ids?: unknown; rationale?: unknown }> } = {};
+  try {
+    parsed = JSON.parse(sliced);
+  } catch (e) {
+    throw new Error(`AI returned invalid JSON: ${(e instanceof Error ? e.message : String(e)).slice(0, 120)}`);
+  }
 
   const validIds = new Set(cluster.members.map((a) => a.id));
   const seen = new Set<string>();
@@ -196,10 +205,11 @@ async function diversifyClusterWithOpenAI(
   const rationales = new Map<string, string>();
 
   for (const p of parsed.pods ?? []) {
-    const clean = (p.member_ids ?? []).filter(
-      (id: unknown) => typeof id === "string" && validIds.has(id) && !seen.has(id),
+    const ids = Array.isArray(p.member_ids) ? p.member_ids : [];
+    const clean = ids.filter(
+      (id: unknown): id is string => typeof id === "string" && validIds.has(id) && !seen.has(id),
     );
-    clean.forEach((id: string) => seen.add(id));
+    clean.forEach((id) => seen.add(id));
     if (clean.length > 0) {
       pods.push(clean);
       if (typeof p.rationale === "string" && p.rationale.trim()) {
