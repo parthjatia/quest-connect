@@ -57,6 +57,8 @@ function SponsorPortal() {
       .channel(`sponsor-${handle}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "quests" }, () =>
         qc.invalidateQueries({ queryKey: ["sponsor-quests", handle] }))
+      .on("postgres_changes", { event: "*", schema: "public", table: "completed_quests" }, () =>
+        qc.invalidateQueries({ queryKey: ["sponsor-pending", handle] }))
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [handle, qc]);
