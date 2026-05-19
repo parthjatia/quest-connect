@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { Sliders, Gamepad2, Sparkles, ArrowRight } from "lucide-react";
 import { FloatingDecor } from "@/components/floating-decor";
 import { AnimatedHeadline } from "@/components/animated-text";
 
@@ -12,124 +13,143 @@ export const Route = createFileRoute("/")({
   component: Landing,
 });
 
-function Landing() {
-  return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col">
-      <header className="border-b border-border">
-        <div className="mx-auto max-w-5xl px-6 py-4 flex items-center justify-between text-sm">
-          <span className="font-semibold tracking-tight">Quest Connect</span>
-          <span className="text-muted-foreground">demo</span>
-        </div>
-      </header>
-
-      <main className="flex-1 mx-auto max-w-5xl w-full px-6 py-20">
-        <div className="relative overflow-hidden rounded-3xl bg-swoosh-1 hue-drift px-8 py-16 sm:px-12 sm:py-20">
-          <FloatingDecor variant="dense" />
-          <div className="max-w-2xl relative z-10">
-            <p className="wrapped-kicker text-white/90 mb-5">Event OS</p>
-            <h1 className="wrapped-headline text-white">
-              <AnimatedHeadline>One event.</AnimatedHeadline><br />
-              <AnimatedHeadline>Three lenses.</AnimatedHeadline>
-            </h1>
-            <p className="text-white/85 mt-6 text-base sm:text-lg">
-              Run it. Play it. Sponsor it.
-            </p>
-          </div>
-        </div>
-
-
-
-        <div className="grid gap-6 mt-12 sm:grid-cols-3">
-          <DoorCard
-            to="/auth"
-            search={{ mode: "admin" }}
-            tag="Organizer"
-            title="Run the event"
-            blurb="Seed attendees, manage quests, watch the leaderboard, launch sponsor activations."
-            cta="Open admin"
-            variant="blue"
-          />
-          <DoorCard
-            to="/auth"
-            tag="Attendee"
-            title="Play the event"
-            blurb="Join quests, find your people, earn points, and discover who to meet next."
-            cta="Join in"
-            variant="yellow"
-          />
-          <DoorCard
-            to="/auth"
-            search={{ mode: "sponsor" }}
-            tag="Sponsor"
-            title="Submit a side quest"
-            blurb="Sign in as a sponsor and propose your own side quest for attendees. An organizer reviews before it goes live."
-            cta="Open sponsor portal"
-            variant="green"
-          />
-        </div>
-      </main>
-
-      <footer className="border-t border-border">
-        <div className="mx-auto max-w-5xl px-6 py-4 text-xs text-muted-foreground">
-          No accounts. No passwords. Walk in.
-        </div>
-      </footer>
-    </div>
-  );
-}
-
-const VARIANTS = {
-  blue: {
-    bg: "bg-[oklch(0.85_0.08_250)]",
-    tag: "text-[oklch(0.35_0.12_250)]/70",
-    title: "text-[oklch(0.25_0.12_250)]",
-    body: "text-[oklch(0.3_0.08_250)]/80",
-    cta: "text-[oklch(0.3_0.15_250)]",
-  },
-  yellow: {
-    bg: "bg-[oklch(0.9_0.1_85)]",
-    tag: "text-[oklch(0.4_0.12_60)]/70",
-    title: "text-[oklch(0.3_0.12_55)]",
-    body: "text-[oklch(0.35_0.08_60)]/80",
-    cta: "text-[oklch(0.4_0.15_50)]",
-  },
-  green: {
-    bg: "bg-[oklch(0.88_0.09_145)]",
-    tag: "text-[oklch(0.35_0.1_145)]/70",
-    title: "text-[oklch(0.28_0.1_145)]",
-    body: "text-[oklch(0.32_0.08_145)]/80",
-    cta: "text-[oklch(0.35_0.13_145)]",
-  },
-} as const;
-
-function DoorCard({
-  to,
-  search,
-  tag,
-  title,
-  blurb,
-  cta,
-  variant,
-}: {
+type Portal = {
   to: string;
-  search?: { mode: "admin" | "sponsor" };
-  tag: string;
+  search?: Record<string, string>;
+  kicker: string;
   title: string;
   blurb: string;
   cta: string;
-  variant: keyof typeof VARIANTS;
-}) {
-  const v = VARIANTS[variant];
+  Icon: typeof Sliders;
+  accent: "cyan" | "gold" | "slate";
+};
+
+const PORTALS: Portal[] = [
+  {
+    to: "/auth",
+    search: { mode: "admin" },
+    kicker: "Organizer",
+    title: "Run the event",
+    blurb: "Seed attendees, manage quests, watch the leaderboard, launch sponsor activations.",
+    cta: "Open admin",
+    Icon: Sliders,
+    accent: "cyan",
+  },
+  {
+    to: "/auth",
+    kicker: "Attendee",
+    title: "Play the event",
+    blurb: "Join quests, find your people, earn points, and discover who to meet next.",
+    cta: "Join in",
+    Icon: Gamepad2,
+    accent: "gold",
+  },
+  {
+    to: "/sponsor",
+    kicker: "Sponsor",
+    title: "Submit a side quest",
+    blurb: "Sign in as a sponsor and propose your own side quest for attendees to complete.",
+    cta: "Open sponsor portal",
+    Icon: Sparkles,
+    accent: "slate",
+  },
+];
+
+const ACCENT = {
+  cyan: {
+    halo: "from-cyan-500 to-blue-600 opacity-20 group-hover:opacity-40",
+    label: "text-cyan-300",
+    tile: "bg-cyan-500/15 border-cyan-400/30 text-cyan-300",
+    cta: "text-cyan-300",
+  },
+  gold: {
+    halo: "from-yellow-400 to-orange-500 opacity-25 group-hover:opacity-50",
+    label: "text-yellow-400",
+    tile: "bg-yellow-500/15 border-yellow-400/30 text-yellow-300",
+    cta: "text-yellow-300",
+  },
+  slate: {
+    halo: "from-slate-400 to-slate-500 opacity-10 group-hover:opacity-20",
+    label: "text-slate-400",
+    tile: "bg-white/5 border-white/10 text-slate-300",
+    cta: "text-slate-200",
+  },
+} as const;
+
+function Landing() {
   return (
-    <Link
-      to={to}
-      search={search}
-      className={`group block rounded-3xl p-8 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl ${v.bg}`}
-    >
-      <p className={`text-[10px] uppercase tracking-[0.2em] font-semibold ${v.tag}`}>{tag}</p>
-      <h2 className={`text-2xl font-semibold mt-2 tracking-tight ${v.title}`}>{title}</h2>
-      <p className={`text-sm mt-3 max-w-sm ${v.body}`}>{blurb}</p>
-      <p className={`mt-8 text-sm font-medium group-hover:underline ${v.cta}`}>{cta} →</p>
-    </Link>
+    <div className="relative min-h-screen w-full bg-background text-foreground overflow-hidden">
+      {/* Ambient gold-coin + dice decor */}
+      <FloatingDecor variant="ambient" className="fixed inset-0 z-0" />
+
+      {/* Subtle radial glows */}
+      <div className="pointer-events-none absolute -top-32 -left-20 h-72 w-72 rounded-full bg-cyan-500/10 blur-[120px]" />
+      <div className="pointer-events-none absolute -bottom-32 -right-20 h-80 w-80 rounded-full bg-blue-600/10 blur-[120px]" />
+
+      <main className="relative z-10 mx-auto flex min-h-screen w-full max-w-[480px] flex-col px-6 pt-12 pb-10">
+        {/* Header */}
+        <header className="pt-4 pb-10">
+          <div className="inline-block mb-5 rounded-full border border-yellow-400/30 bg-yellow-500/10 px-3 py-1">
+            <span className="font-['Space_Grotesk'] text-[10px] font-bold uppercase tracking-[0.25em] text-yellow-300">
+              Event OS
+            </span>
+          </div>
+          <h1 className="text-4xl font-extrabold leading-tight tracking-tight text-white sm:text-5xl">
+            <AnimatedHeadline>One event.</AnimatedHeadline>
+            <br />
+            <span className="bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
+              Three lenses.
+            </span>
+          </h1>
+          <p className="mt-5 text-sm font-medium tracking-wide text-slate-400 sm:text-base">
+            Run it. Play it. Sponsor it.
+          </p>
+        </header>
+
+        {/* Portal cards */}
+        <section className="flex flex-col gap-5">
+          {PORTALS.map((p) => {
+            const a = ACCENT[p.accent];
+            return (
+              <Link
+                key={p.kicker}
+                to={p.to}
+                search={p.search}
+                className="group relative block text-left"
+              >
+                <div
+                  className={`absolute -inset-0.5 rounded-2xl bg-gradient-to-r ${a.halo} blur transition duration-500`}
+                />
+                <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-slate-900/60 p-5 backdrop-blur-xl transition-all duration-300 active:scale-[0.98]">
+                  <div className="mb-4 flex items-start justify-between gap-4">
+                    <div>
+                      <p className={`font-['Space_Grotesk'] mb-1 text-[10px] font-bold uppercase tracking-[0.2em] ${a.label}`}>
+                        {p.kicker}
+                      </p>
+                      <h2 className="text-xl font-bold text-white">{p.title}</h2>
+                    </div>
+                    <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border ${a.tile}`}>
+                      <p.Icon className="h-5 w-5" />
+                    </div>
+                  </div>
+                  <p className="mb-4 text-xs leading-relaxed text-slate-400">{p.blurb}</p>
+                  <div className={`flex items-center gap-1 text-xs font-bold ${a.cta}`}>
+                    <span>{p.cta}</span>
+                    <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-1" />
+                  </div>
+                </div>
+              </Link>
+            );
+          })}
+        </section>
+
+        {/* Footer */}
+        <footer className="mt-auto pt-10 text-center">
+          <p className="text-[11px] font-medium tracking-wide text-slate-500">
+            No accounts. No passwords. Walk in.
+          </p>
+        </footer>
+      </main>
+    </div>
   );
 }

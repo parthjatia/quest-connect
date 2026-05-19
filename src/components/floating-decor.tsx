@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import coinBlue from "@/assets/coin-blue.png";
+
 import coinCyan from "@/assets/coin-cyan.png";
 import coinNavy from "@/assets/coin-navy.png";
 import diceRed from "@/assets/dice-red.png";
@@ -11,7 +11,7 @@ import diamondGem from "@/assets/diamond-gem.png";
 
 type Variant = "coin-rain" | "ambient" | "dense";
 
-const COINS = [coinBlue, coinCyan, coinNavy];
+const COINS = [coinCyan, coinNavy];
 const PROPS = [diceRed, diceBlack, joystick, cassette, starBurst, diamondGem];
 
 // Stable pseudo-random based on seed index — no hydration mismatch.
@@ -76,7 +76,7 @@ export function FloatingDecor({
             opacity: s.opacity,
             animationDelay: `${s.delay}s`,
             animationDuration: `${s.duration}s`,
-            filter: variant === "coin-rain" ? "drop-shadow(0 8px 18px rgba(0, 180, 255, 0.35))" : "drop-shadow(0 4px 12px rgba(0,0,0,0.4))",
+            filter: variant === "coin-rain" ? "drop-shadow(0 8px 18px rgba(251, 191, 36, 0.45))" : "drop-shadow(0 4px 12px rgba(0,0,0,0.4))",
           }}
         />
       ))}
