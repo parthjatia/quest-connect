@@ -301,6 +301,7 @@ export type Database = {
           points_awarded: number
           start_at: string | null
           title: string
+          transcript_url: string | null
           type: Database["public"]["Enums"]["quest_type"]
         }
         Insert: {
@@ -314,6 +315,7 @@ export type Database = {
           points_awarded?: number
           start_at?: string | null
           title: string
+          transcript_url?: string | null
           type?: Database["public"]["Enums"]["quest_type"]
         }
         Update: {
@@ -327,6 +329,7 @@ export type Database = {
           points_awarded?: number
           start_at?: string | null
           title?: string
+          transcript_url?: string | null
           type?: Database["public"]["Enums"]["quest_type"]
         }
         Relationships: []

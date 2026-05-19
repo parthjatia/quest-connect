@@ -7,8 +7,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { supabase } from "@/integrations/supabase/client";
 import { getLocalAttendee, clearLocalAttendee } from "@/lib/local-attendee";
 import { toast } from "sonner";
-import { Loader2, Camera, LogOut, CheckCircle2, Lock, FileText, Upload, Eye, Pencil, Check, X, Clock, Users } from "lucide-react";
+import { Loader2, Camera, LogOut, CheckCircle2, Lock, Upload, Eye, Sparkles, Pencil, Check, X, Clock, Users } from "lucide-react";
 import { QuestSummaryModal } from "@/components/quest-summary-modal";
+import { QuestVisualSummaryModal } from "@/components/quest-visual-summary-modal";
 import { VibeMapSection } from "@/components/vibe-map/vibe-map-section";
 
 export const Route = createFileRoute("/play")({
@@ -21,9 +22,9 @@ type Quest = {
   points_awarded: number; emoji: string | null; is_pod_gate: boolean;
   created_at: string;
   start_at: string | null; end_at: string | null; is_live: boolean;
+  transcript_url: string | null;
 };
 type CompletedRow = { id: string; quest_id: string; quest_photo_url: string | null; claimed_at: string };
-type TranscriptRow = { id: string; quest_id: string; transcript_url: string; uploaded_at: string };
 type Member = { id: string; full_name: string | null; university: string | null };
 type Verification = { verifier_id: string; verified_id: string };
 type Submission = { id: string; group_id: string; quest_id: string; photo_url: string; status: "pending" | "approved" | "rejected"; reviewer_note: string | null; created_at: string };
@@ -113,19 +114,6 @@ function PlayPage() {
     },
   });
 
-  const transcripts = useQuery({
-    queryKey: ["transcripts", attendee?.id],
-    enabled: !!attendee,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("quest_transcripts")
-        .select("id, quest_id, transcript_url, uploaded_at")
-        .eq("attendee_id", attendee!.id);
-      if (error) throw error;
-      return (data ?? []) as TranscriptRow[];
-    },
-  });
-
   const submissions = useQuery({
     queryKey: ["submissions", me.data?.group_id],
     enabled: !!me.data?.group_id,
@@ -160,7 +148,6 @@ function PlayPage() {
   }
 
   const completedMap = new Map((completed.data ?? []).map((c) => [c.quest_id, c]));
-  const transcriptMap = new Map((transcripts.data ?? []).map((t) => [t.quest_id, t]));
   const submissionByQuest = new Map((submissions.data ?? []).map((s) => [s.quest_id, s]));
 
   const allQuests = (quests.data ?? []).filter((q) => !q.is_pod_gate); // gate replaced by code verification
@@ -204,12 +191,6 @@ function PlayPage() {
         <div className="mx-auto max-w-5xl px-6 py-3 flex items-center justify-between text-sm">
           <Link to="/" className="font-semibold tracking-tight">Quest Connect</Link>
           <div className="flex items-center gap-2">
-            <Link
-              to="/recap"
-              className="rounded-full border border-border px-3 py-1 text-xs font-semibold text-muted-foreground hover:text-foreground hover:border-foreground transition-colors"
-            >
-              ✨ Personal Recap
-            </Link>
             <Button variant="ghost" size="sm" onClick={leave} className="text-muted-foreground hover:text-foreground">
               <LogOut className="h-4 w-4 mr-1" />Leave
             </Button>
@@ -261,11 +242,8 @@ function PlayPage() {
         <MainQuestTimeline
           quests={mainQuests}
           completedMap={completedMap}
-          transcriptMap={transcriptMap}
-          attendeeId={attendee.id}
           onClaim={(q) => setActiveMainClaim(q)}
           onSummary={setSummaryFor}
-          onTranscriptUploaded={() => qc.invalidateQueries({ queryKey: ["transcripts"] })}
         />
 
         {/* Side quests (group) */}
@@ -300,9 +278,23 @@ function PlayPage() {
         />
       )}
 
-      {summaryFor && (() => {
+      {summaryFor && summaryFor.type === "main" && (() => {
         const c = completedMap.get(summaryFor.id);
-        const t = transcriptMap.get(summaryFor.id);
+        return (
+          <QuestVisualSummaryModal
+            open
+            onClose={() => setSummaryFor(null)}
+            questTitle={summaryFor.title}
+            questEmoji={summaryFor.emoji}
+            points={summaryFor.points_awarded}
+            photoUrl={c?.quest_photo_url ?? null}
+            transcriptUrl={summaryFor.transcript_url ?? null}
+          />
+        );
+      })()}
+
+      {summaryFor && summaryFor.type === "side" && (() => {
+        const c = completedMap.get(summaryFor.id);
         return (
           <QuestSummaryModal
             open
@@ -311,7 +303,6 @@ function PlayPage() {
             questEmoji={summaryFor.emoji}
             points={summaryFor.points_awarded}
             photoUrl={c?.quest_photo_url ?? null}
-            transcriptUrl={t?.transcript_url ?? null}
             claimedAt={c?.claimed_at ?? null}
           />
         );
@@ -437,16 +428,14 @@ function PodPanel({
   );
 }
 
+/** Main-quest transcripts are uploaded by the organizer (quests.transcript_url), not attendees. */
 function MainQuestTimeline({
-  quests, completedMap, transcriptMap, attendeeId, onClaim, onSummary, onTranscriptUploaded,
+  quests, completedMap, onClaim, onSummary,
 }: {
   quests: Quest[];
   completedMap: Map<string, CompletedRow>;
-  transcriptMap: Map<string, TranscriptRow>;
-  attendeeId: string;
   onClaim: (q: Quest) => void;
   onSummary: (q: Quest) => void;
-  onTranscriptUploaded: () => void;
 }) {
   // Find current = first not completed; reorder: current first, then completed (most recent first)
   const currentIdx = quests.findIndex((q) => !completedMap.has(q.id));
@@ -466,7 +455,7 @@ function MainQuestTimeline({
     <section>
       <div className="flex items-baseline justify-between mb-3">
         <h2 className="text-lg font-semibold tracking-tight">Main quests</h2>
-        <p className="text-xs text-muted-foreground">Individual · timeline</p>
+        <p className="text-xs text-muted-foreground">Organizer uploads .md · you run visual recap</p>
       </div>
       {quests.length === 0 ? (
         <div className="border border-border p-8 text-center text-sm text-muted-foreground">No main quests yet.</div>
@@ -474,7 +463,6 @@ function MainQuestTimeline({
         <ol className="relative border-l border-border ml-3 space-y-4">
           {ordered.map(({ q, kind }) => {
             const done = completedMap.get(q.id);
-            const transcript = transcriptMap.get(q.id);
             const dot = kind === "current" ? "bg-lime border-lime" : kind === "done" ? "bg-background border-lime" : "bg-background border-border";
             return (
               <li key={q.id} className="ml-6 relative">
@@ -505,12 +493,25 @@ function MainQuestTimeline({
                     {!done && kind === "upcoming" && (
                       <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Locked — finish current first</span>
                     )}
-                    <TranscriptUpload attendeeId={attendeeId} questId={q.id} existing={transcript} onDone={onTranscriptUploaded} />
-                    {done && (
-                      <Button variant="outline" size="sm" onClick={() => onSummary(q)}
-                        className="h-7 text-xs border-border hover:border-lime hover:text-lime">
-                        <Eye className="h-3 w-3 mr-1" /> View summary
+                    {!done && q.transcript_url && kind === "current" && (
+                      <span className="text-[10px] text-muted-foreground">Visual recap unlocks after you claim</span>
+                    )}
+                    {q.transcript_url ? (
+                      <Button
+                        size="sm"
+                        disabled={!done}
+                        onClick={() => onSummary(q)}
+                        className={`h-7 text-xs ${done ? "bg-lime hover:opacity-90" : ""}`}
+                        variant={done ? "default" : "outline"}
+                      >
+                        <Sparkles className="h-3 w-3 mr-1" /> Visual recap
                       </Button>
+                    ) : (
+                      done && (
+                        <span className="text-[10px] text-muted-foreground">
+                          Waiting for organizer to upload the conversation (.md)
+                        </span>
+                      )
                     )}
                   </div>
                 </div>
@@ -599,55 +600,6 @@ function SideQuestsSection({
         </div>
       )}
     </section>
-  );
-}
-
-function TranscriptUpload({
-  attendeeId, questId, existing, onDone,
-}: { attendeeId: string; questId: string; existing?: TranscriptRow; onDone: () => void }) {
-  const [busy, setBusy] = useState(false);
-  const ref = useRef<HTMLInputElement>(null);
-
-  const upload = async (file: File) => {
-    if (file.size > 5 * 1024 * 1024) return toast.error("Max 5 MB.");
-    setBusy(true);
-    try {
-      const path = `${attendeeId}/${questId}-${Date.now()}.md`;
-      const up = await supabase.storage.from("quest-transcripts").upload(path, file, {
-        contentType: "text/markdown", upsert: false,
-      });
-      if (up.error) throw up.error;
-      const { data: pub } = supabase.storage.from("quest-transcripts").getPublicUrl(path);
-      const { error } = await supabase.from("quest_transcripts").insert({
-        attendee_id: attendeeId, quest_id: questId, transcript_url: pub.publicUrl,
-      });
-      if (error) throw error;
-      toast.success("Transcript uploaded");
-      onDone();
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Upload failed");
-    } finally { setBusy(false); }
-  };
-
-  if (existing) {
-    return (
-      <a href={existing.transcript_url} target="_blank" rel="noreferrer"
-        className="h-7 px-3 border border-border text-[10px] uppercase tracking-wider text-muted-foreground hover:text-lime hover:border-lime inline-flex items-center gap-1">
-        <FileText className="h-3 w-3" /> Transcript
-      </a>
-    );
-  }
-
-  return (
-    <>
-      <input ref={ref} type="file" accept=".md,text/markdown" className="hidden"
-        onChange={(e) => { const f = e.target.files?.[0]; if (f) upload(f); }} />
-      <Button variant="outline" size="sm" disabled={busy} onClick={() => ref.current?.click()}
-        className="h-7 text-xs border-dashed border-border hover:border-lime hover:text-lime">
-        {busy ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Upload className="h-3 w-3 mr-1" />}
-        Upload transcript (.md)
-      </Button>
-    </>
   );
 }
 

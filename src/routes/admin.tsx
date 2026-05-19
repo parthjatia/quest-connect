@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Button } from "@/components/ui/button";
@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, Plus, Trash2, Sparkles, ArrowLeft, Wand2, Lock, Unlock, FileText, Check, X as XIcon, Clock, Radio, LogOut } from "lucide-react";
+import { Loader2, Plus, Trash2, Sparkles, ArrowLeft, Wand2, Lock, Unlock, FileText, Check, X as XIcon, Clock, Radio, LogOut, Upload } from "lucide-react";
 import { getRegistrationOpen, setRegistrationOpen } from "@/lib/event-settings";
 import { runLlmMatchmaker } from "@/lib/matchmaker.functions";
 import { getLocalAdmin, setLocalAdmin } from "@/lib/local-attendee";
@@ -21,6 +21,7 @@ type Quest = {
   id: string; title: string; description: string; type: string;
   points_awarded: number; emoji: string | null;
   start_at: string | null; end_at: string | null; is_live: boolean;
+  transcript_url: string | null;
 };
 type Attendee = {
   id: string;
@@ -51,7 +52,7 @@ function AdminPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("quests")
-        .select("id, title, description, type, points_awarded, emoji, start_at, end_at, is_live")
+        .select("id, title, description, type, points_awarded, emoji, start_at, end_at, is_live, transcript_url")
         .order("type")
         .order("start_at", { ascending: true, nullsFirst: false });
       if (error) throw error;
@@ -463,6 +464,11 @@ function QuestManager({ quests, loading }: { quests: Quest[]; loading: boolean }
                         className="bg-background border-border h-8 text-xs" />
                     </div>
                   </div>
+                  <AdminQuestTranscriptUpload
+                    questId={q.id}
+                    existingUrl={q.transcript_url}
+                    onDone={() => qc.invalidateQueries({ queryKey: ["admin-quests"] })}
+                  />
                   <div className="flex gap-2 mt-3">
                     {q.is_live ? (
                       <Button size="sm" onClick={() => stopLive(q.id)} variant="outline" className="h-7 text-xs border-destructive text-destructive hover:bg-destructive/10">
@@ -513,6 +519,79 @@ function QuestManager({ quests, loading }: { quests: Quest[]; loading: boolean }
         )}
       </div>
     </section>
+  );
+}
+
+function AdminQuestTranscriptUpload({
+  questId,
+  existingUrl,
+  onDone,
+}: {
+  questId: string;
+  existingUrl: string | null;
+  onDone: () => void;
+}) {
+  const ref = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+
+  const upload = async (file: File) => {
+    if (file.size > 5 * 1024 * 1024) return toast.error("Max 5 MB.");
+    setBusy(true);
+    try {
+      const path = `admin/quests/${questId}-${Date.now()}.md`;
+      const up = await supabase.storage.from("quest-transcripts").upload(path, file, {
+        contentType: "text/markdown",
+        upsert: true,
+      });
+      if (up.error) throw up.error;
+      const { data: pub } = supabase.storage.from("quest-transcripts").getPublicUrl(path);
+      const { error } = await supabase.from("quests").update({ transcript_url: pub.publicUrl }).eq("id", questId);
+      if (error) throw error;
+      toast.success("Event transcript uploaded");
+      onDone();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Upload failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="mt-3 flex flex-wrap items-center gap-2">
+      <p className="text-[10px] uppercase tracking-wider text-muted-foreground w-full">
+        Conversation transcript (.md) — attendees use this for visual recap
+      </p>
+      {existingUrl && (
+        <a
+          href={existingUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="h-7 px-3 border border-border text-[10px] uppercase tracking-wider text-muted-foreground hover:text-lime hover:border-lime inline-flex items-center gap-1"
+        >
+          <FileText className="h-3 w-3" /> View transcript
+        </a>
+      )}
+      <input
+        ref={ref}
+        type="file"
+        accept=".md,text/markdown"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) upload(f);
+        }}
+      />
+      <Button
+        variant="outline"
+        size="sm"
+        disabled={busy}
+        onClick={() => ref.current?.click()}
+        className="h-7 text-xs border-dashed border-border hover:border-lime hover:text-lime"
+      >
+        {busy ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Upload className="h-3 w-3 mr-1" />}
+        {existingUrl ? "Replace .md" : "Upload .md"}
+      </Button>
+    </div>
   );
 }
 
