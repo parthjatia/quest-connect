@@ -278,20 +278,16 @@ function PlayPage() {
         />
       )}
 
-      {summaryFor && summaryFor.type === "main" && (() => {
-        const c = completedMap.get(summaryFor.id);
-        return (
-          <QuestVisualSummaryModal
-            open
-            onClose={() => setSummaryFor(null)}
-            questTitle={summaryFor.title}
-            questEmoji={summaryFor.emoji}
-            points={summaryFor.points_awarded}
-            photoUrl={c?.quest_photo_url ?? null}
-            transcriptUrl={summaryFor.transcript_url ?? null}
-          />
-        );
-      })()}
+      {summaryFor && summaryFor.type === "main" && (
+        <MainQuestRecapModal
+          open
+          onClose={() => setSummaryFor(null)}
+          questTitle={summaryFor.title}
+          questEmoji={summaryFor.emoji}
+          points={summaryFor.points_awarded}
+          transcriptUrl={summaryFor.transcript_url ?? null}
+        />
+      )}
 
       {summaryFor && summaryFor.type === "side" && (() => {
         const c = completedMap.get(summaryFor.id);
