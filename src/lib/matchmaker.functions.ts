@@ -2,11 +2,11 @@ import { createServerFn } from "@tanstack/react-start";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import {
   buildClusters,
-  diversifyClusterWithAI,
   heuristicSplit,
   type Attendee,
   type Cluster,
 } from "@/lib/matchmaker.server";
+
 
 export const runLlmMatchmaker = createServerFn({ method: "POST" }).handler(
   async (): Promise<{
@@ -15,7 +15,8 @@ export const runLlmMatchmaker = createServerFn({ method: "POST" }).handler(
     clusters: number;
     error?: string;
   }> => {
-    const apiKey = process.env.LOVABLE_API_KEY;
+    const t0 = Date.now();
+
 
     // 1. Clear existing pods
     const { error: clrAttendeesErr } = await supabaseAdmin
@@ -47,46 +48,24 @@ export const runLlmMatchmaker = createServerFn({ method: "POST" }).handler(
       clusters.push({ label: "Open", members: attendees, matchType: "open" } as Cluster);
     }
 
-    // 4. Per-cluster diversity pass
-    let method: "ai" | "mixed" | "heuristic" = apiKey ? "ai" : "heuristic";
-    let lastError: string | undefined;
-    let anyAI = false;
-    let anyHeuristic = false;
+    // 4. Heuristic split per cluster (fast, no AI calls for demo speed)
+    const method: "ai" | "mixed" | "heuristic" = "heuristic";
+    const lastError: string | undefined = undefined;
 
     type PendingPod = { ids: string[]; cluster: Cluster; rationale?: string };
     const pending: PendingPod[] = [];
 
     for (const cluster of clusters) {
-      let podsForCluster: string[][] = [];
-      let rationales: Map<string, string> = new Map();
-      if (apiKey) {
-        try {
-          const r = await diversifyClusterWithAI(cluster, apiKey);
-          podsForCluster = r.pods;
-          rationales = r.rationales;
-          anyAI = true;
-        } catch (e) {
-          lastError = e instanceof Error ? e.message : String(e);
-          console.error(`[matchmaker] AI diversify failed for "${cluster.label}":`, lastError);
-          podsForCluster = heuristicSplit(cluster.members.map((a) => a.id));
-          anyHeuristic = true;
-        }
-      } else {
-        podsForCluster = heuristicSplit(cluster.members.map((a) => a.id));
-        anyHeuristic = true;
-      }
+      const podsForCluster = heuristicSplit(cluster.members.map((a) => a.id));
       for (const ids of podsForCluster) {
-        pending.push({ ids, cluster, rationale: rationales.get(ids.join(",")) });
+        pending.push({ ids, cluster });
       }
     }
-
-    if (anyAI && anyHeuristic) method = "mixed";
-    else if (anyHeuristic && !anyAI) method = "heuristic";
-    else if (anyAI) method = "ai";
 
     if (pending.length === 0) {
-      return { pods_created: 0, method, clusters: clusters.length, error: lastError ?? "No pods formed" };
+      return { pods_created: 0, method, clusters: clusters.length, error: "No pods formed" };
     }
+
 
     // 5. Write groups + assignments
     for (const pod of pending) {
@@ -107,8 +86,8 @@ export const runLlmMatchmaker = createServerFn({ method: "POST" }).handler(
       if (aErr) throw new Error(`assign attendees: ${aErr.message}`);
     }
 
-    if (!apiKey) lastError = "LOVABLE_API_KEY missing";
-    console.log(`[matchmaker] created ${pending.length} pods (method=${method})`);
+    console.log(`[matchmaker] created ${pending.length} pods (method=${method}) in ${Date.now() - t0}ms`);
+
 
     return {
       pods_created: pending.length,
