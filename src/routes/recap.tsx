@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { Upload, FileText, AlertCircle, Check, Sparkles, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,6 +18,7 @@ import {
   type RecapPrefs,
 } from "@/lib/recap-store";
 import { generatePersonalizedRecap, type RecapData } from "@/lib/recap-generator";
+import { generateVisualRecap } from "@/lib/visual-recap.functions";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/recap")({
