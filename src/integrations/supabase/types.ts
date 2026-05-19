@@ -291,7 +291,9 @@ export type Database = {
       }
       quests: {
         Row: {
+          approval_status: string
           created_at: string
+          created_by_sponsor: string | null
           description: string
           emoji: string | null
           end_at: string | null
@@ -305,7 +307,9 @@ export type Database = {
           type: Database["public"]["Enums"]["quest_type"]
         }
         Insert: {
+          approval_status?: string
           created_at?: string
+          created_by_sponsor?: string | null
           description: string
           emoji?: string | null
           end_at?: string | null
@@ -319,7 +323,9 @@ export type Database = {
           type?: Database["public"]["Enums"]["quest_type"]
         }
         Update: {
+          approval_status?: string
           created_at?: string
+          created_by_sponsor?: string | null
           description?: string
           emoji?: string | null
           end_at?: string | null
