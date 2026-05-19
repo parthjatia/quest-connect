@@ -137,7 +137,7 @@ export function dbRowToAttendee(row: DbAttendeeRow, options?: { enrich?: boolean
     name,
     initials: initialsFromName(name),
     university: (row.university ?? "").trim() || "—",
-    interests: parseStringArray(row.interests),
+    interests: [...new Set([...parseStringArray(row.interests), ...parseStringArray(row.hobbies)])],
     goals: parseStringArray(row.goals),
     skills: parseStringArray(row.skills),
     track: (row.track?.trim() || (row.track_intent ? trackLabel(row.track_intent) : "")) || "Startup",
