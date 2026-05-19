@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/sponsor-radar")({
   head: () => ({
     meta: [
-      { title: "Sponsor Radar — Quest Connect" },
+      { title: "Sponsor Radar — Quey" },
       { name: "description", content: "Find the right audience clusters and launch better event touchpoints." },
     ],
   }),
@@ -81,7 +81,7 @@ function SponsorPage() {
     <div className="min-h-screen bg-background text-foreground">
       <header className="border-b border-border">
         <div className="mx-auto max-w-6xl px-6 py-3 flex items-center justify-between text-sm">
-          <Link to="/" className="font-semibold tracking-tight">Quest Connect</Link>
+          <Link to="/" className="font-semibold tracking-tight">Quey</Link>
           <span className="text-muted-foreground text-xs uppercase tracking-[0.2em]">Sponsor</span>
         </div>
       </header>

@@ -197,7 +197,7 @@ export function Floorplan({ zones, selectedZone, bestZone, onSelectZone, youZone
 
                 {isYou && (
                   <g transform={`translate(${x + 1.2}, ${y + 1.2})`}>
-                    <circle r="1.35" fill="oklch(0.9 0.22 130)" />
+                    <circle r="1.35" fill="oklch(0.7 0.18 250)" />
                     <circle r="1.35" fill="none" stroke="oklch(0.12 0.01 250)" strokeWidth="0.2" />
                   </g>
                 )}

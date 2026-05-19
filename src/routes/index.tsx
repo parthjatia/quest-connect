@@ -6,7 +6,7 @@ import { AnimatedHeadline } from "@/components/animated-text";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Quest Connect — Pick your lens" },
+      { title: "Quey — Pick your lens" },
       { name: "description", content: "Event matchmaking and quests. Organizer, attendee, or sponsor." },
     ],
   }),
@@ -91,7 +91,7 @@ function Landing() {
         <header className="pt-4 pb-10">
           <div className="inline-block mb-5 rounded-full border border-yellow-400/30 bg-yellow-500/10 px-3 py-1">
             <span className="font-['Space_Grotesk'] text-[10px] font-bold uppercase tracking-[0.25em] text-yellow-300">
-              Event OS
+              Quey
             </span>
           </div>
           <h1 className="text-4xl font-extrabold leading-tight tracking-tight text-white sm:text-5xl">

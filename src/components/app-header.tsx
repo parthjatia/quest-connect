@@ -24,11 +24,11 @@ export function AppHeader() {
   return (
     <header className="border-b border-border/60 bg-background/70 backdrop-blur sticky top-0 z-30">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-        <Link to="/" className="flex items-center gap-2 font-bold text-lg">
+        <Link to="/" className="flex items-center gap-2 font-extrabold text-xl tracking-tight">
           <span className="grid h-8 w-8 place-items-center rounded-lg bg-gradient-hero shadow-glow">
             <Sparkles className="h-4 w-4 text-primary-foreground" />
           </span>
-          Quest Connect
+          Quey
         </Link>
         <nav className="flex items-center gap-2">
           {user ? (

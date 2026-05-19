@@ -14,7 +14,7 @@ export const Route = createFileRoute("/auth")({
   validateSearch: (search: Record<string, unknown>): AuthSearch => ({
     mode: search.mode === "admin" ? "admin" : search.mode === "sponsor" ? "sponsor" : undefined,
   }),
-  head: () => ({ meta: [{ title: "Sign in — Quest Connect" }] }),
+  head: () => ({ meta: [{ title: "Sign in — Quey" }] }),
   component: AuthPage,
 });
 
@@ -30,7 +30,7 @@ function AuthPage() {
           <Link to="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground">
             <ArrowLeft className="h-4 w-4" /> back
           </Link>
-          <span className="text-muted-foreground">Quest Connect</span>
+          <span className="text-muted-foreground">Quey</span>
         </div>
       </header>
 

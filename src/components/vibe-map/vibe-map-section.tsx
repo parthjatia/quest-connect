@@ -596,7 +596,7 @@ function SuggestedFiltersPanel({
               className={cn(
                 "text-xs px-2.5 py-1 rounded-full border transition-all",
                 on
-                  ? "bg-lime/90 text-primary-foreground border-lime"
+                  ? "bg-lime/90 text-white font-semibold border-lime"
                   : "border-lime/30 text-lime hover:bg-lime/10",
               )}
             >

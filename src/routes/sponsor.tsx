@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import { ArrowLeft, LogOut, Loader2, Sparkles, Clock, Check, X as XIcon, Radio, ExternalLink } from "lucide-react";
 
 export const Route = createFileRoute("/sponsor")({
-  head: () => ({ meta: [{ title: "Sponsor portal — Quest Connect" }] }),
+  head: () => ({ meta: [{ title: "Sponsor portal — Quey" }] }),
   component: SponsorPortal,
 });
 
@@ -72,7 +72,7 @@ function SponsorPortal() {
       <header className="border-b border-border">
         <div className="mx-auto max-w-3xl px-6 py-3 flex items-center justify-between text-sm">
           <Link to="/" className="text-muted-foreground hover:text-foreground inline-flex items-center gap-2">
-            <ArrowLeft className="h-4 w-4" /> Quest Connect
+            <ArrowLeft className="h-4 w-4" /> Quey
           </Link>
           <div className="flex items-center gap-3">
             <span className="text-[10px] uppercase tracking-[0.2em] text-lime border border-lime px-1.5 py-0.5">
