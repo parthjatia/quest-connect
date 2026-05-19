@@ -269,7 +269,7 @@ function AdminPage() {
 
 
         {/* Pods — compact list */}
-        {podCount > 0 && (
+        {podsVisible && (
           <section>
             <div className="flex items-baseline justify-between mb-3">
               <h2 className="text-lg font-semibold tracking-tight">Pods</h2>
