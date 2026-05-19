@@ -317,6 +317,16 @@ function AdminPage() {
               <Button
                 variant="outline"
                 size="sm"
+                onClick={seedMockAttendees}
+                disabled={seeding}
+                className="h-7 text-xs border-lime text-lime hover:bg-lime/10"
+              >
+                {seeding ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Plus className="h-3 w-3 mr-1" />}
+                Seed 100 mock
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={clearAllAttendees}
                 disabled={clearing}
                 className="h-7 text-xs border-destructive text-destructive hover:bg-destructive/10"
