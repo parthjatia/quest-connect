@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import coinBlue from "@/assets/coin-blue.png";
+
 import coinCyan from "@/assets/coin-cyan.png";
 import coinNavy from "@/assets/coin-navy.png";
 import diceRed from "@/assets/dice-red.png";
