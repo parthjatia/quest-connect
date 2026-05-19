@@ -1,19 +1,9 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
 import { Heart, Sparkles, Calendar, User } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { RecapShell } from "@/components/recap/recap-shell";
 import { ImageSlot } from "@/components/recap/image-slot";
-import { loadPrefs, loadTemplateId, loadTranscript, type RecapPrefs } from "@/lib/recap-store";
-import { generatePersonalizedRecap, type RecapData } from "@/lib/recap-generator";
 import { cn } from "@/lib/utils";
-
-export const Route = createFileRoute("/recap/result")({
-  head: () => ({ meta: [{ title: "Your personal visual recap" }] }),
-  component: ResultPage,
-});
+import type { RecapData } from "@/lib/recap-generator";
+import type { RecapPrefs } from "@/lib/recap-store";
 
 type VisualMode = "storybook" | "hero" | "manga";
 
@@ -44,48 +34,13 @@ function visualTheme(mode: VisualMode) {
   }
 }
 
-function intensityClass(intensity?: string) {
-  if (intensity === "Bold and dramatic") return "[--gap:1.5rem] text-[1.02em]";
-  if (intensity === "Calm and clean") return "[--gap:2.5rem] opacity-95";
-  return "[--gap:2rem]";
-}
-
-function ResultPage() {
-  const [prefs, setPrefs] = useState<RecapPrefs>({});
-  const [transcript, setTranscript] = useState("");
-  const [templateId, setTemplateId] = useState("catchup_storybook");
-
-  useEffect(() => {
-    setPrefs(loadPrefs());
-    setTranscript(loadTranscript());
-    setTemplateId(loadTemplateId());
-  }, []);
-
-  const data: RecapData = useMemo(
-    () => generatePersonalizedRecap(transcript, prefs, templateId),
-    [transcript, prefs, templateId],
-  );
-
-  const visualMode = (templateId.split("_")[1] ?? "storybook") as VisualMode;
+export function RecapResult({ data, prefs }: { data: RecapData; prefs: RecapPrefs }) {
+  const visualMode = (data.templateId.split("_")[1] ?? "storybook") as VisualMode;
   const theme = visualTheme(visualMode);
   const format = prefs.format ?? "Magazine / zine spread";
 
   return (
-    <RecapShell>
-      <div className={cn("mb-6 flex flex-wrap items-center justify-between gap-3", intensityClass(prefs.intensity))}>
-        <div className="flex flex-wrap gap-2">
-          <Badge variant="secondary" className="uppercase tracking-wider">Your recap</Badge>
-          <Badge variant="outline" className={cn("font-mono text-[10px]", theme.accent)}>
-            Template: {templateId}
-          </Badge>
-          {prefs.format && <Badge variant="outline">{prefs.format}</Badge>}
-          {prefs.intensity && <Badge variant="outline">{prefs.intensity}</Badge>}
-        </div>
-        <Button asChild variant="outline" size="sm">
-          <Link to="/recap">Start over</Link>
-        </Button>
-      </div>
-
+    <div>
       {/* Cover */}
       <Card className={cn("mb-6 overflow-hidden", theme.panel)}>
         <CardContent className="p-0">
@@ -104,7 +59,6 @@ function ResultPage() {
         </CardContent>
       </Card>
 
-      {/* Big Picture */}
       <Panel theme={theme} number={2} title={data.sections.bigPicture.title}>
         <div className="grid gap-4 sm:grid-cols-[1fr_1.2fr] sm:items-center">
           <ImageSlot slot={data.sections.bigPicture.imageSlot} />
@@ -112,18 +66,11 @@ function ResultPage() {
         </div>
       </Panel>
 
-      {/* Key Moments — layout shifts by format */}
       <Panel theme={theme} number={3} title={data.sections.keyMoments.title}>
         {format === "Collectible cards" ? (
           <div className="-mx-2 flex snap-x snap-mandatory gap-3 overflow-x-auto px-2 pb-2">
             {data.sections.keyMoments.items.map((m, i) => (
-              <div
-                key={i}
-                className={cn(
-                  "min-w-[260px] max-w-[280px] shrink-0 snap-start rounded-xl border bg-card p-3",
-                  theme.panel,
-                )}
-              >
+              <div key={i} className={cn("min-w-[260px] max-w-[280px] shrink-0 snap-start rounded-xl border bg-card p-3", theme.panel)}>
                 <ImageSlot slot={m.imageSlot} className="mb-3" />
                 <div className={cn("mb-1 text-[10px] font-semibold uppercase tracking-widest", theme.accent)}>
                   Moment · {m.label}
@@ -198,8 +145,7 @@ function ResultPage() {
         </ol>
       </Panel>
 
-      {/* Final Memory Card */}
-      <Card className={cn("mb-8 overflow-hidden", theme.panel)}>
+      <Card className={cn("overflow-hidden", theme.panel)}>
         <CardContent className="p-0">
           <ImageSlot slot={data.sections.memoryCard.imageSlot} className="rounded-none border-0 border-b" />
           <div className="p-8">
@@ -215,16 +161,7 @@ function ResultPage() {
           </div>
         </CardContent>
       </Card>
-
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <Button asChild variant="ghost">
-          <Link to="/play">← Back to event</Link>
-        </Button>
-        <Button asChild>
-          <Link to="/recap">Make another recap</Link>
-        </Button>
-      </div>
-    </RecapShell>
+    </div>
   );
 }
 
