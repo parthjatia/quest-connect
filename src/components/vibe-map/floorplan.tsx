@@ -194,6 +194,9 @@ export function Floorplan({ zones, selectedZone, bestZone, onSelectZone, youZone
                   </text>
                 )}
 
+                {/* heat bubble cluster */}
+                <HeatBubbles heat={heat} cx={cx} cy={y + h - 1.4} />
+
                 {isYou && (
                   <g transform={`translate(${x + 1.2}, ${y + 1.2})`}>
                     <circle r="1.35" fill="oklch(0.9 0.22 130)" />
