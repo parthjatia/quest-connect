@@ -16,7 +16,7 @@ export const reviewSponsorCompletionFn = createServerFn({ method: "POST" })
       _completed_id: data.completed_id,
       _sponsor_handle: data.sponsor_handle,
       _approve: data.approve,
-      _note: data.note ?? null,
+      _note: data.note ?? undefined,
     });
     if (error) throw new Error(error.message);
     return res as { status: "approved" | "rejected" };
