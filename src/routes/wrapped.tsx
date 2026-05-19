@@ -125,7 +125,7 @@ function WrappedPage() {
     if (d.topQuest) {
       arr.push({ key: "topquest", kicker: "Your top quest", headline: `${d.topQuest.emoji ?? "⭐"} ${d.topQuest.title}`, sub: `+${d.topQuest.points} XP — your biggest win` });
     }
-    arr.push({ key: "insight", kicker: "The main insight", headline: d.insight, sub: "Powered by AI" });
+    arr.push({ key: "insight", kicker: "The recap", headline: d.insight, sub: "Your event in one line." });
     arr.push({ key: "outro", kicker: "That's your event", headline: `Thanks for showing up, ${d.name.split(" ")[0]}.`, sub: "Tap to return to your dashboard." });
     return arr;
   }, [q.data]);
