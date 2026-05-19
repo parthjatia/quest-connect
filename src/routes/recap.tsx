@@ -47,9 +47,9 @@ const QUESTIONS: Q[] = [
 
 const LOADING_STEPS = [
   "Reading transcript",
-  "Extracting key moments",
-  "Choosing your story format",
   "Building your recap",
+  "Creating visual scenes",
+  "Placing images into your story",
 ];
 
 function RecapPage() {
