@@ -80,7 +80,7 @@ export const suggestVibeMapFilters = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     if (!row) throw new Error("Attendee not found");
 
-    const attendee = dbRowToAttendee(row, { enrich: true });
+    const attendee = dbRowToAttendee(row as Parameters<typeof dbRowToAttendee>[0], { enrich: true });
     const profileResult = suggestFiltersFromProfile(attendee);
 
     let aiFilters: AttendeeFilter[] = [];

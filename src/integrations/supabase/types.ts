@@ -21,14 +21,25 @@ export type Database = {
           ai_experience: Database["public"]["Enums"]["ai_experience"] | null
           country: string | null
           created_at: string
+          current_zone: string | null
+          discovery_visibility: boolean
           event_goal: string | null
           full_name: string | null
+          goals: string[] | null
           group_id: string | null
           icebreakers: string | null
           id: string
+          interests: string[] | null
           late: boolean
+          looking_for: string | null
+          met_attendee_ids: string[] | null
           onboarded: boolean
+          personality_tags: string[] | null
           points: number
+          quest_activity_score: number
+          skills: string[] | null
+          sponsor_open: boolean
+          track: string | null
           track_intent: string | null
           university: string | null
           updated_at: string
@@ -43,14 +54,25 @@ export type Database = {
           ai_experience?: Database["public"]["Enums"]["ai_experience"] | null
           country?: string | null
           created_at?: string
+          current_zone?: string | null
+          discovery_visibility?: boolean
           event_goal?: string | null
           full_name?: string | null
+          goals?: string[] | null
           group_id?: string | null
           icebreakers?: string | null
           id?: string
+          interests?: string[] | null
           late?: boolean
+          looking_for?: string | null
+          met_attendee_ids?: string[] | null
           onboarded?: boolean
+          personality_tags?: string[] | null
           points?: number
+          quest_activity_score?: number
+          skills?: string[] | null
+          sponsor_open?: boolean
+          track?: string | null
           track_intent?: string | null
           university?: string | null
           updated_at?: string
@@ -65,14 +87,25 @@ export type Database = {
           ai_experience?: Database["public"]["Enums"]["ai_experience"] | null
           country?: string | null
           created_at?: string
+          current_zone?: string | null
+          discovery_visibility?: boolean
           event_goal?: string | null
           full_name?: string | null
+          goals?: string[] | null
           group_id?: string | null
           icebreakers?: string | null
           id?: string
+          interests?: string[] | null
           late?: boolean
+          looking_for?: string | null
+          met_attendee_ids?: string[] | null
           onboarded?: boolean
+          personality_tags?: string[] | null
           points?: number
+          quest_activity_score?: number
+          skills?: string[] | null
+          sponsor_open?: boolean
+          track?: string | null
           track_intent?: string | null
           university?: string | null
           updated_at?: string
@@ -268,6 +301,7 @@ export type Database = {
           points_awarded: number
           start_at: string | null
           title: string
+          transcript_url: string | null
           type: Database["public"]["Enums"]["quest_type"]
         }
         Insert: {
@@ -281,6 +315,7 @@ export type Database = {
           points_awarded?: number
           start_at?: string | null
           title: string
+          transcript_url?: string | null
           type?: Database["public"]["Enums"]["quest_type"]
         }
         Update: {
@@ -294,6 +329,7 @@ export type Database = {
           points_awarded?: number
           start_at?: string | null
           title?: string
+          transcript_url?: string | null
           type?: Database["public"]["Enums"]["quest_type"]
         }
         Relationships: []
