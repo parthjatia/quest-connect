@@ -17,7 +17,7 @@ export const clearAllDataFn = createServerFn({ method: "POST" }).handler(async (
     const { error } = await step.run();
     if (error) {
       console.error(`[clearAllDataFn] failed clearing ${step.name}:`, error);
-      throw new Error(`Failed to clear ${step.name}: ${(error as { message?: string }).message ?? "unknown"}`);
+      throw new Error(`Failed to clear ${step.name}: ${error.message ?? "unknown"}`);
     }
   }
 
