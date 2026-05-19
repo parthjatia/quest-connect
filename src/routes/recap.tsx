@@ -102,11 +102,27 @@ type ResultState = { recap: RecapData; images: RecapImages } | null;
 
 function RecapPage() {
   const [transcript, setTranscript] = useState("");
+  const [selectedQuestId, setSelectedQuestId] = useState<string | null>(null);
+  const [loadingTranscript, setLoadingTranscript] = useState(false);
   const [prefs, setPrefs] = useState<RecapPrefs>({});
   const [loading, setLoading] = useState(false);
   const [loadingStep, setLoadingStep] = useState(0);
   const [result, setResult] = useState<ResultState>(null);
   const resultRef = useRef<HTMLDivElement | null>(null);
+
+  const questsQuery = useQuery({
+    queryKey: ["main-quest-transcripts"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("quests")
+        .select("id, title, emoji, transcript_url, type")
+        .eq("type", "main")
+        .not("transcript_url", "is", null)
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as Array<{ id: string; title: string; emoji: string | null; transcript_url: string }>;
+    },
+  });
 
   const wordCount = useMemo(
     () => (transcript.trim() ? transcript.trim().split(/\s+/).length : 0),
@@ -124,16 +140,23 @@ function RecapPage() {
     return () => clearInterval(id);
   }, [loading]);
 
-  const handleFile = useCallback(async (file: File) => {
-    if (!file) return;
-    if (!file.name.endsWith(".txt") && file.type && !file.type.startsWith("text/")) {
-      toast.error("Unsupported file", { description: "Please upload a .txt file." });
-      return;
+  const handlePickQuest = async (q: { id: string; title: string; transcript_url: string }) => {
+    setSelectedQuestId(q.id);
+    setLoadingTranscript(true);
+    try {
+      const res = await fetch(q.transcript_url);
+      if (!res.ok) throw new Error("Could not load transcript");
+      const text = await res.text();
+      if (!text.trim()) throw new Error("Transcript is empty");
+      setTranscript(text);
+      toast("Transcript loaded", { description: `${q.title} • ${text.split(/\s+/).length} words` });
+    } catch (e) {
+      setSelectedQuestId(null);
+      toast.error("Couldn't load transcript", { description: e instanceof Error ? e.message : "Try another quest." });
+    } finally {
+      setLoadingTranscript(false);
     }
-    const text = await file.text();
-    setTranscript(text);
-    toast("Transcript loaded", { description: `${file.name} • ${text.split(/\s+/).length} words` });
-  }, []);
+  };
 
   const onGenerate = async () => {
     if (!canGenerate) return;
