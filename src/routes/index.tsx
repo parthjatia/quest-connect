@@ -6,7 +6,7 @@ import { AnimatedHeadline } from "@/components/animated-text";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Quest Connect — Pick your lens" },
+      { title: "Quey — Pick your lens" },
       { name: "description", content: "Event matchmaking and quests. Organizer, attendee, or sponsor." },
     ],
   }),

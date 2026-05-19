@@ -17,7 +17,7 @@ import { AnimatedHeadline } from "@/components/animated-text";
 import coinBlue from "@/assets/coin-cyan.png";
 
 export const Route = createFileRoute("/play")({
-  head: () => ({ meta: [{ title: "Play — Quest Connect" }] }),
+  head: () => ({ meta: [{ title: "Play — Quey" }] }),
   component: PlayPage,
 });
 
@@ -284,7 +284,7 @@ function PlayPage() {
       <FloatingDecor variant="ambient" className="fixed inset-0 z-0" />
       <header className="relative z-10 border-b border-border">
         <div className="mx-auto max-w-5xl px-6 py-3 flex items-center justify-between text-sm">
-          <Link to="/" className="font-semibold tracking-tight">Quest Connect</Link>
+          <Link to="/" className="font-semibold tracking-tight">Quey</Link>
           <Button variant="ghost" size="sm" onClick={leave} className="text-muted-foreground hover:text-foreground">
             <LogOut className="h-4 w-4 mr-1" />Leave
           </Button>

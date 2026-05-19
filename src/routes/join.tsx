@@ -11,7 +11,7 @@ import { toast } from "sonner";
 import { Loader2, ArrowLeft, UserPlus, Copy, CheckCircle2, Camera } from "lucide-react";
 
 export const Route = createFileRoute("/join")({
-  head: () => ({ meta: [{ title: "Join — Quest Connect" }] }),
+  head: () => ({ meta: [{ title: "Join — Quey" }] }),
   component: JoinPage,
 });
 
@@ -143,7 +143,7 @@ function JoinPage() {
           <Link to="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground">
             <ArrowLeft className="h-4 w-4" /> back
           </Link>
-          <span className="text-muted-foreground">Quest Connect</span>
+          <span className="text-muted-foreground">Quey</span>
         </div>
       </header>
 

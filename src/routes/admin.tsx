@@ -16,7 +16,7 @@ import { trackLabel, trackValueFromLabel, goalValueFromLabel } from "@/lib/atten
 import { MOCK_ATTENDEES } from "@/lib/mock-attendees";
 
 export const Route = createFileRoute("/admin")({
-  head: () => ({ meta: [{ title: "Admin — Quest Connect" }] }),
+  head: () => ({ meta: [{ title: "Admin — Quey" }] }),
   component: AdminPage,
 });
 
@@ -209,7 +209,7 @@ function AdminPage() {
         <div className="mx-auto max-w-6xl px-6 py-3 flex items-center justify-between text-sm">
           <div className="flex items-center gap-4">
             <Link to="/" className="text-muted-foreground hover:text-foreground"><ArrowLeft className="h-4 w-4" /></Link>
-            <span className="font-semibold tracking-tight">Quest Connect</span>
+            <span className="font-semibold tracking-tight">Quey</span>
             <span className="text-[10px] uppercase tracking-[0.2em] text-lime border border-lime px-1.5 py-0.5">Admin</span>
           </div>
           <Button variant="ghost" size="sm" onClick={signOut} className="text-muted-foreground hover:text-foreground">
