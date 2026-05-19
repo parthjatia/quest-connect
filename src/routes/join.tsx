@@ -117,6 +117,7 @@ function JoinPage() {
           linkedin_url: linkedin.trim() || null,
           github_url: github.trim() || null,
           hobbies,
+          avatar_url: avatarUrl,
           onboarded: true,
           late: !isOpen,
         })
