@@ -98,7 +98,7 @@ function Landing() {
             <AnimatedHeadline>One event.</AnimatedHeadline>
             <br />
             <span className="bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
-              <AnimatedHeadline>Three lenses.</AnimatedHeadline>
+              Three lenses.
             </span>
           </h1>
           <p className="mt-5 text-sm font-medium tracking-wide text-slate-400 sm:text-base">
