@@ -3,7 +3,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { getLocalAttendee } from "@/lib/local-attendee";
-import { generateWrappedInsight } from "@/lib/wrapped.functions";
 import { X, Loader2 } from "lucide-react";
 import { FloatingDecor } from "@/components/floating-decor";
 import { AnimatedHeadline } from "@/components/animated-text";
@@ -87,7 +86,16 @@ function WrappedPage() {
         ? approvedQuests.reduce((a, b) => (b.points_awarded > a.points_awarded ? b : a))
         : null;
 
-      const ins = await generateWrappedInsight({ data: { attendee_id: id } });
+      const firstName = (me.full_name ?? "You").split(" ")[0];
+      const questCount = approvedQuests.length;
+      const factsheet =
+        questCount > 0 && metIds.length > 0
+          ? `${firstName} cleared ${questCount} ${questCount === 1 ? "quest" : "quests"}, met ${metIds.length} ${metIds.length === 1 ? "person" : "people"}, and banked ${me.points ?? 0} XP.`
+          : questCount > 0
+            ? `${firstName} cleared ${questCount} ${questCount === 1 ? "quest" : "quests"} and banked ${me.points ?? 0} XP.`
+            : metIds.length > 0
+              ? `${firstName} met ${metIds.length} ${metIds.length === 1 ? "person" : "people"} and banked ${me.points ?? 0} XP.`
+              : `${firstName} showed up and put ${me.points ?? 0} XP on the board.`;
 
       return {
         name: me.full_name ?? "Friend",
@@ -100,7 +108,7 @@ function WrappedPage() {
         connectionCount: metIds.length,
         topConnections,
         topQuest: topQuest ? { title: topQuest.title, emoji: topQuest.emoji, points: topQuest.points_awarded } : null,
-        insight: ins.insight,
+        insight: factsheet,
       };
     },
   });
@@ -117,7 +125,7 @@ function WrappedPage() {
     if (d.topQuest) {
       arr.push({ key: "topquest", kicker: "Your top quest", headline: `${d.topQuest.emoji ?? "⭐"} ${d.topQuest.title}`, sub: `+${d.topQuest.points} XP — your biggest win` });
     }
-    arr.push({ key: "insight", kicker: "The main insight", headline: d.insight, sub: "Powered by AI" });
+    arr.push({ key: "insight", kicker: "The recap", headline: d.insight, sub: "Your event in one line." });
     arr.push({ key: "outro", kicker: "That's your event", headline: `Thanks for showing up, ${d.name.split(" ")[0]}.`, sub: "Tap to return to your dashboard." });
     return arr;
   }, [q.data]);
