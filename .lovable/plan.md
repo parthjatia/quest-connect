@@ -1,21 +1,35 @@
-## Problem
-"Clear all" in `/admin` calls `supabase.from(...).delete()` from the browser with the anon key. RLS on `attendees`, `completed_quests`, `attendee_meets`, `pod_verifications`, `quest_transcripts`, and `group_quest_submissions` has **no DELETE policy for anon** — only `admins manage attendees` (authenticated + admin role) can delete. The request succeeds with 0 affected rows, so the UI shows "Everything cleared" but the data stays.
+## Plan
 
-## Fix
-Move the wipe to a server function that uses the **admin client** (`supabaseAdmin`, service role, bypasses RLS). This is the right boundary for a destructive admin action and avoids loosening RLS.
+### Goal
+Make both **Clear all** and **Form pods** reliably work from the admin screen.
 
-### Changes
+### What I found
+- The admin page is already calling server functions for both actions, but the current setup still depends on client-side state and a server-function bundle that can fail before the action completes.
+- The preview has a runtime module-load error for the browser app, which can prevent the admin page from calling either server function cleanly.
+- The server logs did not show successful requests for these actions, so the click likely fails before or at the server-function RPC boundary.
 
-1. **New file** `src/lib/admin.functions.ts`
-   - `clearAllDataFn = createServerFn({ method: "POST" }).handler(...)` that, using `supabaseAdmin`, deletes from (in order): `pod_verifications`, `attendee_meets`, `completed_quests`, `group_quest_submissions`, `quest_transcripts`, `attendees`, `groups`, `quests`.
-   - Returns `{ ok: true }`.
-   - (No auth middleware for now — matches the existing anon-admin pattern in this project. If you want it gated to admins, say so and I'll add `requireSupabaseAuth` + role check.)
+### Changes to implement
+1. **Harden the admin server functions**
+   - Keep `clearAllDataFn` server-side with the admin database client.
+   - Add explicit logging and return counts for each table cleared so failures are visible.
+   - Clear dependent tables first, then attendees/groups/quests.
 
-2. **Edit** `src/routes/admin.tsx` `clearAllAttendees`
-   - Replace the 8 inline `supabase.from(...).delete()` calls with a single `useServerFn(clearAllDataFn)()` call.
-   - Keep the existing confirm dialog, toast, and `qc.invalidateQueries` for all admin keys.
+2. **Make Form pods fully server-driven**
+   - Keep the matching logic server-side.
+   - Let the server function check eligible attendee count itself instead of relying only on the client’s currently loaded query data.
+   - Return a clear status like `not_enough_attendees`, `created`, or `failed`, so the button can show the exact reason.
 
-### Out of scope
-- No RLS changes.
-- No changes to seed/import/matchmaker.
-- Not touching `event_settings` or `user_roles`.
+3. **Fix the admin button handlers**
+   - `Clear all` will call the server clear function and refresh admin queries only after success.
+   - `Form pods` will call the server matchmaker even if the local attendee query is stale, then refresh attendees and groups.
+   - Toasts will show actionable errors instead of a generic “doesn’t work”.
+
+4. **Resolve the runtime import failure if it is caused by stale dev-server state**
+   - Check the dev-server logs after edits.
+   - Restart the dev server only if needed so the latest server-function/client split is picked up.
+
+5. **Verify**
+   - Confirm the admin route loads.
+   - Confirm server-function logs show calls for both actions.
+   - Confirm `Clear all` leaves 0 attendees, 0 quests, 0 pods.
+   - Confirm adding mock attendees then pressing `Form pods` creates groups and assigns attendees.
