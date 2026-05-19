@@ -3,10 +3,10 @@ import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { getLocalAttendee, setLocalAttendee } from "@/lib/local-attendee";
 import { getRegistrationOpen } from "@/lib/event-settings";
+import { TRACK_OPTIONS, GOAL_OPTIONS, type TrackIntent, type EventGoal } from "@/lib/attendee-options";
 import { toast } from "sonner";
 import { Loader2, ArrowLeft, UserPlus, Copy, CheckCircle2 } from "lucide-react";
 
@@ -29,8 +29,8 @@ function JoinPage() {
   const [university, setUniversity] = useState("");
   const [background, setBackground] = useState("");
   const [aiLevel, setAiLevel] = useState<AILevel>("beginner");
-  const [track, setTrack] = useState("");
-  const [goal, setGoal] = useState("");
+  const [track, setTrack] = useState<TrackIntent | "">("");
+  const [goal, setGoal] = useState<EventGoal | "">("");
   const [country, setCountry] = useState("");
   const [age, setAge] = useState<string>("");
   const [busy, setBusy] = useState(false);
@@ -49,7 +49,7 @@ function JoinPage() {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (name.trim().length < 2) return toast.error("Name required.");
-    if (!university.trim() || !background.trim() || !track.trim() || !goal.trim()) {
+    if (!university.trim() || !background.trim() || !track || !goal) {
       return toast.error("Please fill out all fields.");
     }
     setBusy(true);
@@ -61,8 +61,8 @@ function JoinPage() {
           university: university.trim(),
           academic_background: background.trim(),
           ai_experience: aiLevel,
-          track_intent: track.trim(),
-          event_goal: goal.trim(),
+          track_intent: track,
+          event_goal: goal,
           country: country.trim() || null,
           age: age ? Number(age) : null,
           onboarded: true,
@@ -173,13 +173,37 @@ function JoinPage() {
                   ))}
                 </div>
               </Field>
-              <Field label="Track intent">
-                <Input value={track} onChange={(e) => setTrack(e.target.value)} maxLength={120}
-                  placeholder="e.g. AI agents, dev tools, consumer apps" className="bg-background border-border" />
+              <Field label="Intent of attending (track)">
+                <div className="grid grid-cols-2 gap-2">
+                  {TRACK_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setTrack(opt.value)}
+                      className={`text-xs uppercase tracking-wider px-3 py-2 border text-left ${
+                        track === opt.value ? "border-lime text-lime" : "border-border text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
               </Field>
-              <Field label="Event goal">
-                <Textarea value={goal} onChange={(e) => setGoal(e.target.value)} rows={2} maxLength={300}
-                  placeholder="What do you want to walk away with?" className="bg-background border-border" />
+              <Field label="Goal of the event">
+                <div className="grid grid-cols-2 gap-2">
+                  {GOAL_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setGoal(opt.value)}
+                      className={`text-xs uppercase tracking-wider px-3 py-2 border text-left ${
+                        goal === opt.value ? "border-lime text-lime" : "border-border text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
               </Field>
 
               <Button type="submit" disabled={busy} className="w-full bg-lime hover:opacity-90">
