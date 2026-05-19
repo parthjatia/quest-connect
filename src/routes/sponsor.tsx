@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { getLocalSponsor, clearLocalSponsor } from "@/lib/local-attendee";
 import { toast } from "sonner";
-import { ArrowLeft, LogOut, Loader2, Plus, Sparkles, Clock, Check, X as XIcon } from "lucide-react";
+import { ArrowLeft, LogOut, Loader2, Plus, Sparkles, Clock, Check, X as XIcon, Radio } from "lucide-react";
 
 export const Route = createFileRoute("/sponsor")({
   head: () => ({ meta: [{ title: "Sponsor portal — Quest Connect" }] }),
@@ -74,6 +74,9 @@ function SponsorPortal() {
             <span className="text-[10px] uppercase tracking-[0.2em] text-lime border border-lime px-1.5 py-0.5">
               Sponsor · {handle}
             </span>
+            <Button asChild variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
+              <Link to="/sponsor-radar"><Radio className="h-4 w-4 mr-1" />Radar</Link>
+            </Button>
             <Button variant="ghost" size="sm" onClick={signOut} className="text-muted-foreground hover:text-foreground">
               <LogOut className="h-4 w-4" />
             </Button>
