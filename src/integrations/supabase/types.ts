@@ -46,12 +46,15 @@ export type Database = {
           discovery_visibility: boolean
           event_goal: Database["public"]["Enums"]["event_goal"] | null
           full_name: string | null
+          github_url: string | null
           goals: string[] | null
           group_id: string | null
+          hobbies: string[]
           icebreakers: string | null
           id: string
           interests: string[] | null
           late: boolean
+          linkedin_url: string | null
           looking_for: string | null
           meet_bonus_points: number
           met_attendee_ids: string[] | null
@@ -81,12 +84,15 @@ export type Database = {
           discovery_visibility?: boolean
           event_goal?: Database["public"]["Enums"]["event_goal"] | null
           full_name?: string | null
+          github_url?: string | null
           goals?: string[] | null
           group_id?: string | null
+          hobbies?: string[]
           icebreakers?: string | null
           id?: string
           interests?: string[] | null
           late?: boolean
+          linkedin_url?: string | null
           looking_for?: string | null
           meet_bonus_points?: number
           met_attendee_ids?: string[] | null
@@ -116,12 +122,15 @@ export type Database = {
           discovery_visibility?: boolean
           event_goal?: Database["public"]["Enums"]["event_goal"] | null
           full_name?: string | null
+          github_url?: string | null
           goals?: string[] | null
           group_id?: string | null
+          hobbies?: string[]
           icebreakers?: string | null
           id?: string
           interests?: string[] | null
           late?: boolean
+          linkedin_url?: string | null
           looking_for?: string | null
           meet_bonus_points?: number
           met_attendee_ids?: string[] | null
