@@ -93,6 +93,17 @@ function SponsorPortal() {
           </p>
         </div>
 
+        <Link to="/sponsor-radar" className="block border border-lime/50 bg-card/40 p-4 hover:bg-card/60 transition">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.2em] text-lime mb-1">Live insights</p>
+              <p className="text-sm font-semibold">Open Sponsor Radar</p>
+              <p className="text-xs text-muted-foreground mt-1">See attendees most aligned with your booth in real time.</p>
+            </div>
+            <Radio className="h-5 w-5 text-lime shrink-0" />
+          </div>
+        </Link>
+
         <ProposeQuestForm handle={handle} onSubmitted={() => qc.invalidateQueries({ queryKey: ["sponsor-quests", handle] })} />
 
         <section>
