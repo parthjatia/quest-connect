@@ -122,13 +122,14 @@ function JoinPage() {
       <main className="mx-auto max-w-xl px-6 py-10 space-y-6">
         {welcome ? (
           <div className="space-y-6">
-            <div>
-              <p className="text-lime text-xs uppercase tracking-[0.2em] mb-3">You're in</p>
-              <h1 className="text-3xl font-semibold tracking-tight">Welcome, {welcome.name}</h1>
-              <p className="text-sm text-muted-foreground mt-2">
+            <div className="rounded-3xl bg-swoosh-5 p-8 sm:p-10">
+              <p className="wrapped-kicker text-white/90 mb-4">You're in</p>
+              <h1 className="wrapped-headline-md text-white">Welcome, {welcome.name}</h1>
+              <p className="text-sm text-white/85 mt-3">
                 This is your <strong>login code</strong> AND the code your pod uses to verify they met you. Save it somewhere.
               </p>
             </div>
+
             <div className="border border-lime p-8 text-center bg-lime/5">
               <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">Your code</p>
               <p className="font-mono text-6xl font-bold tracking-[0.4em] text-lime mt-3">{welcome.code}</p>
