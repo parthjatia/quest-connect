@@ -56,7 +56,7 @@ function Dashboard() {
   const quests = useQuery({
     queryKey: ["quests"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("quests").select("*").order("type").order("points_awarded", { ascending: false });
+      const { data, error } = await supabase.from("quests").select("*").eq("approval_status", "approved").order("type").order("points_awarded", { ascending: false });
       if (error) throw error;
       return (data ?? []) as Quest[];
     },
