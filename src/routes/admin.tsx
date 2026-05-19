@@ -149,16 +149,16 @@ function AdminPage() {
   const [clearing, setClearing] = useState(false);
   const clearAll = useServerFn(clearAllDataFn);
   const clearAllAttendees = async () => {
-    if (!confirm("Delete ALL attendees, pods, quests, submissions and related records? This cannot be undone.")) return;
-    if (!confirm("Really wipe EVERYTHING (attendees, pods, quests, side quests)? Last chance.")) return;
+    if (!confirm("Clear all active attendees and remove all created pods? Quests will stay.")) return;
     setClearing(true);
     try {
-      await clearAll();
-      toast.success("Everything cleared");
-      qc.invalidateQueries({ queryKey: ["admin-attendees"] });
-      qc.invalidateQueries({ queryKey: ["admin-groups"] });
-      qc.invalidateQueries({ queryKey: ["admin-quests"] });
-      qc.invalidateQueries({ queryKey: ["admin-pending-submissions"] });
+      const result = await clearAll();
+      toast.success(`Cleared ${result.attendeesDeleted} attendee${result.attendeesDeleted === 1 ? "" : "s"} and ${result.podsDeleted} pod${result.podsDeleted === 1 ? "" : "s"}`);
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ["admin-attendees"] }),
+        qc.invalidateQueries({ queryKey: ["admin-groups"] }),
+        qc.invalidateQueries({ queryKey: ["admin-pending-submissions"] }),
+      ]);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to clear");
     } finally { setClearing(false); }
