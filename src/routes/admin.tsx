@@ -54,7 +54,7 @@ function AdminPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("quests")
-        .select("id, title, description, type, points_awarded, emoji, start_at, end_at, is_live, transcript_url")
+        .select("id, title, description, type, points_awarded, emoji, start_at, end_at, is_live, transcript_url, approval_status, created_by_sponsor")
         .order("type")
         .order("start_at", { ascending: true, nullsFirst: false });
       if (error) throw error;
