@@ -38,7 +38,7 @@ function Dashboard() {
     },
   });
 
-  useEffect(() => { if (me.data && !me.data.onboarded) navigate({ to: "/onboarding" }); }, [me.data, navigate]);
+  
 
   const squad = useQuery({
     queryKey: ["squad", me.data?.group_id],
