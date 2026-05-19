@@ -335,6 +335,15 @@ function PlayPage() {
         />
       )}
 
+      {activeSponsorClaim && (
+        <SponsorLinkClaimDialog
+          quest={activeSponsorClaim}
+          attendeeId={attendee.id}
+          onClose={() => setActiveSponsorClaim(null)}
+          onSubmitted={() => qc.invalidateQueries({ queryKey: ["completed"] })}
+        />
+      )}
+
       {summaryFor && summaryFor.type === "main" && (
         <MainQuestRecapModal
           open
