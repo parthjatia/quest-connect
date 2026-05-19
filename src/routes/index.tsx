@@ -31,7 +31,7 @@ function Landing() {
           </p>
         </div>
 
-        <div className="grid gap-px bg-border border border-border mt-12 sm:grid-cols-3">
+        <div className="grid gap-6 mt-12 sm:grid-cols-3">
           <DoorCard
             to="/auth"
             search={{ mode: "admin" }}
@@ -39,6 +39,7 @@ function Landing() {
             title="Run the event"
             blurb="Seed attendees, manage quests, watch the leaderboard, launch sponsor activations."
             cta="Open admin"
+            variant="blue"
           />
           <DoorCard
             to="/auth"
@@ -46,6 +47,7 @@ function Landing() {
             title="Play the event"
             blurb="Join quests, find your people, earn points, and discover who to meet next."
             cta="Join in"
+            variant="yellow"
           />
           <DoorCard
             to="/sponsor"
@@ -53,6 +55,7 @@ function Landing() {
             title="Find your audience"
             blurb="See privacy-safe attendee clusters, launch booth quests, and create better touchpoints with the right people."
             cta="Open sponsor radar"
+            variant="green"
           />
         </div>
       </main>
@@ -66,6 +69,30 @@ function Landing() {
   );
 }
 
+const VARIANTS = {
+  blue: {
+    bg: "bg-[oklch(0.85_0.08_250)]",
+    tag: "text-[oklch(0.35_0.12_250)]/70",
+    title: "text-[oklch(0.25_0.12_250)]",
+    body: "text-[oklch(0.3_0.08_250)]/80",
+    cta: "text-[oklch(0.3_0.15_250)]",
+  },
+  yellow: {
+    bg: "bg-[oklch(0.9_0.1_85)]",
+    tag: "text-[oklch(0.4_0.12_60)]/70",
+    title: "text-[oklch(0.3_0.12_55)]",
+    body: "text-[oklch(0.35_0.08_60)]/80",
+    cta: "text-[oklch(0.4_0.15_50)]",
+  },
+  green: {
+    bg: "bg-[oklch(0.88_0.09_145)]",
+    tag: "text-[oklch(0.35_0.1_145)]/70",
+    title: "text-[oklch(0.28_0.1_145)]",
+    body: "text-[oklch(0.32_0.08_145)]/80",
+    cta: "text-[oklch(0.35_0.13_145)]",
+  },
+} as const;
+
 function DoorCard({
   to,
   search,
@@ -73,6 +100,7 @@ function DoorCard({
   title,
   blurb,
   cta,
+  variant,
 }: {
   to: string;
   search?: { mode: "admin" };
@@ -80,13 +108,19 @@ function DoorCard({
   title: string;
   blurb: string;
   cta: string;
+  variant: keyof typeof VARIANTS;
 }) {
+  const v = VARIANTS[variant];
   return (
-    <Link to={to} search={search} className="group bg-background p-8 hover:bg-card transition-colors">
-      <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">{tag}</p>
-      <h2 className="text-2xl font-semibold mt-2 tracking-tight">{title}</h2>
-      <p className="text-sm text-muted-foreground mt-3 max-w-sm">{blurb}</p>
-      <p className="mt-8 text-sm text-lime group-hover:underline">{cta} →</p>
+    <Link
+      to={to}
+      search={search}
+      className={`group block rounded-3xl p-8 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl ${v.bg}`}
+    >
+      <p className={`text-[10px] uppercase tracking-[0.2em] font-semibold ${v.tag}`}>{tag}</p>
+      <h2 className={`text-2xl font-semibold mt-2 tracking-tight ${v.title}`}>{title}</h2>
+      <p className={`text-sm mt-3 max-w-sm ${v.body}`}>{blurb}</p>
+      <p className={`mt-8 text-sm font-medium group-hover:underline ${v.cta}`}>{cta} →</p>
     </Link>
   );
 }
