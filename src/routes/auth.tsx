@@ -3,15 +3,16 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
-import { setLocalAttendee, setLocalAdmin } from "@/lib/local-attendee";
+import { setLocalAttendee, setLocalAdmin, setLocalSponsor } from "@/lib/local-attendee";
 import { toast } from "sonner";
 import { ArrowLeft, Loader2 } from "lucide-react";
 
-type AuthSearch = { mode?: "admin" };
+type AuthMode = "attendee" | "admin" | "sponsor";
+type AuthSearch = { mode?: "admin" | "sponsor" };
 
 export const Route = createFileRoute("/auth")({
   validateSearch: (search: Record<string, unknown>): AuthSearch => ({
-    mode: search.mode === "admin" ? "admin" : undefined,
+    mode: search.mode === "admin" ? "admin" : search.mode === "sponsor" ? "sponsor" : undefined,
   }),
   head: () => ({ meta: [{ title: "Sign in — Quest Connect" }] }),
   component: AuthPage,
@@ -19,8 +20,8 @@ export const Route = createFileRoute("/auth")({
 
 function AuthPage() {
   const navigate = useNavigate();
-  const { mode } = Route.useSearch();
-  const isAdmin = mode === "admin";
+  const { mode: rawMode } = Route.useSearch();
+  const mode: AuthMode = rawMode ?? "attendee";
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -34,7 +35,7 @@ function AuthPage() {
       </header>
 
       <main className="mx-auto max-w-xl px-6 py-12 space-y-8">
-        {isAdmin ? (
+        {mode === "admin" && (
           <>
             <div>
               <p className="text-lime text-xs uppercase tracking-[0.2em] mb-3">Organizer</p>
@@ -42,9 +43,19 @@ function AuthPage() {
               <p className="text-sm text-muted-foreground mt-2">Enter the admin password to open the control panel.</p>
             </div>
             <AdminLogin navigate={navigate} />
-            <AuthModeSwitch isAdmin />
           </>
-        ) : (
+        )}
+        {mode === "sponsor" && (
+          <>
+            <div>
+              <p className="text-lime text-xs uppercase tracking-[0.2em] mb-3">Sponsor</p>
+              <h1 className="text-3xl font-semibold tracking-tight">Sponsor portal</h1>
+              <p className="text-sm text-muted-foreground mt-2">Enter your sponsor handle (e.g. <span className="font-mono">sponsor1</span>) to submit side quests.</p>
+            </div>
+            <SponsorLogin navigate={navigate} />
+          </>
+        )}
+        {mode === "attendee" && (
           <>
             <div>
               <p className="text-lime text-xs uppercase tracking-[0.2em] mb-3">Attendee</p>
@@ -59,35 +70,36 @@ function AuthPage() {
               </Link>
               .
             </p>
-            <AuthModeSwitch isAdmin={false} />
           </>
         )}
+        <ModeSwitcher mode={mode} />
       </main>
     </div>
   );
 }
 
-function AuthModeSwitch({ isAdmin }: { isAdmin: boolean }) {
+function ModeSwitcher({ mode }: { mode: AuthMode }) {
   return (
-    <p className="text-xs text-muted-foreground text-center">
-      {isAdmin ? (
-        <>
+    <div className="text-xs text-muted-foreground text-center space-y-1">
+      {mode !== "attendee" && (
+        <p>
           Playing the event?{" "}
-          <Link to="/auth" search={{}} className="text-lime hover:underline inline-flex items-center gap-1">
-            <ArrowLeft className="h-3 w-3" />
-            Sign in with your code
-          </Link>
-        </>
-      ) : (
-        <>
-          Running the event?{" "}
-          <Link to="/auth" search={{ mode: "admin" }} className="text-lime hover:underline inline-flex items-center gap-1">
-            <ArrowLeft className="h-3 w-3" />
-            Admin sign in
-          </Link>
-        </>
+          <Link to="/auth" search={{}} className="text-lime hover:underline">Sign in as attendee</Link>
+        </p>
       )}
-    </p>
+      {mode !== "admin" && (
+        <p>
+          Running the event?{" "}
+          <Link to="/auth" search={{ mode: "admin" }} className="text-lime hover:underline">Admin sign in</Link>
+        </p>
+      )}
+      {mode !== "sponsor" && (
+        <p>
+          Are you a sponsor?{" "}
+          <Link to="/auth" search={{ mode: "sponsor" }} className="text-lime hover:underline">Sponsor sign in</Link>
+        </p>
+      )}
+    </div>
   );
 }
 
@@ -165,6 +177,35 @@ function AdminLogin({ navigate }: { navigate: ReturnType<typeof useNavigate> }) 
       </div>
       <Button type="submit" className="w-full bg-lime hover:opacity-90">
         Enter admin
+      </Button>
+    </form>
+  );
+}
+
+function SponsorLogin({ navigate }: { navigate: ReturnType<typeof useNavigate> }) {
+  const [handle, setHandle] = useState("");
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const clean = handle.trim().toLowerCase().replace(/[^a-z0-9_-]/g, "");
+    if (clean.length < 3) return toast.error("Handle must be at least 3 characters.");
+    setLocalSponsor(clean);
+    toast.success(`Welcome, ${clean}`);
+    navigate({ to: "/sponsor" });
+  };
+  return (
+    <form onSubmit={submit} className="border border-border p-5 space-y-4">
+      <div>
+        <label className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Sponsor handle</label>
+        <Input
+          value={handle}
+          onChange={(e) => setHandle(e.target.value)}
+          placeholder="sponsor1"
+          className="mt-2 bg-background border-border font-mono"
+          autoFocus
+        />
+      </div>
+      <Button type="submit" className="w-full bg-lime hover:opacity-90">
+        Enter sponsor portal
       </Button>
     </form>
   );
