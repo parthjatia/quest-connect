@@ -9,22 +9,15 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as WrappedRouteImport } from './routes/wrapped'
 import { Route as SponsorRadarRouteImport } from './routes/sponsor-radar'
 import { Route as SponsorRouteImport } from './routes/sponsor'
 import { Route as RecapRouteImport } from './routes/recap'
 import { Route as PlayRouteImport } from './routes/play'
 import { Route as JoinRouteImport } from './routes/join'
-import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 
-const WrappedRoute = WrappedRouteImport.update({
-  id: '/wrapped',
-  path: '/wrapped',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const SponsorRadarRoute = SponsorRadarRouteImport.update({
   id: '/sponsor-radar',
   path: '/sponsor-radar',
@@ -50,11 +43,6 @@ const JoinRoute = JoinRouteImport.update({
   path: '/join',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DashboardRoute = DashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
@@ -75,38 +63,32 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
-  '/dashboard': typeof DashboardRoute
   '/join': typeof JoinRoute
   '/play': typeof PlayRoute
   '/recap': typeof RecapRoute
   '/sponsor': typeof SponsorRoute
   '/sponsor-radar': typeof SponsorRadarRoute
-  '/wrapped': typeof WrappedRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
-  '/dashboard': typeof DashboardRoute
   '/join': typeof JoinRoute
   '/play': typeof PlayRoute
   '/recap': typeof RecapRoute
   '/sponsor': typeof SponsorRoute
   '/sponsor-radar': typeof SponsorRadarRoute
-  '/wrapped': typeof WrappedRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
-  '/dashboard': typeof DashboardRoute
   '/join': typeof JoinRoute
   '/play': typeof PlayRoute
   '/recap': typeof RecapRoute
   '/sponsor': typeof SponsorRoute
   '/sponsor-radar': typeof SponsorRadarRoute
-  '/wrapped': typeof WrappedRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -114,61 +96,46 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/auth'
-    | '/dashboard'
     | '/join'
     | '/play'
     | '/recap'
     | '/sponsor'
     | '/sponsor-radar'
-    | '/wrapped'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/admin'
     | '/auth'
-    | '/dashboard'
     | '/join'
     | '/play'
     | '/recap'
     | '/sponsor'
     | '/sponsor-radar'
-    | '/wrapped'
   id:
     | '__root__'
     | '/'
     | '/admin'
     | '/auth'
-    | '/dashboard'
     | '/join'
     | '/play'
     | '/recap'
     | '/sponsor'
     | '/sponsor-radar'
-    | '/wrapped'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
   AuthRoute: typeof AuthRoute
-  DashboardRoute: typeof DashboardRoute
   JoinRoute: typeof JoinRoute
   PlayRoute: typeof PlayRoute
   RecapRoute: typeof RecapRoute
   SponsorRoute: typeof SponsorRoute
   SponsorRadarRoute: typeof SponsorRadarRoute
-  WrappedRoute: typeof WrappedRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/wrapped': {
-      id: '/wrapped'
-      path: '/wrapped'
-      fullPath: '/wrapped'
-      preLoaderRoute: typeof WrappedRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/sponsor-radar': {
       id: '/sponsor-radar'
       path: '/sponsor-radar'
@@ -204,13 +171,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof JoinRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/dashboard': {
-      id: '/dashboard'
-      path: '/dashboard'
-      fullPath: '/dashboard'
-      preLoaderRoute: typeof DashboardRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/auth': {
       id: '/auth'
       path: '/auth'
@@ -239,14 +199,22 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
   AuthRoute: AuthRoute,
-  DashboardRoute: DashboardRoute,
   JoinRoute: JoinRoute,
   PlayRoute: PlayRoute,
   RecapRoute: RecapRoute,
   SponsorRoute: SponsorRoute,
   SponsorRadarRoute: SponsorRadarRoute,
-  WrappedRoute: WrappedRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
