@@ -139,6 +139,26 @@ function AdminPage() {
 
   const signOut = () => { setLocalAdmin(false); navigate({ to: "/" }); };
 
+  const [clearing, setClearing] = useState(false);
+  const clearAllAttendees = async () => {
+    if (!confirm("Delete ALL attendees, pods, verifications, completions and submissions? This cannot be undone.")) return;
+    if (!confirm("Really delete EVERYTHING attendee-related? Last chance.")) return;
+    setClearing(true);
+    try {
+      await supabase.from("pod_verifications").delete().not("id", "is", null);
+      await supabase.from("completed_quests").delete().not("id", "is", null);
+      await supabase.from("group_quest_submissions").delete().not("id", "is", null);
+      await supabase.from("attendees").delete().not("id", "is", null);
+      await supabase.from("groups").delete().not("id", "is", null);
+      toast.success("All attendees cleared");
+      qc.invalidateQueries({ queryKey: ["admin-attendees"] });
+      qc.invalidateQueries({ queryKey: ["admin-groups"] });
+      qc.invalidateQueries({ queryKey: ["admin-pending-submissions"] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to clear");
+    } finally { setClearing(false); }
+  };
+
   const totalPoints = (quests.data ?? []).reduce((s, q) => s + (q.points_awarded ?? 0), 0);
   const podCount = groups.data?.length ?? 0;
 
