@@ -21,25 +21,17 @@ type Props = {
 
 const INSET = 0.88;
 
+// Single-hue lime ramp — only opacity varies with intensity.
 function heatFill(h: HeatLevel, intensity: number) {
-  const a = 0.22 + intensity * 0.55;
-  switch (h) {
-    case "very-hot": return `oklch(0.72 0.24 25 / ${a})`;
-    case "hot":      return `oklch(0.8 0.2 55 / ${a * 0.9})`;
-    case "warm":     return `oklch(0.86 0.16 90 / ${a * 0.75})`;
-    case "cold":     return `oklch(0.42 0.04 250 / 0.35)`;
-  }
+  if (h === "cold") return "oklch(0.22 0.015 250 / 0.55)";
+  const a = 0.18 + intensity * 0.45;
+  return `oklch(0.88 0.20 130 / ${a})`;
 }
 
 function heatGlow(h: HeatLevel, intensity: number) {
-  if (h === "cold") return "oklch(0.5 0.06 250 / 0.12)";
-  const a = 0.25 + intensity * 0.45;
-  switch (h) {
-    case "very-hot": return `oklch(0.75 0.28 25 / ${a})`;
-    case "hot":      return `oklch(0.82 0.22 55 / ${a})`;
-    case "warm":     return `oklch(0.88 0.18 90 / ${a * 0.85})`;
-    default:         return `oklch(0.5 0.06 250 / 0.12)`;
-  }
+  if (h === "cold") return "transparent";
+  const a = 0.10 + intensity * 0.28;
+  return `oklch(0.88 0.22 130 / ${a})`;
 }
 
 function bubbleRect(layout: { x: number; y: number; w: number; h: number }) {
@@ -123,12 +115,12 @@ export function Floorplan({ zones, selectedZone, bestZone, onSelectZone, youZone
                 transform={transform}
                 style={{ transition: "transform 0.2s ease" }}
               >
-                {heat !== "cold" && (
+                {heat !== "cold" && intensity > 0 && (
                   <ellipse
                     cx={cx}
                     cy={cy}
-                    rx={glowR}
-                    ry={glowR * 0.75}
+                    rx={glowR * 0.7}
+                    ry={glowR * 0.5}
                     fill={heatGlow(heat, intensity)}
                     filter="url(#vibe-soft)"
                   />
@@ -194,9 +186,6 @@ export function Floorplan({ zones, selectedZone, bestZone, onSelectZone, youZone
                   </text>
                 )}
 
-                {/* heat bubble cluster */}
-                <HeatBubbles heat={heat} cx={cx} cy={y + h - 1.4} />
-
                 {isYou && (
                   <g transform={`translate(${x + 1.2}, ${y + 1.2})`}>
                     <circle r="1.35" fill="oklch(0.9 0.22 130)" />
@@ -210,10 +199,10 @@ export function Floorplan({ zones, selectedZone, bestZone, onSelectZone, youZone
       </div>
 
       <div className="mt-4 flex flex-wrap items-center gap-3 text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
-        <LegendDot className="bg-[oklch(0.72_0.24_25)]" label="very hot" />
-        <LegendDot className="bg-[oklch(0.8_0.2_55)]" label="hot" />
-        <LegendDot className="bg-[oklch(0.86_0.16_90)]" label="warm" />
-        <LegendDot className="bg-[oklch(0.42_0.04_250)]" label="quiet" />
+        <LegendDot className="bg-[oklch(0.22_0.015_250)]" label="quiet" />
+        <LegendDot className="bg-[oklch(0.88_0.20_130/0.35)]" label="some" />
+        <LegendDot className="bg-[oklch(0.88_0.20_130/0.6)]" label="strong" />
+        <LegendDot className="bg-[oklch(0.88_0.20_130)]" label="top match" />
         {bestZone && (
           <span className="flex items-center gap-1.5">
             <span className="inline-block h-2.5 w-2.5 rounded-full border-2 border-lime/60" />
