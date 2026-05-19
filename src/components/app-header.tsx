@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { Trophy, Sparkles, LogOut, Shield } from "lucide-react";
+import { Sparkles, LogOut, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -33,12 +33,9 @@ export function AppHeader() {
         <nav className="flex items-center gap-2">
           {user ? (
             <>
-              <Button asChild variant="ghost" size="sm"><Link to="/dashboard">Dashboard</Link></Button>
+              <Button asChild variant="ghost" size="sm"><Link to="/play">Play</Link></Button>
               <Button asChild variant="ghost" size="sm">
                 <Link to="/recap"><Sparkles className="mr-1 h-4 w-4" />Recap</Link>
-              </Button>
-              <Button asChild variant="ghost" size="sm">
-                <Link to="/wrapped"><Trophy className="mr-1 h-4 w-4" />Wrapped</Link>
               </Button>
               {isAdmin && (
                 <Button asChild variant="ghost" size="sm">

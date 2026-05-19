@@ -166,24 +166,39 @@ export type Database = {
           attendee_id: string
           claimed_at: string
           id: string
+          proof_link: string | null
           quest_id: string
           quest_photo_url: string | null
+          reviewer_note: string | null
+          verification_status: string
+          verified_at: string | null
+          verified_by_sponsor: string | null
         }
         Insert: {
           ai_feedback?: string | null
           attendee_id: string
           claimed_at?: string
           id?: string
+          proof_link?: string | null
           quest_id: string
           quest_photo_url?: string | null
+          reviewer_note?: string | null
+          verification_status?: string
+          verified_at?: string | null
+          verified_by_sponsor?: string | null
         }
         Update: {
           ai_feedback?: string | null
           attendee_id?: string
           claimed_at?: string
           id?: string
+          proof_link?: string | null
           quest_id?: string
           quest_photo_url?: string | null
+          reviewer_note?: string | null
+          verification_status?: string
+          verified_at?: string | null
+          verified_by_sponsor?: string | null
         }
         Relationships: [
           {
@@ -415,6 +430,10 @@ export type Database = {
         Args: { _attendee_id: string; _photo_url: string; _quest_id: string }
         Returns: Json
       }
+      claim_sponsor_quest: {
+        Args: { _attendee_id: string; _proof_link: string; _quest_id: string }
+        Returns: Json
+      }
       gen_verify_code: { Args: never; Returns: string }
       has_role: {
         Args: {
@@ -435,6 +454,15 @@ export type Database = {
       reject_group_submission: {
         Args: { _note?: string; _submission_id: string }
         Returns: undefined
+      }
+      sponsor_review_completion: {
+        Args: {
+          _approve: boolean
+          _completed_id: string
+          _note?: string
+          _sponsor_handle: string
+        }
+        Returns: Json
       }
       verify_pod_member: {
         Args: { _code: string; _verifier_id: string }
