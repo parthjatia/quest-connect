@@ -105,17 +105,38 @@ function RecapPage() {
     setLoading(true);
     setLoadingStep(0);
 
-    const stepInterval = setInterval(() => {
-      setLoadingStep((s) => Math.min(s + 1, LOADING_STEPS.length - 1));
-    }, 450);
+    // Step 0: Reading transcript
+    await new Promise((r) => setTimeout(r, 400));
+    setLoadingStep(1);
 
-    await new Promise((r) => setTimeout(r, 1800));
-    clearInterval(stepInterval);
+    try {
+      const callRecap = generateVisualRecap;
+      // Step 1: Building recap text (kick off server call now)
+      const serverPromise = callRecap({
+        data: { transcript: text, preferences: prefs, templateId },
+      });
 
-    const data = generatePersonalizedRecap(text, prefs, templateId);
-    setResult(data);
-    setLoading(false);
-    setTimeout(() => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
+      // bump UI step while server works
+      const t1 = setTimeout(() => setLoadingStep(2), 1600);
+      const t2 = setTimeout(() => setLoadingStep(3), 5000);
+
+      const { recap, images } = await serverPromise;
+      clearTimeout(t1);
+      clearTimeout(t2);
+      setLoadingStep(3);
+
+      // Build the deterministic shell, then overlay AI text + images
+      const base = generatePersonalizedRecap(text, prefs, templateId);
+      const merged = mergeAiIntoRecap(base, recap, images);
+
+      setResult(merged);
+      setLoading(false);
+      setTimeout(() => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
+    } catch (e) {
+      setLoading(false);
+      const msg = e instanceof Error ? e.message : "Could not generate recap.";
+      setError(msg);
+    }
   };
 
   return (
