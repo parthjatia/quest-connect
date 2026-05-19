@@ -92,6 +92,20 @@ function PlayPage() {
     },
   });
 
+  const meets = useQuery({
+    queryKey: ["meets", attendee?.id],
+    enabled: !!attendee,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("attendee_meets")
+        .select("met_attendee_id, created_at, attendees:met_attendee_id(full_name, university)")
+        .eq("attendee_id", attendee!.id)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
   const quests = useQuery({
     queryKey: ["quests"],
     queryFn: async () => {
