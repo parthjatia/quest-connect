@@ -21,3 +21,14 @@ export const trackLabel = (v: string | null | undefined) =>
   TRACK_OPTIONS.find((o) => o.value === v)?.label ?? v ?? "—";
 export const goalLabel = (v: string | null | undefined) =>
   GOAL_OPTIONS.find((o) => o.value === v)?.label ?? v ?? "—";
+
+export const trackValueFromLabel = (label: string | null | undefined): TrackIntent | null => {
+  if (!label) return null;
+  const norm = label.trim().toLowerCase();
+  return (TRACK_OPTIONS.find((o) => o.label.toLowerCase() === norm)?.value as TrackIntent) ?? null;
+};
+export const goalValueFromLabel = (label: string | null | undefined): EventGoal | null => {
+  if (!label) return null;
+  const norm = label.trim().toLowerCase();
+  return (GOAL_OPTIONS.find((o) => o.label.toLowerCase() === norm)?.value as EventGoal) ?? null;
+};
