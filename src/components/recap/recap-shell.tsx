@@ -20,6 +20,12 @@ export function RecapHeader() {
             Profile
           </Link>
           <Link
+            to="/wrapped"
+            className="text-xs uppercase tracking-[0.2em] text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Wrapped
+          </Link>
+          <Link
             to="/play"
             className="text-xs uppercase tracking-[0.2em] text-muted-foreground hover:text-foreground transition-colors"
           >
