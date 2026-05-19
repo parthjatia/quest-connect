@@ -34,7 +34,7 @@ function PlayPage() {
   const qc = useQueryClient();
   const [attendee, setAttendee] = useState<{ id: string; name: string } | null>(null);
   const [summaryFor, setSummaryFor] = useState<Quest | null>(null);
-  const [activeMainClaim, setActiveMainClaim] = useState<Quest | null>(null);
+  
   const [activeGroupSubmit, setActiveGroupSubmit] = useState<Quest | null>(null);
 
   useEffect(() => {
