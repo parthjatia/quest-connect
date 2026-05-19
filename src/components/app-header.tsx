@@ -35,6 +35,9 @@ export function AppHeader() {
             <>
               <Button asChild variant="ghost" size="sm"><Link to="/dashboard">Dashboard</Link></Button>
               <Button asChild variant="ghost" size="sm">
+                <Link to="/recap"><Sparkles className="mr-1 h-4 w-4" />Recap</Link>
+              </Button>
+              <Button asChild variant="ghost" size="sm">
                 <Link to="/wrapped"><Trophy className="mr-1 h-4 w-4" />Wrapped</Link>
               </Button>
               {isAdmin && (
