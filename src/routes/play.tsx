@@ -333,6 +333,22 @@ function PlayPage() {
               }}
             />
 
+            {/* Create Visual Recap CTA */}
+            <button
+              onClick={() => navigate({ to: "/recap" })}
+              className="group relative w-full overflow-hidden rounded-2xl border border-cyan-400/30 p-5 text-left transition hover:scale-[1.01] active:scale-[0.99] bg-swoosh-2 hue-drift shadow-[0_0_40px_-10px_rgba(34,211,238,0.45)]"
+            >
+              <FloatingDecor variant="dense" />
+              <div className="relative z-10 flex items-center justify-between gap-4">
+                <div>
+                  <div className="text-[10px] uppercase tracking-[0.3em] text-cyan-200 font-semibold">New</div>
+                  <div className="mt-1 text-xl font-bold text-white"><AnimatedHeadline>Create Visual Recap</AnimatedHeadline></div>
+                  <div className="mt-1 text-xs text-white/85">Turn a transcript into a comic, zine, or card-style summary.</div>
+                </div>
+                <span className="shrink-0 text-2xl text-white">→</span>
+              </div>
+            </button>
+
             {/* Event Wrapped CTA */}
             <button
               onClick={() => navigate({ to: "/wrapped" })}
