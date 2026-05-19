@@ -242,7 +242,6 @@ function PlayPage() {
         <MainQuestTimeline
           quests={mainQuests}
           completedMap={completedMap}
-          onClaim={(q) => setActiveMainClaim(q)}
           onSummary={setSummaryFor}
         />
 
