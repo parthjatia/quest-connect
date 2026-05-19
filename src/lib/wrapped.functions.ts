@@ -47,7 +47,7 @@ export const generateEventWrapped = createServerFn({ method: "POST" })
       })
       .filter(Boolean).join("\n");
 
-    const profileSummary = `${attendee.full_name}, ${attendee.academic_background} from ${attendee.university}. Track: ${attendee.track_intent}. Goal: ${attendee.event_goal}. AI level: ${attendee.ai_experience}.`;
+    const profileSummary = `${attendee.full_name}, ${attendee.academic_background} from ${attendee.university}. Track: ${trackLabel(attendee.track_intent)}. Goal: ${goalLabel(attendee.event_goal)}. AI level: ${attendee.ai_experience}.`;
 
     // 1) Story
     const storyRes = await callGateway("google/gemini-2.5-flash", [
@@ -67,7 +67,7 @@ export const generateEventWrapped = createServerFn({ method: "POST" })
           type: "text",
           text: referencePhoto
             ? `Transform the attached event photo into an epic comic-book hero portrait of the person. Bold inked lines, halftone shading, dynamic pose, vibrant indigo + neon mint palette, dark background, single splash panel, NO text. Keep the person's recognizable features.`
-            : `Comic-book illustration of a hackathon hero (${attendee.academic_background}, working on ${attendee.track_intent}). Bold inked lines, halftone shading, dynamic action pose. Vibrant indigo + neon mint palette, dark background. Single splash panel, no text.`,
+            : `Comic-book illustration of a hackathon hero (${attendee.academic_background}, working on ${trackLabel(attendee.track_intent)}). Bold inked lines, halftone shading, dynamic action pose. Vibrant indigo + neon mint palette, dark background. Single splash panel, no text.`,
         },
       ];
       if (referencePhoto) userContent.push({ type: "image_url", image_url: { url: referencePhoto } });
