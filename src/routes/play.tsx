@@ -594,6 +594,16 @@ function MainQuestTimeline({
                   )}
 
                   <div className="mt-3 flex flex-wrap items-center gap-2">
+                    {!done && kind === "current" && (
+                      <Button size="sm" onClick={() => onClaim(q)} className="h-7 text-xs bg-lime hover:opacity-90">
+                        <Upload className="h-3 w-3 mr-1" /> Submit proof · +{q.points_awarded} XP
+                      </Button>
+                    )}
+                    {done && (
+                      <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider text-lime">
+                        <CheckCircle2 className="h-3 w-3" /> +{q.points_awarded} XP awarded
+                      </span>
+                    )}
                     {!done && kind === "upcoming" && (
                       <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Locked — finish current first</span>
                     )}
@@ -615,6 +625,7 @@ function MainQuestTimeline({
                       )
                     )}
                   </div>
+
                 </div>
               </li>
             );
