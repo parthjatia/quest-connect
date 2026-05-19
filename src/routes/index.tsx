@@ -78,7 +78,7 @@ const ACCENT = {
 
 function Landing() {
   return (
-    <div className="relative min-h-screen w-full bg-background text-foreground overflow-hidden">
+    <div className="relative min-h-screen w-full bg-[radial-gradient(ellipse_at_top,_#0a3a4a_0%,_#06202c_45%,_#04121b_100%)] text-foreground overflow-hidden">
       {/* Ambient gold-coin + dice decor */}
       <FloatingDecor variant="ambient" className="fixed inset-0 z-0" />
 
