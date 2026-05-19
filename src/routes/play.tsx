@@ -42,6 +42,9 @@ function PlayPage() {
   
   const [activeGroupSubmit, setActiveGroupSubmit] = useState<Quest | null>(null);
   const [activeSponsorClaim, setActiveSponsorClaim] = useState<Quest | null>(null);
+  const [activeMainClaim, setActiveMainClaim] = useState<Quest | null>(null);
+  const prevPointsRef = useRef<number | null>(null);
+  const [xpPulse, setXpPulse] = useState(false);
 
   useEffect(() => {
     const a = getLocalAttendee();
@@ -172,6 +175,35 @@ function PlayPage() {
     return () => { supabase.removeChannel(ch); };
   }, [me.data?.group_id, qc]);
 
+  // Per-attendee realtime: XP + quest completions (covers sponsor approvals & main-quest auto-awards)
+  useEffect(() => {
+    if (!attendee?.id) return;
+    const ch = supabase
+      .channel(`attendee-${attendee.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "completed_quests", filter: `attendee_id=eq.${attendee.id}` },
+        () => { qc.invalidateQueries({ queryKey: ["completed"] }); qc.invalidateQueries({ queryKey: ["me"] }); })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "attendees", filter: `id=eq.${attendee.id}` },
+        () => { qc.invalidateQueries({ queryKey: ["me"] }); })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [attendee?.id, qc]);
+
+  // Celebrate XP gains
+  useEffect(() => {
+    const p = me.data?.points;
+    if (typeof p !== "number") return;
+    if (prevPointsRef.current === null) { prevPointsRef.current = p; return; }
+    if (p > prevPointsRef.current) {
+      const gained = p - prevPointsRef.current;
+      toast.success(`+${gained} XP`, { description: `You're at ${p} XP total` });
+      setXpPulse(true);
+      const t = setTimeout(() => setXpPulse(false), 1200);
+      prevPointsRef.current = p;
+      return () => clearTimeout(t);
+    }
+    prevPointsRef.current = p;
+  }, [me.data?.points]);
+
   if (!attendee || me.isLoading) {
     return <div className="grid place-items-center min-h-screen"><Loader2 className="animate-spin h-6 w-6 text-lime" /></div>;
   }
@@ -262,11 +294,24 @@ function PlayPage() {
               </div>
             )}
           </div>
-          <div className="p-5 sm:w-64 bg-card/40">
-            <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Your code — share with your pod</p>
-            <p className="font-mono text-3xl font-bold tracking-[0.3em] text-lime mt-2">{me.data?.verify_code ?? "----"}</p>
-            <p className="text-[10px] text-muted-foreground mt-2">Pod members enter this to confirm they met you.</p>
+          <div className="p-5 sm:w-72 bg-card/40 flex flex-col gap-4">
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Your code — share with your pod</p>
+              <p className="font-mono text-3xl font-bold tracking-[0.3em] text-lime mt-2">{me.data?.verify_code ?? "----"}</p>
+            </div>
+            <div className="border-t border-border pt-4">
+              <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Total XP</p>
+              <p className={`text-4xl font-bold tracking-tight mt-1 transition-all duration-500 ${xpPulse ? "text-lime scale-110" : "text-foreground"}`}>
+                {me.data?.points ?? 0}
+              </p>
+              <p className="text-[10px] text-muted-foreground mt-1">
+                {Math.max(0, (me.data?.points ?? 0) - (me.data?.pod_bonus_points ?? 0) - (me.data?.meet_bonus_points ?? 0))} quests
+                {" · "}{me.data?.pod_bonus_points ?? 0} pod
+                {" · "}{me.data?.meet_bonus_points ?? 0} meets
+              </p>
+            </div>
           </div>
+
         </section>
 
         {/* Pod */}
@@ -305,7 +350,9 @@ function PlayPage() {
           quests={mainQuests}
           completedMap={completedMap}
           onSummary={setSummaryFor}
+          onClaim={(q) => setActiveMainClaim(q)}
         />
+
 
         {/* Side quests (group) */}
         <SideQuestsSection
@@ -341,6 +388,18 @@ function PlayPage() {
           attendeeId={attendee.id}
           onClose={() => setActiveSponsorClaim(null)}
           onSubmitted={() => qc.invalidateQueries({ queryKey: ["completed"] })}
+        />
+      )}
+
+      {activeMainClaim && (
+        <MainQuestClaimDialog
+          quest={activeMainClaim}
+          attendeeId={attendee.id}
+          onClose={() => setActiveMainClaim(null)}
+          onSubmitted={() => {
+            qc.invalidateQueries({ queryKey: ["completed"] });
+            qc.invalidateQueries({ queryKey: ["me"] });
+          }}
         />
       )}
 
@@ -492,11 +551,12 @@ function PodPanel({
 
 /** Main-quest transcripts are uploaded by the organizer (quests.transcript_url), not attendees. */
 function MainQuestTimeline({
-  quests, completedMap, onSummary,
+  quests, completedMap, onSummary, onClaim,
 }: {
   quests: Quest[];
   completedMap: Map<string, CompletedRow>;
   onSummary: (q: Quest) => void;
+  onClaim: (q: Quest) => void;
 }) {
   // Find current = first not completed; reorder: current first, then completed (most recent first)
   const currentIdx = quests.findIndex((q) => !completedMap.has(q.id));
@@ -546,6 +606,16 @@ function MainQuestTimeline({
                   )}
 
                   <div className="mt-3 flex flex-wrap items-center gap-2">
+                    {!done && kind === "current" && (
+                      <Button size="sm" onClick={() => onClaim(q)} className="h-7 text-xs bg-lime hover:opacity-90">
+                        <Upload className="h-3 w-3 mr-1" /> Submit proof · +{q.points_awarded} XP
+                      </Button>
+                    )}
+                    {done && (
+                      <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider text-lime">
+                        <CheckCircle2 className="h-3 w-3" /> +{q.points_awarded} XP awarded
+                      </span>
+                    )}
                     {!done && kind === "upcoming" && (
                       <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Locked — finish current first</span>
                     )}
@@ -567,6 +637,7 @@ function MainQuestTimeline({
                       )
                     )}
                   </div>
+
                 </div>
               </li>
             );
@@ -949,5 +1020,69 @@ function NetworkPanel({
         </div>
       </div>
     </section>
+  );
+}
+
+function MainQuestClaimDialog({
+  quest, attendeeId, onClose, onSubmitted,
+}: { quest: Quest; attendeeId: string; onClose: () => void; onSubmitted: () => void }) {
+  const [file, setFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const submit = async () => {
+    if (!file) return toast.error("Photo required.");
+    if (file.size > 8 * 1024 * 1024) return toast.error("Max 8 MB.");
+    setBusy(true);
+    try {
+      const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+      const path = `attendees/${attendeeId}/${quest.id}-${Date.now()}.${ext}`;
+      const up = await supabase.storage.from("quest-photos").upload(path, file, { contentType: file.type });
+      if (up.error) throw up.error;
+      const { data: pub } = supabase.storage.from("quest-photos").getPublicUrl(path);
+      const { error } = await supabase.rpc("claim_quest_anon", {
+        _attendee_id: attendeeId, _quest_id: quest.id, _photo_url: pub.publicUrl,
+      });
+      if (error) throw error;
+      toast.success(`+${quest.points_awarded} XP awarded!`);
+      onSubmitted();
+      onClose();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Submission failed");
+    } finally { setBusy(false); }
+  };
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{quest.emoji} {quest.title}</DialogTitle>
+          <DialogDescription>
+            Upload a photo as proof. You'll be awarded <span className="text-lime font-semibold">+{quest.points_awarded} XP</span> instantly.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <input ref={inputRef} type="file" accept="image/*" capture="environment" className="hidden"
+            onChange={(e) => { const f = e.target.files?.[0] ?? null; setFile(f); setPreview(f ? URL.createObjectURL(f) : null); }} />
+          {preview ? (
+            <img src={preview} alt="preview" className="w-full max-h-72 object-cover border border-border" />
+          ) : (
+            <button type="button" onClick={() => inputRef.current?.click()}
+              className="w-full h-40 border border-dashed border-border grid place-items-center text-muted-foreground hover:border-lime hover:text-lime transition">
+              <div className="text-center"><Camera className="h-6 w-6 mx-auto mb-2" /><p className="text-sm">Tap to upload proof</p></div>
+            </button>
+          )}
+          {preview && <Button variant="outline" size="sm" onClick={() => inputRef.current?.click()}>Change photo</Button>}
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose} disabled={busy}>Cancel</Button>
+          <Button onClick={submit} disabled={!file || busy} className="bg-lime hover:opacity-90">
+            {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+            Submit proof
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
