@@ -473,16 +473,8 @@ function MainQuestTimeline({
                   )}
 
                   <div className="mt-3 flex flex-wrap items-center gap-2">
-                    {!done && kind === "current" && (
-                      <Button size="sm" onClick={() => onClaim(q)} className="bg-lime hover:opacity-90 h-7 text-xs">
-                        <Camera className="h-3 w-3 mr-1" /> Claim
-                      </Button>
-                    )}
                     {!done && kind === "upcoming" && (
                       <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Locked — finish current first</span>
-                    )}
-                    {!done && q.transcript_url && kind === "current" && (
-                      <span className="text-[10px] text-muted-foreground">Visual recap unlocks after you claim</span>
                     )}
                     {q.transcript_url ? (
                       <Button
