@@ -231,6 +231,54 @@ function JoinPage() {
                 </div>
               </Field>
 
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <Field label="LinkedIn URL (optional)">
+                  <Input value={linkedin} onChange={(e) => setLinkedin(e.target.value)} maxLength={200}
+                    placeholder="https://linkedin.com/in/you" className="bg-background border-border" />
+                </Field>
+                <Field label="GitHub URL (optional)">
+                  <Input value={github} onChange={(e) => setGithub(e.target.value)} maxLength={200}
+                    placeholder="https://github.com/you" className="bg-background border-border" />
+                </Field>
+              </div>
+
+              <Field label="Hobbies & special interests (optional)">
+                <div className="space-y-2">
+                  <Input
+                    value={hobbyDraft}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      if (v.endsWith(",")) addHobby(v);
+                      else setHobbyDraft(v);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") { e.preventDefault(); addHobby(hobbyDraft); }
+                      else if (e.key === "Backspace" && !hobbyDraft && hobbies.length) {
+                        removeHobby(hobbies[hobbies.length - 1]);
+                      }
+                    }}
+                    onBlur={() => hobbyDraft && addHobby(hobbyDraft)}
+                    maxLength={30}
+                    placeholder="e.g. chess, climbing, sci-fi (Enter to add)"
+                    className="bg-background border-border"
+                  />
+                  {hobbies.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {hobbies.map((h) => (
+                        <button
+                          key={h}
+                          type="button"
+                          onClick={() => removeHobby(h)}
+                          className="text-[10px] uppercase tracking-wider border border-lime/50 text-lime px-2 py-1 hover:bg-lime/10"
+                        >
+                          {h} ×
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </Field>
+
               <Button type="submit" disabled={busy} className="w-full bg-lime hover:opacity-90">
                 {busy ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <UserPlus className="h-4 w-4 mr-2" />}
                 Sign up & get my code
