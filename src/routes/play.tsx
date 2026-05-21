@@ -13,6 +13,7 @@ import { MainQuestRecapModal } from "@/components/recap/main-quest-recap-modal";
 import { VibeMapSection } from "@/components/vibe-map/vibe-map-section";
 import { trackLabel } from "@/lib/attendee-options";
 import { ThreeBackground } from "@/components/three-bg";
+import { FloatingDecor } from "@/components/floating-decor";
 import { AnimatedHeadline } from "@/components/animated-text";
 import coinBlue from "@/assets/coin-cyan.png";
 

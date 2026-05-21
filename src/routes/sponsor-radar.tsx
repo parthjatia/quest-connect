@@ -10,6 +10,7 @@ import {
   aggregateSponsorZones, generateSponsorAction, generateSponsorQuest, SponsorQuest,
 } from "@/lib/sponsorRadarEngine";
 import { cn } from "@/lib/utils";
+import { ThreeBackground } from "@/components/three-bg";
 
 export const Route = createFileRoute("/sponsor-radar")({
   head: () => ({
