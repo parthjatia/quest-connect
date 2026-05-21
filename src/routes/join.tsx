@@ -9,6 +9,7 @@ import { getRegistrationOpen } from "@/lib/event-settings";
 import { TRACK_OPTIONS, GOAL_OPTIONS, type TrackIntent, type EventGoal } from "@/lib/attendee-options";
 import { toast } from "sonner";
 import { Loader2, ArrowLeft, UserPlus, Copy, CheckCircle2, Camera } from "lucide-react";
+import { ThreeBackground } from "@/components/three-bg";
 
 export const Route = createFileRoute("/join")({
   head: () => ({ meta: [{ title: "Join — Quey" }] }),

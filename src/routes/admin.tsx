@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, Plus, Trash2, Sparkles, ArrowLeft, Wand2, Lock, Unlock, FileText, Check, X as XIcon, Clock, Radio, LogOut, Upload } from "lucide-react";
+import { ThreeBackground } from "@/components/three-bg";
 import { getRegistrationOpen, setRegistrationOpen } from "@/lib/event-settings";
 import { runLlmMatchmaker } from "@/lib/matchmaker.functions";
 import { clearAllDataFn, deleteQuestFn } from "@/lib/admin.functions";

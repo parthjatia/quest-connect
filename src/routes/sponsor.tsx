@@ -10,6 +10,7 @@ import { getLocalSponsor, clearLocalSponsor } from "@/lib/local-attendee";
 import { reviewSponsorCompletionFn } from "@/lib/sponsor.functions";
 import { toast } from "sonner";
 import { ArrowLeft, LogOut, Loader2, Sparkles, Clock, Check, X as XIcon, Radio, ExternalLink } from "lucide-react";
+import { ThreeBackground } from "@/components/three-bg";
 
 export const Route = createFileRoute("/sponsor")({
   head: () => ({ meta: [{ title: "Sponsor portal — Quey" }] }),
