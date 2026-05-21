@@ -318,7 +318,7 @@ function PlayPage() {
                   </label>
                   <div className="min-w-0 flex-1">
                     <p className="wrapped-kicker text-accent">Attendee</p>
-                    <h1 className="wrapped-headline-md mt-2"><AnimatedHeadline>{attendee.name}</AnimatedHeadline></h1>
+                    <h1 className="wrapped-headline-md mt-2"><span className="text-stage"><AnimatedHeadline>{attendee.name}</AnimatedHeadline></span></h1>
                   </div>
                 </div>
 
