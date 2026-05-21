@@ -49,8 +49,8 @@ export function ThreeBackground({
     host.appendChild(renderer.domElement);
 
     const colorHex = ACCENT_HEX[accent];
-    const mat = new THREE.LineBasicMaterial({ color: colorHex, transparent: true, opacity: 0.85 });
-    const matSoft = new THREE.LineBasicMaterial({ color: colorHex, transparent: true, opacity: 0.45 });
+    const mat = new THREE.LineBasicMaterial({ color: colorHex, transparent: true, opacity: 0.45 });
+    const matSoft = new THREE.LineBasicMaterial({ color: colorHex, transparent: true, opacity: 0.2 });
 
     const group = new THREE.Group();
     scene.add(group);

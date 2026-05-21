@@ -137,7 +137,7 @@ function AttendeeLogin({ navigate }: { navigate: ReturnType<typeof useNavigate> 
   };
 
   return (
-    <form onSubmit={submit} className="border border-border p-5 space-y-4">
+    <form onSubmit={submit} className="panel-neon-magenta p-5 space-y-4 rounded-md">
       <div>
         <label className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Your 4-character code</label>
         <Input
@@ -167,7 +167,7 @@ function AdminLogin({ navigate }: { navigate: ReturnType<typeof useNavigate> }) 
     navigate({ to: "/admin" });
   };
   return (
-    <form onSubmit={submit} className="border border-border p-5 space-y-4">
+    <form onSubmit={submit} className="panel-neon-magenta p-5 space-y-4 rounded-md">
       <div>
         <label className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Admin password</label>
         <Input
@@ -196,7 +196,7 @@ function SponsorLogin({ navigate }: { navigate: ReturnType<typeof useNavigate> }
     navigate({ to: "/sponsor" });
   };
   return (
-    <form onSubmit={submit} className="border border-border p-5 space-y-4">
+    <form onSubmit={submit} className="panel-neon-magenta p-5 space-y-4 rounded-md">
       <div>
         <label className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Sponsor handle</label>
         <Input
