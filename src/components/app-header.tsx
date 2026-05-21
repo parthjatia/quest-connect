@@ -22,13 +22,13 @@ export function AppHeader() {
   };
 
   return (
-    <header className="border-b border-[#39ff14]/20 bg-black/60 backdrop-blur sticky top-0 z-30">
+    <header className="border-b border-border bg-background/80 backdrop-blur sticky top-0 z-30">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
         <Link to="/" className="flex items-center gap-2 font-extrabold text-xl tracking-tight">
-          <span className="grid h-8 w-8 place-items-center rounded-md border border-[#39ff14]/50 bg-[#39ff14]/10 shadow-[0_0_18px_-2px_rgba(57,255,20,0.6)]">
-            <Sparkles className="h-4 w-4 text-[#39ff14]" />
+          <span className="grid h-8 w-8 place-items-center rounded-md border border-border bg-card">
+            <Sparkles className="h-4 w-4 text-primary" />
           </span>
-          <span className="text-neon-shine">Quey</span>
+          <span className="text-foreground">Quey</span>
         </Link>
         <nav className="flex items-center gap-2">
           {user ? (

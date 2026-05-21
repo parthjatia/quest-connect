@@ -12,7 +12,6 @@ import { QuestSummaryModal } from "@/components/quest-summary-modal";
 import { MainQuestRecapModal } from "@/components/recap/main-quest-recap-modal";
 import { VibeMapSection } from "@/components/vibe-map/vibe-map-section";
 import { trackLabel } from "@/lib/attendee-options";
-import { ThreeBackground } from "@/components/three-bg";
 import { FloatingDecor } from "@/components/floating-decor";
 import { AnimatedHeadline } from "@/components/animated-text";
 import coinBlue from "@/assets/coin-cyan.png";
@@ -282,8 +281,7 @@ function PlayPage() {
 
   return (
     <div className="play-light-text relative min-h-screen bg-neon-base text-foreground pb-24 overflow-hidden">
-      <ThreeBackground variant="cube-grid" accent="green" />
-      <header className="relative z-10 border-b border-[#39ff14]/20">
+      <header className="relative z-10 border-b border-border">
         <div className="mx-auto max-w-5xl px-6 py-3 flex items-center justify-between text-sm">
           <Link to="/" className="font-semibold tracking-tight">Quey</Link>
           <Button variant="ghost" size="sm" onClick={leave} className="text-muted-foreground hover:text-foreground">
@@ -320,7 +318,7 @@ function PlayPage() {
                   </label>
                   <div className="min-w-0 flex-1">
                     <p className="wrapped-kicker text-accent">Attendee</p>
-                    <h1 className="wrapped-headline-md mt-2"><AnimatedHeadline>{attendee.name}</AnimatedHeadline></h1>
+                    <h1 className="wrapped-headline-md mt-2"><span className="text-stage"><AnimatedHeadline>{attendee.name}</AnimatedHeadline></span></h1>
                   </div>
                 </div>
 
