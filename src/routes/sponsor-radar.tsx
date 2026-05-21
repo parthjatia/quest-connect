@@ -10,6 +10,7 @@ import {
   aggregateSponsorZones, generateSponsorAction, generateSponsorQuest, SponsorQuest,
 } from "@/lib/sponsorRadarEngine";
 import { cn } from "@/lib/utils";
+import { ThreeBackground } from "@/components/three-bg";
 
 export const Route = createFileRoute("/sponsor-radar")({
   head: () => ({
@@ -78,7 +79,9 @@ function SponsorPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="relative min-h-screen bg-neon-base text-foreground overflow-hidden">
+      <ThreeBackground variant="radar-rings" accent="magenta" />
+      <div className="relative z-10">
       <header className="border-b border-border">
         <div className="mx-auto max-w-6xl px-6 py-3 flex items-center justify-between text-sm">
           <Link to="/" className="font-semibold tracking-tight">Quey</Link>
@@ -350,6 +353,7 @@ function SponsorPage() {
           Back to <Link to="/" className="text-lime hover:underline">home</Link>.
         </div>
       </footer>
+      </div>
     </div>
   );
 }

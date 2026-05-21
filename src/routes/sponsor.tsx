@@ -10,6 +10,7 @@ import { getLocalSponsor, clearLocalSponsor } from "@/lib/local-attendee";
 import { reviewSponsorCompletionFn } from "@/lib/sponsor.functions";
 import { toast } from "sonner";
 import { ArrowLeft, LogOut, Loader2, Sparkles, Clock, Check, X as XIcon, Radio, ExternalLink } from "lucide-react";
+import { ThreeBackground } from "@/components/three-bg";
 
 export const Route = createFileRoute("/sponsor")({
   head: () => ({ meta: [{ title: "Sponsor portal — Quey" }] }),
@@ -68,7 +69,9 @@ function SponsorPortal() {
   if (!handle) return null;
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(ellipse_at_top,_#0a3a4a_0%,_#06202c_45%,_#04121b_100%)] text-foreground">
+    <div className="relative min-h-screen bg-neon-base text-foreground overflow-hidden">
+      <ThreeBackground variant="dodecahedron" accent="green" />
+      <div className="relative z-10">
       <header className="border-b border-border">
         <div className="mx-auto max-w-3xl px-6 py-3 flex items-center justify-between text-sm">
           <Link to="/" className="text-muted-foreground hover:text-foreground inline-flex items-center gap-2">
@@ -143,6 +146,7 @@ function SponsorPortal() {
           )}
         </section>
       </main>
+      </div>
     </div>
   );
 }

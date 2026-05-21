@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, Plus, Trash2, Sparkles, ArrowLeft, Wand2, Lock, Unlock, FileText, Check, X as XIcon, Clock, Radio, LogOut, Upload } from "lucide-react";
+import { ThreeBackground } from "@/components/three-bg";
 import { getRegistrationOpen, setRegistrationOpen } from "@/lib/event-settings";
 import { runLlmMatchmaker } from "@/lib/matchmaker.functions";
 import { clearAllDataFn, deleteQuestFn } from "@/lib/admin.functions";
@@ -204,7 +205,9 @@ function AdminPage() {
   const podCount = groups.data?.length ?? 0;
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(ellipse_at_top,_#0a3a4a_0%,_#06202c_45%,_#04121b_100%)] text-foreground">
+    <div className="relative min-h-screen bg-neon-base text-foreground overflow-hidden">
+      <ThreeBackground variant="octahedron-lattice" accent="magenta" />
+      <div className="relative z-10">
       <header className="border-b border-border">
         <div className="mx-auto max-w-6xl px-6 py-3 flex items-center justify-between text-sm">
           <div className="flex items-center gap-4">
@@ -385,6 +388,7 @@ function AdminPage() {
         {/* Quests */}
         <QuestManager quests={quests.data ?? []} loading={quests.isLoading} />
       </main>
+      </div>
     </div>
   );
 }

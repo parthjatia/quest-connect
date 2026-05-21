@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Sliders, Gamepad2, Sparkles, ArrowRight } from "lucide-react";
-import { FloatingDecor } from "@/components/floating-decor";
+import { ThreeBackground } from "@/components/three-bg";
 import { AnimatedHeadline } from "@/components/animated-text";
 
 export const Route = createFileRoute("/")({
@@ -57,51 +57,51 @@ const PORTALS: Portal[] = [
 
 const ACCENT = {
   cyan: {
-    halo: "from-cyan-500 to-blue-600 opacity-20 group-hover:opacity-40",
-    label: "text-cyan-300",
-    tile: "bg-cyan-500/15 border-cyan-400/30 text-cyan-300",
-    cta: "text-cyan-300",
+    halo: "from-[#39ff14] to-[#39ff14] opacity-20 group-hover:opacity-50",
+    label: "text-neon",
+    tile: "bg-[#39ff14]/15 border-[#39ff14]/40 text-neon",
+    cta: "text-neon",
   },
   gold: {
-    halo: "from-yellow-400 to-orange-500 opacity-25 group-hover:opacity-50",
-    label: "text-yellow-400",
-    tile: "bg-yellow-500/15 border-yellow-400/30 text-yellow-300",
-    cta: "text-yellow-300",
+    halo: "from-[#ff2d87] to-[#ff2d87] opacity-25 group-hover:opacity-50",
+    label: "text-neon-magenta",
+    tile: "bg-[#ff2d87]/15 border-[#ff2d87]/40 text-neon-magenta",
+    cta: "text-neon-magenta",
   },
   slate: {
-    halo: "from-slate-400 to-slate-500 opacity-10 group-hover:opacity-20",
-    label: "text-slate-400",
-    tile: "bg-white/5 border-white/10 text-slate-300",
-    cta: "text-slate-200",
+    halo: "from-white/30 to-white/10 opacity-15 group-hover:opacity-30",
+    label: "text-slate-300",
+    tile: "bg-white/5 border-white/15 text-slate-200",
+    cta: "text-slate-100",
   },
 } as const;
 
 function Landing() {
   return (
-    <div className="relative min-h-screen w-full bg-[radial-gradient(ellipse_at_top,_#0a3a4a_0%,_#06202c_45%,_#04121b_100%)] text-foreground overflow-hidden">
-      {/* Ambient gold-coin + dice decor */}
-      <FloatingDecor variant="ambient" className="fixed inset-0 z-0" />
+    <div className="relative min-h-screen w-full bg-neon-base text-foreground overflow-hidden">
+      <ThreeBackground variant="icosahedron" accent="green" />
+      <div className="pointer-events-none absolute inset-0 bg-neon-lines opacity-60" />
 
       {/* Subtle radial glows */}
-      <div className="pointer-events-none absolute -top-32 -left-20 h-72 w-72 rounded-full bg-cyan-500/10 blur-[120px]" />
-      <div className="pointer-events-none absolute -bottom-32 -right-20 h-80 w-80 rounded-full bg-blue-600/10 blur-[120px]" />
+      <div className="pointer-events-none absolute -top-32 -left-20 h-72 w-72 rounded-full bg-[#39ff14]/10 blur-[120px]" />
+      <div className="pointer-events-none absolute -bottom-32 -right-20 h-80 w-80 rounded-full bg-[#ff2d87]/10 blur-[120px]" />
 
       <main className="relative z-10 mx-auto flex min-h-screen w-full max-w-[480px] flex-col px-6 pt-12 pb-10">
         {/* Header */}
         <header className="pt-4 pb-10">
-          <div className="inline-block mb-5 rounded-full border border-yellow-400/30 bg-yellow-500/10 px-3 py-1">
-            <span className="font-['Space_Grotesk'] text-[10px] font-bold uppercase tracking-[0.25em] text-yellow-300">
+          <div className="inline-block mb-5 rounded-md border border-[#39ff14]/40 bg-[#39ff14]/10 px-3 py-1">
+            <span className="font-['Space_Grotesk'] text-[10px] font-bold uppercase tracking-[0.25em] text-neon">
               Quey
             </span>
           </div>
           <h1 className="text-4xl font-extrabold leading-tight tracking-tight text-white sm:text-5xl">
             <AnimatedHeadline>One event.</AnimatedHeadline>
             <br />
-            <span className="bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
+            <span className="text-neon-shine">
               Three lenses.
             </span>
           </h1>
-          <p className="mt-5 text-sm font-medium tracking-wide text-slate-400 sm:text-base">
+          <p className="mt-5 text-sm font-medium tracking-wide text-slate-300 sm:text-base">
             Run it. Play it. Sponsor it.
           </p>
         </header>
@@ -118,9 +118,9 @@ function Landing() {
                 className="group relative block text-left"
               >
                 <div
-                  className={`absolute -inset-0.5 rounded-2xl bg-gradient-to-r ${a.halo} blur transition duration-500`}
+                  className={`absolute -inset-0.5 rounded-md bg-gradient-to-r ${a.halo} blur transition duration-500`}
                 />
-                <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-slate-900/60 p-5 backdrop-blur-xl transition-all duration-300 active:scale-[0.98]">
+                <div className="panel-neon relative overflow-hidden rounded-md p-5 transition-all duration-300 active:scale-[0.98]">
                   <div className="mb-4 flex items-start justify-between gap-4">
                     <div>
                       <p className={`font-['Space_Grotesk'] mb-1 text-[10px] font-bold uppercase tracking-[0.2em] ${a.label}`}>
