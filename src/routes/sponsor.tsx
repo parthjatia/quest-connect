@@ -68,7 +68,9 @@ function SponsorPortal() {
   if (!handle) return null;
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(ellipse_at_top,_#0a3a4a_0%,_#06202c_45%,_#04121b_100%)] text-foreground">
+    <div className="relative min-h-screen bg-neon-base text-foreground overflow-hidden">
+      <ThreeBackground variant="dodecahedron" accent="green" />
+      <div className="relative z-10">
       <header className="border-b border-border">
         <div className="mx-auto max-w-3xl px-6 py-3 flex items-center justify-between text-sm">
           <Link to="/" className="text-muted-foreground hover:text-foreground inline-flex items-center gap-2">

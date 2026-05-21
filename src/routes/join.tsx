@@ -137,7 +137,9 @@ function JoinPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="relative min-h-screen bg-neon-base text-foreground overflow-hidden">
+      <ThreeBackground variant="torus-knot" accent="magenta" />
+      <div className="relative z-10">
       <header className="border-b border-border">
         <div className="mx-auto max-w-5xl px-6 py-4 flex items-center justify-between text-sm">
           <Link to="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground">

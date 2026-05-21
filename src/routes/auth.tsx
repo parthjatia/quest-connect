@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { setLocalAttendee, setLocalAdmin, setLocalSponsor } from "@/lib/local-attendee";
 import { toast } from "sonner";
 import { ArrowLeft, Loader2 } from "lucide-react";
+import { ThreeBackground } from "@/components/three-bg";
 
 type AuthMode = "attendee" | "admin" | "sponsor";
 type AuthSearch = { mode?: "admin" | "sponsor" };
@@ -24,17 +25,18 @@ function AuthPage() {
   const mode: AuthMode = rawMode ?? "attendee";
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(ellipse_at_top,_#0a3a4a_0%,_#06202c_45%,_#04121b_100%)] text-foreground">
-      <header className="border-b border-border">
+    <div className="relative min-h-screen bg-neon-base text-foreground overflow-hidden">
+      <ThreeBackground variant="torus-knot" accent="magenta" />
+      <header className="relative z-10 border-b border-[#ff2d87]/20">
         <div className="mx-auto max-w-5xl px-6 py-4 flex items-center justify-between text-sm">
-          <Link to="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground">
+          <Link to="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-neon-magenta transition-colors">
             <ArrowLeft className="h-4 w-4" /> back
           </Link>
-          <span className="text-muted-foreground">Quey</span>
+          <span className="text-neon-magenta font-semibold tracking-[0.2em] uppercase text-xs">Quey</span>
         </div>
       </header>
 
-      <main className="mx-auto max-w-xl px-6 py-12 space-y-8">
+      <main className="relative z-10 mx-auto max-w-xl px-6 py-12 space-y-8">
         {mode === "admin" && (
           <>
             <div className="rounded-3xl bg-swoosh-2 p-8 sm:p-10">
