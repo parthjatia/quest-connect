@@ -387,6 +387,7 @@ function AdminPage() {
         {/* Quests */}
         <QuestManager quests={quests.data ?? []} loading={quests.isLoading} />
       </main>
+      </div>
     </div>
   );
 }

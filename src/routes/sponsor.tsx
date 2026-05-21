@@ -145,6 +145,7 @@ function SponsorPortal() {
           )}
         </section>
       </main>
+      </div>
     </div>
   );
 }

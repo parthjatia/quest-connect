@@ -347,6 +347,7 @@ function JoinPage() {
           </>
         )}
       </main>
+      </div>
     </div>
   );
 }

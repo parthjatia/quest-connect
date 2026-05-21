@@ -352,6 +352,7 @@ function SponsorPage() {
           Back to <Link to="/" className="text-lime hover:underline">home</Link>.
         </div>
       </footer>
+      </div>
     </div>
   );
 }
