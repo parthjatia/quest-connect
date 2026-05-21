@@ -438,8 +438,6 @@ function PlayPage() {
               />
             )}
 
-            <PodLeaderboard currentGroupId={me.data?.group_id ?? null} />
-
             <MainQuestTimeline
               quests={mainQuests}
               completedMap={completedMap}
@@ -457,6 +455,8 @@ function PlayPage() {
               onSponsorClaim={(q) => setActiveSponsorClaim(q)}
               onSummary={setSummaryFor}
             />
+
+            <PodLeaderboard currentGroupId={me.data?.group_id ?? null} />
           </>
         )}
 
@@ -599,7 +599,7 @@ function PodLeaderboard({ currentGroupId }: { currentGroupId: string | null }) {
         <div className="border border-border p-8 text-center text-sm text-muted-foreground">No pods yet.</div>
       ) : (
         <ul className="space-y-2">
-          {rows.slice(0, 10).map((r, i) => {
+          {rows.slice(0, 5).map((r, i) => {
             const s = rankStyle(i);
             const isMine = r.id === currentGroupId;
             return (
