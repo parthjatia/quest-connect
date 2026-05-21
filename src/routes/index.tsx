@@ -89,19 +89,19 @@ function Landing() {
       <main className="relative z-10 mx-auto flex min-h-screen w-full max-w-[480px] flex-col px-6 pt-12 pb-10">
         {/* Header */}
         <header className="pt-4 pb-10">
-          <div className="inline-block mb-5 rounded-full border border-yellow-400/30 bg-yellow-500/10 px-3 py-1">
-            <span className="font-['Space_Grotesk'] text-[10px] font-bold uppercase tracking-[0.25em] text-yellow-300">
+          <div className="inline-block mb-5 rounded-md border border-[#39ff14]/40 bg-[#39ff14]/10 px-3 py-1">
+            <span className="font-['Space_Grotesk'] text-[10px] font-bold uppercase tracking-[0.25em] text-neon">
               Quey
             </span>
           </div>
           <h1 className="text-4xl font-extrabold leading-tight tracking-tight text-white sm:text-5xl">
             <AnimatedHeadline>One event.</AnimatedHeadline>
             <br />
-            <span className="bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
+            <span className="text-neon-shine">
               Three lenses.
             </span>
           </h1>
-          <p className="mt-5 text-sm font-medium tracking-wide text-slate-400 sm:text-base">
+          <p className="mt-5 text-sm font-medium tracking-wide text-slate-300 sm:text-base">
             Run it. Play it. Sponsor it.
           </p>
         </header>
@@ -118,9 +118,9 @@ function Landing() {
                 className="group relative block text-left"
               >
                 <div
-                  className={`absolute -inset-0.5 rounded-2xl bg-gradient-to-r ${a.halo} blur transition duration-500`}
+                  className={`absolute -inset-0.5 rounded-md bg-gradient-to-r ${a.halo} blur transition duration-500`}
                 />
-                <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-slate-900/60 p-5 backdrop-blur-xl transition-all duration-300 active:scale-[0.98]">
+                <div className="panel-neon relative overflow-hidden rounded-md p-5 transition-all duration-300 active:scale-[0.98]">
                   <div className="mb-4 flex items-start justify-between gap-4">
                     <div>
                       <p className={`font-['Space_Grotesk'] mb-1 text-[10px] font-bold uppercase tracking-[0.2em] ${a.label}`}>
