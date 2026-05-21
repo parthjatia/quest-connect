@@ -446,17 +446,11 @@ function PreferenceQuestion(props: {
   const { question, value, onChange } = props;
   return (
     <div className="recap-glass rounded-2xl p-5">
-      <div className="mb-4 flex items-start gap-3">
+      <div className="mb-4 flex items-center gap-3">
         <div className="recap-glass-strong grid h-8 w-8 shrink-0 place-items-center rounded-lg text-cyan-soft">
           {question.icon}
         </div>
-        <div>
-          <div className="text-xs uppercase tracking-wider text-cyan-soft/80">
-            Question {question.index} of 6
-          </div>
-          <h3 className="text-lg font-semibold text-foreground">{question.title}</h3>
-          <p className="text-sm text-silver/70">{question.subtitle}</p>
-        </div>
+        <h3 className="text-lg font-semibold text-foreground">{question.title}</h3>
       </div>
       <div className="grid gap-3 md:grid-cols-3">
         {question.options.map((opt) => {
@@ -473,11 +467,9 @@ function PreferenceQuestion(props: {
             >
               <div className="flex items-center gap-2 text-cyan-soft">
                 {opt.icon}
-                <span className="text-xs uppercase tracking-wider opacity-80">Option</span>
                 {selected && <CheckCircle2 className="ml-auto h-4 w-4 text-primary" />}
               </div>
               <div className="mt-1 font-medium text-foreground">{opt.label}</div>
-              {opt.hint && <div className="mt-1 text-xs text-silver/60">{opt.hint}</div>}
             </button>
           );
         })}
@@ -571,12 +563,10 @@ function VisualSlot(props: {
 
 // ---------------- Section header ----------------
 
-function SectionHeader(props: { kicker: string; title: string; description?: string }) {
+function SectionHeader(props: { kicker?: string; title: string; description?: string }) {
   return (
     <div className="space-y-1">
-      <div className="text-xs uppercase tracking-[0.2em] text-cyan-soft">{props.kicker}</div>
       <h2 className="text-2xl md:text-3xl font-bold tracking-tight">{props.title}</h2>
-      {props.description && <p className="text-sm text-silver/70">{props.description}</p>}
     </div>
   );
 }
