@@ -279,15 +279,70 @@
     color: transparent;
   }
 
-  /* === Legacy "lime" utilities re-bound to electric blue ===
-     Keeps every existing component themed correctly without code edits. */
-  .text-lime   { color: oklch(0.78 0.14 235); }
-  .border-lime { border-color: oklch(0.72 0.18 245); }
-  .bg-lime     { background-color: oklch(0.72 0.18 245); color: oklch(0.12 0.02 255); }
+  /* === Legacy "lime" utilities rebound to shiny neon green === */
+  .text-lime   { color: #39ff14; text-shadow: 0 0 8px rgba(57,255,20,0.55), 0 0 18px rgba(57,255,20,0.25); }
+  .border-lime { border-color: #39ff14; box-shadow: 0 0 0 1px rgba(57,255,20,0.35), 0 0 16px -2px rgba(57,255,20,0.45); }
+  .bg-lime     { background-color: #39ff14; color: #0a0014; box-shadow: 0 0 18px -2px rgba(57,255,20,0.7), inset 0 0 0 1px rgba(255,255,255,0.18); }
 
   /* Accent helpers */
   .text-cyan-soft { color: oklch(0.82 0.12 215); }
   .text-silver    { color: oklch(0.85 0.01 240); }
+
+  /* === Neon dark theme === */
+  .bg-neon-base {
+    background:
+      radial-gradient(1200px 700px at 15% -10%, rgba(106, 30, 200, 0.35), transparent 60%),
+      radial-gradient(900px 600px at 100% 10%, rgba(255, 45, 135, 0.18), transparent 60%),
+      radial-gradient(900px 700px at 50% 120%, rgba(57, 255, 20, 0.10), transparent 60%),
+      linear-gradient(180deg, #0a0014 0%, #14082a 50%, #0a0014 100%);
+  }
+  .bg-neon-lines {
+    background-image:
+      linear-gradient(to right, rgba(57,255,20,0.06) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255,45,135,0.05) 1px, transparent 1px);
+    background-size: 64px 64px;
+  }
+  .text-neon {
+    color: #39ff14;
+    text-shadow:
+      0 0 6px rgba(57,255,20,0.65),
+      0 0 18px rgba(57,255,20,0.35),
+      0 0 36px rgba(57,255,20,0.15);
+  }
+  .text-neon-magenta {
+    color: #ff2d87;
+    text-shadow:
+      0 0 6px rgba(255,45,135,0.65),
+      0 0 18px rgba(255,45,135,0.35);
+  }
+  .text-neon-shine {
+    background: linear-gradient(90deg, #39ff14, #b3ff7a, #39ff14);
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+            background-clip: text;
+    color: transparent;
+    animation: text-shimmer 4s linear infinite;
+    filter: drop-shadow(0 0 10px rgba(57,255,20,0.45));
+  }
+  .panel-neon {
+    background: linear-gradient(180deg, rgba(20,8,42,0.72), rgba(10,0,20,0.78));
+    border: 1px solid rgba(57,255,20,0.22);
+    box-shadow:
+      0 0 0 1px rgba(255,45,135,0.06) inset,
+      0 0 24px -8px rgba(57,255,20,0.35),
+      0 30px 60px -30px rgba(0,0,0,0.8);
+    backdrop-filter: blur(10px) saturate(140%);
+    -webkit-backdrop-filter: blur(10px) saturate(140%);
+  }
+  .panel-neon-magenta {
+    background: linear-gradient(180deg, rgba(20,8,42,0.72), rgba(10,0,20,0.78));
+    border: 1px solid rgba(255,45,135,0.25);
+    box-shadow:
+      0 0 24px -8px rgba(255,45,135,0.4),
+      0 30px 60px -30px rgba(0,0,0,0.8);
+    backdrop-filter: blur(10px) saturate(140%);
+    -webkit-backdrop-filter: blur(10px) saturate(140%);
+  }
 
   /* Decorative grid motif for hero/section backgrounds */
   .bg-grid {
