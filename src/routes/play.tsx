@@ -281,7 +281,7 @@ function PlayPage() {
 
   return (
     <div className="play-light-text relative min-h-screen bg-neon-base text-foreground pb-24 overflow-hidden">
-      <header className="relative z-10 border-b border-[#39ff14]/20">
+      <header className="relative z-10 border-b border-border">
         <div className="mx-auto max-w-5xl px-6 py-3 flex items-center justify-between text-sm">
           <Link to="/" className="font-semibold tracking-tight">Quey</Link>
           <Button variant="ghost" size="sm" onClick={leave} className="text-muted-foreground hover:text-foreground">
