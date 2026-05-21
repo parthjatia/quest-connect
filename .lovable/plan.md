@@ -1,61 +1,39 @@
-# Dark Neon Redesign
+## Visual cleanup pass
 
-Reskin the main app surfaces (Landing, Auth/Join, Play, Admin, Sponsor, Sponsor Radar) with a professional dark-purple/black palette, neon green+magenta accents, sharper straight-line geometry, and a real WebGL 3D shape drifting in the background of each page. Recap and Wrapped are left alone.
+Tighten the neon redesign: remove color transitions, kill rounded corners, drop landing-page glow, pure black background, and make the 3D shapes fewer/bigger/thicker with complexity decreasing from landing → deeper pages.
 
-## Palette (added to `src/styles.css`)
+### 1. Background & color transitions (`src/styles.css`)
+- Replace `.bg-neon-base` gradient with solid `#000000`.
+- Remove all `transition-colors` / `transition: background/color` rules from utility classes (`.panel-neon`, `.panel-neon-magenta`, buttons, cards, portal tiles). Hover states switch instantly (border/opacity only, no tweened color).
+- Remove the animated gradient on `.text-neon-shine` → static neon-green fill, no keyframe animation.
 
-- `--bg-base`: near-black `#0a0014`
-- `--bg-deep`: deep purple `#1a0a2e`
-- `--bg-mid`: violet `#2a0a3e`
-- `--neon-green`: `#39ff14` (primary accent — headings, links, CTAs)
-- `--neon-magenta`: `#ff2d87` (secondary accent — highlights, hover)
-- `--neon-glow-green` / `--neon-glow-magenta`: blurred drop-shadow tokens for "shiny" text
-- New utility classes: `.text-neon`, `.text-neon-magenta`, `.line-grid` (straight-line CSS grid backdrop), `.panel-dark` (sharp-cornered translucent card with neon border).
+### 2. Square corners everywhere
+- Override Tailwind radius: set `--radius: 0` and force `rounded-*` utilities used in our components to `border-radius: 0` via global rule on `.panel-neon`, `.panel-neon-magenta`, `button`, `input`, `[role="dialog"]`, `.card`.
+- Audit and strip `rounded-*` classes on landing portal tiles, auth card, admin/play/sponsor panels, header logo container.
 
-Replace soft blob gradients and rounded glow halos across the touched pages with straight-edged dividers, hairline neon borders, and tighter radii (`rounded-md` instead of `rounded-2xl` on chrome elements). Cards keep small rounding only where it aids legibility.
+### 3. Landing page: no glow on boxes
+- In `src/routes/index.tsx`, remove `shadow-[0_0_...]`, `drop-shadow`, and `.panel-neon` glow from the portal cards. Keep hairline 1px neon border only, no box-shadow.
+- Header logo container loses its glow halo on `/` (keep border).
 
-## 3D backgrounds (three.js)
+### 4. Three.js shapes: thicker, fewer, complexity gradient
+Update `src/components/three-bg.tsx`:
+- Replace `LineBasicMaterial` (1px lines) with **tube geometries** wrapping each wireframe edge, so line thickness is real (≈3–5px equivalent). Use `MeshBasicMaterial` on the tubes.
+- Cap shape count per scene to **2–3 large objects** (currently clusters/grids spawn many). Scale each ~2× larger than current.
+- Complexity ladder (most → least complex):
+  - `/` Landing → dodecahedron + icosahedron (most facets, most complex)
+  - `/play` → octahedron + torus knot
+  - `/auth` + `/join` → torus knot (single, large)
+  - `/admin` → octahedron lattice reduced to 2 octahedra
+  - `/sponsor` → cube + tetrahedron
+  - `/sponsor-radar` → 2 concentric rings (simplest)
+- Remove cube-grid tunnel and lattice arrays — they violate the 2–3 cap.
 
-Install `three` and add `src/components/three-bg.tsx` — a single reusable `<ThreeBackground variant="..." accent="..." />` component that:
+### 5. Out of scope
+- `/recap` and `/wrapped` untouched.
+- No business logic, routing, auth, or data changes.
+- Neon green + magenta palette stays; only the transitions/gradient on the base background are removed.
 
-- Mounts a fixed full-viewport `<canvas>` behind page content (`z-0`, `pointer-events-none`).
-- Renders a low-poly wireframe scene with subtle auto-rotation and mouse parallax.
-- Uses `IntersectionObserver` + `prefers-reduced-motion` to pause when off-screen or when the user prefers reduced motion.
-- Disposes geometry/material/renderer on unmount.
-
-Per-page variants (each page gets its own shape + accent):
-
-| Route | Shape variant | Accent |
-|---|---|---|
-| `/` Landing | Slowly rotating wireframe icosahedron cluster | neon green |
-| `/auth` + `/join` | Wireframe torus knot | neon magenta |
-| `/play` | Drifting wireframe cube grid (tunnel) | neon green |
-| `/admin` | Tilted wireframe octahedron lattice | neon magenta |
-| `/sponsor` | Slow wireframe dodecahedron | neon green |
-| `/sponsor-radar` | Concentric wireframe rings (radar) | neon magenta |
-
-All variants share the same dark gradient base (`--bg-base` → `--bg-deep`) so the app feels cohesive while each window is visually distinct.
-
-## Per-page edits
-
-- **`src/routes/index.tsx`** — Swap the teal radial gradient for the new dark base, drop `FloatingDecor`, mount `<ThreeBackground variant="icosahedron" accent="green" />`, restyle the three portal cards as sharp-cornered panels with neon hairline borders and neon-glow CTAs (one card highlights magenta to preview the multi-accent system).
-- **`src/routes/auth.tsx`** — New background + `ThreeBackground` (torus-knot, magenta). Inputs get sharp corners, neon focus rings, magenta submit button with green hover glow.
-- **`src/routes/join.tsx`** — Same chrome as auth, torus-knot bg, magenta accent.
-- **`src/routes/play.tsx`** — Cube-grid bg (green). Restyle section headers, cards, and the top header to the new palette. Existing functional pieces (vibe map, quests, leaderboard) keep their logic; only surface colors, borders, radii change.
-- **`src/routes/admin.tsx`** — Octahedron-lattice bg (magenta). Table/list chrome moves to dark panels with neon dividers.
-- **`src/routes/sponsor.tsx`** — Dodecahedron bg (green), restyled form panel.
-- **`src/routes/sponsor-radar.tsx`** — Radar-rings bg (magenta), restyled rows.
-- **`src/components/app-header.tsx`** — Update header bg/border to match new palette; logo uses neon-green gradient text with glow.
-
-## Out of scope
-
-- `/recap` (warm zine palette) and `/wrapped` (colorful slideshow) — untouched, per earlier intent.
-- No business-logic, data, auth, or routing changes. Pure presentation pass.
-- No changes to `Recap*` components, `wrapped.tsx`, server functions, or DB.
-
-## Technical notes
-
-- `bun add three` and `bun add -d @types/three` before any component imports it.
-- `ThreeBackground` is client-only; route components import it directly (no SSR concern since these are interactive pages).
-- Renderer uses `antialias: true`, `alpha: true`, `powerPreference: "high-performance"`, capped at `devicePixelRatio` of 1.5 to keep mobile cost low.
-- All neon colors go through CSS tokens so future palette tweaks happen in one file.
+### Technical notes
+- Tube radius ≈ `0.04` world units, `radialSegments: 8`, built once per edge using `THREE.TubeGeometry` along `LineCurve3` segments extracted from each shape's `EdgesGeometry`.
+- Rotation animation stays (it's transform, not color), respects `prefers-reduced-motion`.
+- All color tokens remain in `src/styles.css`; only values/animations change.

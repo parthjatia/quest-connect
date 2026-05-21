@@ -80,16 +80,12 @@ function Landing() {
   return (
     <div className="relative min-h-screen w-full bg-neon-base text-foreground overflow-hidden">
       <ThreeBackground variant="icosahedron" accent="green" />
-      <div className="pointer-events-none absolute inset-0 bg-neon-lines opacity-60" />
-
-      {/* Subtle radial glows */}
-      <div className="pointer-events-none absolute -top-32 -left-20 h-72 w-72 rounded-full bg-[#39ff14]/10 blur-[120px]" />
-      <div className="pointer-events-none absolute -bottom-32 -right-20 h-80 w-80 rounded-full bg-[#ff2d87]/10 blur-[120px]" />
+      <div className="pointer-events-none absolute inset-0 bg-neon-lines opacity-40" />
 
       <main className="relative z-10 mx-auto flex min-h-screen w-full max-w-[480px] flex-col px-6 pt-12 pb-10">
         {/* Header */}
         <header className="pt-4 pb-10">
-          <div className="inline-block mb-5 rounded-md border border-[#39ff14]/40 bg-[#39ff14]/10 px-3 py-1">
+          <div className="inline-block mb-5 border border-[#39ff14]/60 bg-black px-3 py-1">
             <span className="font-['Space_Grotesk'] text-[10px] font-bold uppercase tracking-[0.25em] text-neon">
               Quey
             </span>
@@ -106,7 +102,7 @@ function Landing() {
           </p>
         </header>
 
-        {/* Portal cards */}
+        {/* Portal cards — flat, sharp corners, no glow */}
         <section className="flex flex-col gap-5">
           {PORTALS.map((p) => {
             const a = ACCENT[p.accent];
@@ -117,10 +113,7 @@ function Landing() {
                 search={p.search}
                 className="group relative block text-left"
               >
-                <div
-                  className={`absolute -inset-0.5 rounded-md bg-gradient-to-r ${a.halo} blur transition duration-500`}
-                />
-                <div className="panel-neon relative overflow-hidden rounded-md p-5 transition-all duration-300 active:scale-[0.98]">
+                <div className="panel-neon relative overflow-hidden p-5 active:scale-[0.98]">
                   <div className="mb-4 flex items-start justify-between gap-4">
                     <div>
                       <p className={`font-['Space_Grotesk'] mb-1 text-[10px] font-bold uppercase tracking-[0.2em] ${a.label}`}>
@@ -128,7 +121,7 @@ function Landing() {
                       </p>
                       <h2 className="text-xl font-bold text-white">{p.title}</h2>
                     </div>
-                    <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border ${a.tile}`}>
+                    <div className={`flex h-10 w-10 shrink-0 items-center justify-center border ${a.tile}`}>
                       <p.Icon className="h-5 w-5" />
                     </div>
                   </div>
