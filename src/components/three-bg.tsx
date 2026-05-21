@@ -184,7 +184,6 @@ export function ThreeBackground({
       ref={hostRef}
       aria-hidden="true"
       className={`pointer-events-none fixed inset-0 z-0 ${className}`}
-      style={{ contain: "strict" }}
     />
   );
 }
