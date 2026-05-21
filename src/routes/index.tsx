@@ -57,22 +57,22 @@ const PORTALS: Portal[] = [
 
 const ACCENT = {
   cyan: {
-    halo: "from-cyan-500 to-blue-600 opacity-20 group-hover:opacity-40",
-    label: "text-cyan-300",
-    tile: "bg-cyan-500/15 border-cyan-400/30 text-cyan-300",
-    cta: "text-cyan-300",
+    halo: "from-[#39ff14] to-[#39ff14] opacity-20 group-hover:opacity-50",
+    label: "text-neon",
+    tile: "bg-[#39ff14]/15 border-[#39ff14]/40 text-neon",
+    cta: "text-neon",
   },
   gold: {
-    halo: "from-yellow-400 to-orange-500 opacity-25 group-hover:opacity-50",
-    label: "text-yellow-400",
-    tile: "bg-yellow-500/15 border-yellow-400/30 text-yellow-300",
-    cta: "text-yellow-300",
+    halo: "from-[#ff2d87] to-[#ff2d87] opacity-25 group-hover:opacity-50",
+    label: "text-neon-magenta",
+    tile: "bg-[#ff2d87]/15 border-[#ff2d87]/40 text-neon-magenta",
+    cta: "text-neon-magenta",
   },
   slate: {
-    halo: "from-slate-400 to-slate-500 opacity-10 group-hover:opacity-20",
-    label: "text-slate-400",
-    tile: "bg-white/5 border-white/10 text-slate-300",
-    cta: "text-slate-200",
+    halo: "from-white/30 to-white/10 opacity-15 group-hover:opacity-30",
+    label: "text-slate-300",
+    tile: "bg-white/5 border-white/15 text-slate-200",
+    cta: "text-slate-100",
   },
 } as const;
 
