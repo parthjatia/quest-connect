@@ -6,7 +6,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { setLocalAttendee, setLocalAdmin, setLocalSponsor } from "@/lib/local-attendee";
 import { toast } from "sonner";
 import { ArrowLeft, Loader2 } from "lucide-react";
-import { ThreeBackground } from "@/components/three-bg";
 
 type AuthMode = "attendee" | "admin" | "sponsor";
 type AuthSearch = { mode?: "admin" | "sponsor" };
@@ -26,7 +25,6 @@ function AuthPage() {
 
   return (
     <div className="relative min-h-screen bg-neon-base text-foreground overflow-hidden">
-      <ThreeBackground variant="torus-knot" accent="magenta" />
       <header className="relative z-10 border-b border-[#ff2d87]/20">
         <div className="mx-auto max-w-5xl px-6 py-4 flex items-center justify-between text-sm">
           <Link to="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-neon-magenta transition-colors">

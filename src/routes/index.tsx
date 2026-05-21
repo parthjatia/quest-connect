@@ -1,6 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Sliders, Gamepad2, Sparkles, ArrowRight } from "lucide-react";
-import { ThreeBackground } from "@/components/three-bg";
 import { AnimatedHeadline } from "@/components/animated-text";
 
 export const Route = createFileRoute("/")({
@@ -79,7 +78,6 @@ const ACCENT = {
 function Landing() {
   return (
     <div className="relative min-h-screen w-full bg-neon-base text-foreground overflow-hidden">
-      <ThreeBackground variant="icosahedron" accent="green" />
       <div className="pointer-events-none absolute inset-0 bg-neon-lines opacity-40" />
 
       <main className="relative z-10 mx-auto flex min-h-screen w-full max-w-[480px] flex-col px-6 pt-12 pb-10">
